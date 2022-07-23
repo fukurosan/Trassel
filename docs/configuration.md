@@ -16,6 +16,8 @@ The data manager can access and compute information about the relationships betw
 
 Trassel comes with a WebGL powered graph renderer. The renderer can either be used in tandem with Trassels layout engine, or completely standalone. The renderer makes it easy to create high performance interactive visualizations.
 
+There are several utility functions in trassel meant to support renderers, not only in terms of the layout engine. You can animate entire new coordinate states, compute information like hidden adjacent nodes, optimal new positions for nodes that are being brought online, and much more. Trassel is built to make life easier for the renderers, so they can focus more on visualization and less on data processing.
+
 #### Community detection
 
 Community detection can be used to compute groups of nodes within a graph. A community is a set of nodes that are densely connected to each other and loosely connected other nodes in the same graph. Trassel can also compute things like strongly connected components.
@@ -26,9 +28,6 @@ Path finding is used to compute the fastest path between two nodes in a graph. T
 
 #### Traversal
 There are several utility traversal functions that allow you to write less boilerplate when operating on the data in your graph. Trassel can execute depth-first and breadth-first searches as well as do things like neighbor lookups given a variety of parameters. This makes it a lot easier to navigate and process data in the dataset.
-
-#### Using with renderers
-There are several utility functions in trassel meant to support renderers, not only in terms of the layout engine. You can animate entire new coordinate states, compute information like hidden adjacent nodes, optimal new positions for nodes that are being brought online, and much more. Trassel is built to make life easier for the renderers, so they can focus more on visualization and less on data processing.
 
 ---
 
