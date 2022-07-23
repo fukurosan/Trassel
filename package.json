@@ -1,0 +1,65 @@
+{
+  "name": "trassel",
+  "version": "0.1.0",
+  "description": "Graph computing in JavaScript",
+  "main": "./dist/trassel.cjs.min.js",
+  "module": "./dist/trassel.esm.js",
+  "unpkg": "./dist/trassel.umd.min.js",
+  "jsdelivr": "./dist/trassel.umd.min.js",
+  "types": "./dist/types/index.d.ts",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fukurosan/Trassel.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fukurosan/Trassel/issues"
+  },
+  "homepage": "https://fukurosan.github.io/Trassel/",
+  "scripts": {
+    "prettier": "prettier \"*/**/*.js\" --write",
+    "lint": "eslint \"*/**/*.js\"",
+    "lint:fix": "npm run prettier && eslint \"*/**/*.js\" --fix",
+    "test": "node --experimental-vm-modules ./node_modules/.bin/jest --verbose --coverage --no-cache --maxtestworkers=50%  --collectCoverageFrom=src/**/*.{js,js}",
+    "clear": "rimraf dist",
+    "types": "tsc --declaration --emitDeclarationOnly --outDir ./dist/types/",
+    "rollup": "rollup -c",
+    "build": "npm run lint:fix && npm run clear && npm run test && npm run rollup && npm run types"
+  },
+  "keywords": [
+    "network",
+    "graph",
+    "engine",
+    "computing",
+    "javascript",
+    "shortest-path",
+    "community-detection",
+    "louvain",
+    "super-components",
+    "traversal",
+    "layout",
+    "force-directed",
+    "hierarchy",
+    "sugiyama-framework"
+  ],
+  "author": "Henrik Olofsson",
+  "license": "MIT",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^22.0.1",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@types/jest": "^28.1.4",
+    "eslint": "^8.19.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-jest": "^26.5.3",
+    "jest": "^28.1.2",
+    "prettier": "^2.7.1",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.75.7",
+    "rollup-plugin-copy": "^3.4.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "typescript": "^4.7.4"
+  },
+  "dependencies": {
+    "pixi.js": "^6.4.2"
+  }
+}
