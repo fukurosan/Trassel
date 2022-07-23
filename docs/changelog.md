@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.1.3
+- Several bug fixes
+
 ### 0.1.2
 
 - Implemented layout engine

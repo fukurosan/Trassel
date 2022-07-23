@@ -1,6 +1,6 @@
 /** @preserve @license @cc_on
  * ----------------------------------------------------------
- * trassel version 0.1.2
+ * trassel version 0.1.3
  * Graph computing in JavaScript
  * https://fukurosan.github.io/Trassel/
  * Copyright (c) 2022 Henrik Olofsson
@@ -45903,6 +45903,7 @@ var Trassel = (function (exports) {
 			this.nodes = nodes;
 			this.edges = edges;
 			const nodeLookupMap = new Map();
+			const stageNodes = [];
 			//Initializes Nodes
 			this.nodes.forEach(node => {
 				nodeLookupMap.set(node.id, node);
@@ -45928,7 +45929,7 @@ var Trassel = (function (exports) {
 				nodeGfx.lineStyle(2, 0xffffff);
 				nodeGfx.beginFill(node.renderer.backgroundColor || 0xffffff);
 				if (node.renderer.shape === "rectangle") {
-					nodeGfx.drawRoundedRect(-(node.width / 2), -(node.height / 2), node.width, node.height, 8);
+					nodeGfx.drawRoundedRect(-(node.width / 2), -(node.height / 2), node.width, node.height, 4);
 				} else {
 					nodeGfx.drawCircle(0, 0, node.radius);
 				}
@@ -45976,7 +45977,7 @@ var Trassel = (function (exports) {
 						-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 						node.width + FOCUS_SHAPE_SIZE_HALF * 2,
 						node.height + FOCUS_SHAPE_SIZE_HALF * 2,
-						16
+						12
 					);
 				} else {
 					selectedGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF);
@@ -46031,14 +46032,14 @@ var Trassel = (function (exports) {
 						-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 						node.width + FOCUS_SHAPE_SIZE_HALF * 2,
 						node.height + FOCUS_SHAPE_SIZE_HALF * 2,
-						16
+						12
 					);
 					focusGfx2.drawRoundedRect(
 						-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 						-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 						node.width + FOCUS_SHAPE_SIZE_HALF * 4,
 						node.height + FOCUS_SHAPE_SIZE_HALF * 4,
-						24
+						16
 					);
 				} else {
 					focusGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF);
@@ -46078,7 +46079,7 @@ var Trassel = (function (exports) {
 				//Add node to stage
 				node.renderer._private.container.addChild(nodeGfx);
 				node.renderer._private.container.cullable = true;
-				this.stage.addChild(node.renderer._private.container);
+				stageNodes.push(node);
 			});
 			//Initialize Edges
 			this.edges.forEach(edge => {
@@ -46141,7 +46142,7 @@ var Trassel = (function (exports) {
 						textBackground.lineStyle(2, edge.renderer.labelBackgroundColor || 0xffffff);
 						textBackground.beginFill(edge.renderer.labelBackgroundColor || 0xffffff);
 						textBackground.alpha = 1;
-						textBackground.drawRoundedRect(-width / 2, -height / 2, width, height, 8);
+						textBackground.drawRoundedRect(-width / 2, -height / 2, width, height, 4);
 						textBackground.endFill();
 						textContainer.addChildAt(textBackground, 0);
 						const textFocusBackground = new Graphics();
@@ -46153,14 +46154,14 @@ var Trassel = (function (exports) {
 							-height / 2 - FOCUS_SHAPE_SIZE_HALF * 2,
 							width + FOCUS_SHAPE_SIZE_HALF * 4,
 							height + FOCUS_SHAPE_SIZE_HALF * 4,
-							16
+							12
 						);
 						textFocusBackground2.drawRoundedRect(
 							-width / 2 - FOCUS_SHAPE_SIZE_HALF,
 							-height / 2 - FOCUS_SHAPE_SIZE_HALF,
 							width + FOCUS_SHAPE_SIZE_HALF * 2,
 							height + FOCUS_SHAPE_SIZE_HALF * 2,
-							12
+							8
 						);
 						textFocusBackground.endFill();
 						textFocusBackground2.endFill();
@@ -46203,6 +46204,9 @@ var Trassel = (function (exports) {
 					this.stage.addChild(textContainer);
 					edge.renderer._private.text = textContainer;
 				}
+			});
+			stageNodes.forEach(node => {
+				this.stage.addChild(node.renderer._private.container);
 			});
 		}
 
@@ -46666,11 +46670,13 @@ var Trassel = (function (exports) {
 					edge.renderer._private.line.renderable = false;
 					edge.renderer._private.markerSource.renderable = false;
 					edge.renderer._private.markerTarget.renderable = false;
+					if (edge.renderer._private.text) edge.renderer._private.text.renderable = false;
 					return
 				} else {
 					edge.renderer._private.line.renderable = true;
 					edge.renderer._private.markerSource.renderable = true;
 					edge.renderer._private.markerTarget.renderable = true;
+					if (edge.renderer._private.text) edge.renderer._private.text.renderable = true;
 				}
 				const source = edge.renderer._private.source;
 				const target = edge.renderer._private.target;
