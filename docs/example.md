@@ -46,22 +46,22 @@ graph.updateLayout()
 
 This is how to create a simple force directed rendering using Trassels own renderer.
 
-[Example]("https://fukurosan.github.io/Trassel/docs/examples/examplerenderer.html")
+<a href="https://fukurosan.github.io/Trassel/examples/examplerenderer.html">Example</a>
 
 ## External rendering
 
 This is how to create a super simple and interactive WebGL renderer using Trassel's layout engine and PixiJS.
 
-[Example]("https://fukurosan.github.io/Trassel/docs/examples/pixiexample.html")
+<a href="https://fukurosan.github.io/Trassel/examples/pixiexample.html">Example</a>
 
 ## Rendering a hierarchy
 
 This is how to render a simple hierarchical layout
 
-[Example]("https://fukurosan.github.io/Trassel/docs/examples/examplehierarchy.html")
+<a href="https://fukurosan.github.io/Trassel/examples/examplehierarchy.html">Example</a>
 
 ## Computing a layout change and animating it
 
 This is how to compute a new state for the entire graph and then animating it.
 
-[Example]("https://fukurosan.github.io/Trassel/docs/examples/exampleanimatestate.html")
+<a href="https://fukurosan.github.io/Trassel/examples/exampleanimatestate.html">Example</a>
