@@ -1,6 +1,6 @@
 /** @preserve @license @cc_on
  * ----------------------------------------------------------
- * trassel version 0.1.0
+ * trassel version 0.1.2
  * Graph computing in JavaScript
  * https://fukurosan.github.io/Trassel/
  * Copyright (c) 2022 Henrik Olofsson

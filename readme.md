@@ -4,11 +4,11 @@
   <img src="https://img.shields.io/npm/v/trassel?color=1" style="display:inline-block;">
   <img src="https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square" style="display:inline-block;">
   <br />
-    <img src="https://fukurosan.github.io/trassel/logo.png" width="200px" height="200px">
+    <img src="https://fukurosan.github.io/Trassel/logo.png" width="200px" height="200px">
   <br />
   Graph computing in JavaScript
   <br />
-  Check out the <a target="_blank" href="https://fukurosan.github.io/trassel/">Documentation</a> to learn more!
+  Check out the <a target="_blank" href="https://fukurosan.github.io/Trassel/">Documentation</a> to learn more!
 </div>
 
 ## What is this?

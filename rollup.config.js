@@ -47,6 +47,12 @@ export default [
 				name: GLOBAL_NAME
 			},
 			{
+				file: `${DIST_FOLDER}/${LIBRARY_NAME.toLowerCase()}.cjs.js`,
+				format: "cjs",
+				banner: BANNER,
+				name: GLOBAL_NAME
+			},
+			{
 				file: `./docs/examples/${LIBRARY_NAME.toLowerCase()}.iife.js`,
 				format: "iife",
 				banner: BANNER,
@@ -80,6 +86,12 @@ export default [
 			{
 				file: `${DIST_FOLDER}/${LIBRARY_NAME.toLowerCase()}.umd.min.js`,
 				format: "umd",
+				banner: BANNER,
+				name: GLOBAL_NAME
+			},
+			{
+				file: `${DIST_FOLDER}/${LIBRARY_NAME.toLowerCase()}.cjs.min.js`,
+				format: "cjs",
 				banner: BANNER,
 				name: GLOBAL_NAME
 			},
