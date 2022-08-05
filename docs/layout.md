@@ -243,6 +243,35 @@ The following additional arguments can be passed to the constructor:
 
 ---
 
+### Connections
+***Type: Static***
+
+Connections is a great way of computing layouts for connection graphs. The layout shows hierarchies as rectangular shapes. Visually it looks like lists that connect to each other.
+
+The following additional arguments can be passed to the constructor:
+ - **groupBy** 
+   - **Description**: *If provided the nodes will be assigned to hierarchy levels according to the function. Note that the returned values must be in order from 0 to max level.*
+   - **Type**: `node => number`
+   - **Default**: `null`
+ - **isVerticalLayout** 
+   - **Description**: *If true the tree will be top to bottom, otherwise it will be left to right*
+   - **Type**: `boolean`
+   - **Default**: `true`
+ - **padding** 
+   - **Description**: *Padding between nodes*
+   - **Type**: `number`
+   - **Default**: `100`
+ - **centerX** 
+   - **Description**: *Center X coordinate of the component*
+   - **Type**: `number`
+   - **Default**: `null`
+ - **centerY** 
+   - **Description**: *Center Y coordinate of the component*
+   - **Type**: `number`
+   - **Default**: `null`
+
+---
+
 ### Grid
 ***Type: Incremental***
 

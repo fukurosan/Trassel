@@ -15,5 +15,25 @@ import NBody from "./nbody"
 import Radial from "./radial"
 import Tree from "./tree"
 import Force from "./force"
+import Connections from "./connections"
 
-export { Animation, Attraction, BoundingBox, Center, Cluster, Collision, D3Adapter, Fan, LayoutComponent, Grid, Hierarchy, Link, Matrix, NBody, Radial, Tree, Force }
+export {
+	Animation,
+	Attraction,
+	BoundingBox,
+	Center,
+	Cluster,
+	Collision,
+	D3Adapter,
+	Fan,
+	LayoutComponent,
+	Grid,
+	Hierarchy,
+	Link,
+	Matrix,
+	NBody,
+	Radial,
+	Tree,
+	Force,
+	Connections
+}

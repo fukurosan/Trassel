@@ -4,6 +4,7 @@
 - Added new marker types
 - Added tree layout
 - Added force layout
+- Added connections layout
 
 ### 0.1.3
 - Several bug fixes

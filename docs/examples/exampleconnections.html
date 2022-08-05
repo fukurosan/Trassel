@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Example</title>
+    <script src="https://www.unpkg.com/pixi.js@6.4.2/dist/browser/pixi.js"></script>
+    <script src="./trassel.iife.js"></script>
+    <script>
+        /**
+         * A simple example of how the library can be utilized with a renderer to compute graph layouts
+         */
+        const graphData = {
+            nodes: [
+                { id: "n0", radius: 30, mass: 1000 },
+                { id: "n1", radius: 30, mass: 1000 },
+                { id: "n2", radius: 30, mass: 1000 },
+                { id: "n3", radius: 30, mass: 1000 },
+                { id: "n4", radius: 30, mass: 1000 },
+                { id: "n5", radius: 30, mass: 1000 },
+                { id: "n6", radius: 30, mass: 1000 },
+                { id: "n7", radius: 30, mass: 1000 }
+            ],
+            edges: [
+                { sourceNode: "n0", targetNode: "n1", distance: 50 },
+                { sourceNode: "n0", targetNode: "n2", distance: 50 },
+                { sourceNode: "n1", targetNode: "n3", distance: 50 },
+                { sourceNode: "n1", targetNode: "n4", distance: 50 },
+                { sourceNode: "n2", targetNode: "n5", distance: 50 },
+                { sourceNode: "n2", targetNode: "n6", distance: 50 },
+                { sourceNode: "n6", targetNode: "n7", distance: 50 }
+            ]
+        }
+        const graph = new Trassel.Trassel(graphData.nodes, graphData.edges, { layout: { updateCap: Infinity } })
+
+        const width = window.innerWidth
+        const height = window.innerHeight
+        const stage = new PIXI.Container()
+        const renderer = PIXI.autoDetectRenderer({ width, height, antialias: true, backgroundAlpha: 0 })
+        document.documentElement.appendChild(renderer.view)
+        const links = new PIXI.Graphics()
+        stage.addChild(links)
+        graphData.nodes.forEach((node) => {
+            node.gfx = new PIXI.Graphics()
+            node.gfx.lineStyle(1.5, 0xFFFFFF)
+            node.gfx.beginFill(0x000000)
+            node.gfx.drawCircle(0, 0, node.radius)
+            stage.addChild(node.gfx)
+        })
+        stage.position.set(width / 2, height / 2)
+
+        graph.addLayoutComponent("hierarchy", new Trassel.LayoutComponents.Connections())
+        graph.on("layoutupdate", () => {
+            graph.nodes.forEach((node) => {
+                let { x, y, gfx } = node
+                gfx.position = new PIXI.Point(x, y)
+            })
+            links.clear()
+            links.alpha = 0.6
+            graph.edges.forEach((edge) => {
+                let { source, target } = edge
+                links.lineStyle(2, 0x000000)
+                links.moveTo(source.x, source.y)
+                links.lineTo(target.x, target.y)
+            })
+            links.endFill()
+            renderer.render(stage)
+        })
+        graph.updateLayout()
+    </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

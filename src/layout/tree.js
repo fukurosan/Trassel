@@ -6,6 +6,7 @@ import LayoutComponent from "./layoutcomponent"
  * Creates an tree component that sorts nodes on an axis (either y or x) based on the Reingold-Tilford algorithm
  * The algorithm has been modified slightly to allow for things like multiple root nodes, centering in a coordinate system, and varying node sizes.
  * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
+ * @param {number=} padding - Minimum padding between nodes described in pixels
  * @param {number=} centerX - Center X coordinate of the component
  * @param {number=} centerY - Center Y coordinate of the component
  */

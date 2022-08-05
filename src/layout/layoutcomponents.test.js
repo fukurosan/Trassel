@@ -1,6 +1,23 @@
 import { initializeNodesAndEdges } from "../util/initializer"
 import Quadtree from "../util/quadtree"
-import { Animation, Attraction, BoundingBox, Center, Cluster, Collision, Fan, Force, Grid, Hierarchy, Link, Matrix, NBody, Radial, Tree } from "./layoutcomponents"
+import {
+	Animation,
+	Attraction,
+	BoundingBox,
+	Center,
+	Cluster,
+	Collision,
+	Fan,
+	Force,
+	Grid,
+	Hierarchy,
+	Link,
+	Matrix,
+	NBody,
+	Radial,
+	Tree,
+	Connections
+} from "./layoutcomponents"
 
 describe("Layout Components", () => {
 	const baseNodes = JSON.stringify([
@@ -190,6 +207,32 @@ describe("Layout Components", () => {
 		component.initialize(treeNodes, treeEdges, {})
 		component.execute()
 		expect(JSON.stringify(nodes)).toMatchSnapshot("Tree component")
+	})
+
+	it("Connection component", () => {
+		const treeNodes = [
+			{ id: "n0", radius: 30, mass: 1000 },
+			{ id: "n1", radius: 30, mass: 1000 },
+			{ id: "n2", radius: 30, mass: 1000 },
+			{ id: "n3", radius: 30, mass: 1000 },
+			{ id: "n4", radius: 30, mass: 1000 },
+			{ id: "n5", radius: 30, mass: 1000 },
+			{ id: "n6", radius: 30, mass: 1000 },
+			{ id: "n7", radius: 30, mass: 1000 }
+		]
+		const treeEdges = [
+			{ sourceNode: "n0", targetNode: "n1", distance: 50 },
+			{ sourceNode: "n0", targetNode: "n2", distance: 50 },
+			{ sourceNode: "n1", targetNode: "n3", distance: 50 },
+			{ sourceNode: "n1", targetNode: "n4", distance: 50 },
+			{ sourceNode: "n2", targetNode: "n5", distance: 50 },
+			{ sourceNode: "n2", targetNode: "n6", distance: 50 },
+			{ sourceNode: "n6", targetNode: "n7", distance: 50 }
+		]
+		const component = new Connections()
+		component.initialize(treeNodes, treeEdges, {})
+		component.execute()
+		expect(JSON.stringify(nodes)).toMatchSnapshot("Connections component")
 	})
 
 	it("Link component", () => {

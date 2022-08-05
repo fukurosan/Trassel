@@ -39,9 +39,9 @@ export default class NBody extends LayoutComponent {
 					const yDistance = node.y - node2.y
 					const distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance) + 0.01
 					if (distance > 0) {
-						const repulsiveForce = k * k / distance
-						displacement.dx += xDistance / distance * repulsiveForce
-						displacement.dy += yDistance / distance * repulsiveForce
+						const repulsiveForce = (k * k) / distance
+						displacement.dx += (xDistance / distance) * repulsiveForce
+						displacement.dy += (yDistance / distance) * repulsiveForce
 					}
 				}
 			}
@@ -53,14 +53,14 @@ export default class NBody extends LayoutComponent {
 			const xDistance = edge.source.x - edge.target.x
 			const yDistance = edge.source.y - edge.target.y
 			const distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance) + 0.01
-			const attractionForce = distance * distance / k
+			const attractionForce = (distance * distance) / k
 			const sourceDisplayment = this.nodeDisplacementMap.get(edge.source)
 			const targetDisplayment = this.nodeDisplacementMap.get(edge.target)
 			if (distance > 0) {
-				sourceDisplayment.dx -= xDistance / distance * attractionForce
-				sourceDisplayment.dy -= yDistance / distance * attractionForce
-				targetDisplayment.dx += xDistance / distance * attractionForce
-				targetDisplayment.dy += yDistance / distance * attractionForce
+				sourceDisplayment.dx -= (xDistance / distance) * attractionForce
+				sourceDisplayment.dy -= (yDistance / distance) * attractionForce
+				targetDisplayment.dx += (xDistance / distance) * attractionForce
+				targetDisplayment.dy += (yDistance / distance) * attractionForce
 			}
 		}
 		//Compute gravity, speed and apply displacement
@@ -70,8 +70,8 @@ export default class NBody extends LayoutComponent {
 			//Gravity
 			const distance = Math.sqrt(node.x * node.x + node.y * node.y)
 			const gravityForce = 0.01 * k * this.gravity * distance
-			displacement.dx -= gravityForce * node.x / distance
-			displacement.dy -= gravityForce * node.y / distance
+			displacement.dx -= (gravityForce * node.x) / distance
+			displacement.dy -= (gravityForce * node.y) / distance
 			//Speed
 			displacement.dx *= this.speed
 			displacement.dy *= this.speed
@@ -81,8 +81,8 @@ export default class NBody extends LayoutComponent {
 				const limitedDist = Math.min(maxDisplace * this.speed, displacementDistance)
 				//node.x += displacement.dx / displacementDistance * limitedDist
 				//node.y += displacement.dy / displacementDistance * limitedDist
-				node.vx += displacement.dx / displacementDistance * limitedDist * alpha
-				node.vy += displacement.dy / displacementDistance * limitedDist * alpha
+				node.vx += (displacement.dx / displacementDistance) * limitedDist * alpha
+				node.vy += (displacement.dy / displacementDistance) * limitedDist * alpha
 			}
 		}
 	}
