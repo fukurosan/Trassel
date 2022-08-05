@@ -1,6 +1,6 @@
 import { initializeNodesAndEdges } from "../util/initializer"
 import Quadtree from "../util/quadtree"
-import { Animation, Attraction, BoundingBox, Center, Cluster, Collision, Fan, Grid, Hierarchy, Link, Matrix, NBody, Radial, Tree } from "./layoutcomponents"
+import { Animation, Attraction, BoundingBox, Center, Cluster, Collision, Fan, Force, Grid, Hierarchy, Link, Matrix, NBody, Radial, Tree } from "./layoutcomponents"
 
 describe("Layout Components", () => {
 	const baseNodes = JSON.stringify([
@@ -210,6 +210,16 @@ describe("Layout Components", () => {
 			applyVelocity(nodes)
 		}
 		expect(JSON.stringify(nodes)).toMatchSnapshot("Matrix component")
+	})
+
+	it("Force component", () => {
+		const component = new Force()
+		component.initialize(nodes, edges, {})
+		for (let i = 0; i < 300; i++) {
+			component.execute(ALPHA)
+			applyVelocity(nodes)
+		}
+		expect(JSON.stringify(nodes)).toMatchSnapshot("Force component")
 	})
 
 	it("N-body component", () => {

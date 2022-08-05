@@ -6,7 +6,7 @@ Trassel comes with a layout engine that can be used both to produce interactive 
 
 The layout engine uses layout components to compute node positions either statically or incrementally through a simplified [velocity verlet](https://en.wikipedia.org/wiki/Verlet_integration) numerical method. Layout components can produce a variety of effects on nodes, such as pull certain nodes closer together, pull them apart, prevent collisions, form patterns, and much more. Trassel comes with a number of different components that fill a majority of use cases, but you can also develop your own components and apply them to your layout. 
 
-There are two types of components: dynamic and static. Dynamic components are force-directed, and will affect nodes by updated their `.vx` and .`vy` values (velocity). Static layouts affect nodes' `.fx` and `.fy` coordinates (fixed), ignoring velocity and only requiring a single update to produce an optimal position. The two types of components are able to operate side by side in the layout. 
+There are two types of components: incremental and static. Incremental components are force-directed, and will affect nodes by updated their `.vx` and .`vy` values (velocity). Static layouts affect nodes' `.fx` and `.fy` coordinates (fixed), ignoring velocity and only requiring a single update to produce an optimal position. The two types of components are able to operate side by side in the layout. 
 
 ## Loop and updates
 
@@ -85,7 +85,7 @@ trassel.removeLayoutComponent("nbody")
 The following components ship with Trassel.
 
 ### NBody
-***Type: Dynamic***
+***Type: Incremental***
 
 The Nbody comonent can be used to create repulsion or attraction between nodes in the graphs. A node's `mass` property is used to determine how strong its repulsive or attractive power is.
 
@@ -111,8 +111,29 @@ The following additional arguments can be passed to the constructor:
 
 ---
 
+### Force
+***Type: Incremental***
+
+The force component can generate incremental force-directed layouts using the Fruchterman & Reingold algorithm. For larger graphs that need to be rendered continuously you may want to consider combining nbody, link and axis components, which will generally provide better performance in terms of computational speed.
+
+The following additional arguments can be passed to the constructor:
+ - **size** 
+   - **Description**: *Parameter used to control the size of the graph. Generally a fairly high number.*
+   - **Type**: `number`
+   - **Default**: `nodes.length * 20000`
+ - **gravity** 
+   - **Description**: *Strength of the gravity in the layout.*
+   - **Type**: `number`
+   - **Default**: `1`
+ - **speed** 
+   - **Description**: *The speed at which things move in the graph.*
+   - **Type**: `number`
+   - **Default**: `0.1`
+
+---
+
 ### Link
-***Type: Dynamic***
+***Type: Incremental***
 
 The link component is used to attract nodes in the graph that have edges connecting them. The component's strength changes depending on the distance between the two nodes relative to the `.distance` property configured on the edge, `.distance` being the optimal distance between the two nodes.
 
@@ -121,7 +142,7 @@ This component has no constructor arguments.
 ---
 
 ### Collision
-***Type: Dynamic***
+***Type: Incremental***
 
 The collision component stops nodes from colliding (i.e. overlapping) with each other. This component is based on the assumption that all nodes are round, and will use the `.radius` property on nodes to compute if they are colliding or not.
 
@@ -140,7 +161,7 @@ The following additional arguments can be passed to the constructor:
 ---
 
 ### Attraction (Gravity)
-***Type: Dynamic***
+***Type: Incremental***
 
 An attraction component can be used to create attraction to a given point in the graph. The component can be configured to either be vertical or horizontal. It is typically used to either create a gravitational force towards the center of a graph, or to draw nodes into a straight line.
 
@@ -223,7 +244,7 @@ The following additional arguments can be passed to the constructor:
 ---
 
 ### Grid
-***Type: Dynamic***
+***Type: Incremental***
 
 Grid layout creates a grid on either the Y-axis, X-axis or both. The grid draws nodes towards these sets of axises, creating a matrix of small gravitational spaces resulting in a more square looking graph. This layout can help make some graphs look much more tidy. 
 
@@ -275,7 +296,7 @@ The following additional arguments can be passed to the constructor:
 ---
 
 ### Cluster
-***Type: Dynamic***
+***Type: Incremental***
 
 Cluster layout allows you to cluster nodes together into groups. This is useful if for example you want to show relationships between nodes that are not necessarily connected by edges.
 
@@ -288,7 +309,7 @@ The following additional arguments can be passed to the constructor:
 ---
 
 ### Radial
-***Type: Dynamic***
+***Type: Incremental***
 
 Radial layout draws nodes into a circular pattern centered on a given set of coordinates and optionally with a given diameter. This is particularly useful if nodes are heavily interconnected, and it it is difficult to make out what is actually connected to what. You can also use this component to create radial clusters (i.e. layers of circles).
 
@@ -345,7 +366,7 @@ Fan layout orders nodes into lines pointing out from a center point. This is a u
 ---
 
 ### Center
-***Type: Dynamic***
+***Type: Incremental***
 
 Center component tries to ensure that the average of all node coordinates should be 0. This means that the graph will be centered without affecting the nodes' relative position to each other. The center component is particularly useful in graphs that are not disjointed.
 
@@ -383,7 +404,7 @@ If no width or height is provided to the bounding box function these values will
 ---
 
 ### Animation
-***Type: Dynamic***
+***Type: Incremental***
 
 Animation components can be used to transport nodes from one position to another. These components can also be configured to remove themselves from the layout once all nodes have reached their destinations.
 

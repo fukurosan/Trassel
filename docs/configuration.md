@@ -4,7 +4,7 @@
 
 #### Layouts
 
-Trassel comes with a layout engine that can be used both to produce dynamic as well as static layouts. The engine comes with a number of configurable components for computing hierarchies, node clusters, grids and much more. You can finely control exactly how each node should be positioned, as well as write your own layout components. Dynamic layout components are typically force-directed, and continuously computed, while static ones only execute once.
+Trassel comes with a layout engine that can be used both to produce incremental as well as static layouts. The engine comes with a number of configurable components for computing hierarchies, node clusters, grids and much more. You can finely control exactly how each node should be positioned, as well as write your own layout components. Incremental layout components are typically force-directed, and continuously computed, while static ones only execute once.
 
 #### Data Management
 

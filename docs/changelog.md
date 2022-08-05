@@ -3,6 +3,7 @@
 ### 0.1.4
 - Added new marker types
 - Added tree layout
+- Added force layout
 
 ### 0.1.3
 - Several bug fixes
