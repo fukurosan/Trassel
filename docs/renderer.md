@@ -171,7 +171,7 @@ renderer.setLineType("line")
 By default the Trassel renderer will draw an arrow head marker on the target side of each edge, and nothing on the source side. This can be configured in the edge data by providing a sourceMarker and targetMarker property inside the renderer property object.
 
 ```javascript
-//Possible options are "arrow" or "none"
+//Possible options are "arrow", "hollowArrow", or "none"
 const edgeWithNoMarkers = { sourceNode: "n0", targetNode: "n0", renderer: { markerSource: "none", markerTarget: "none" } }
 ```
 
@@ -231,9 +231,9 @@ interface INodeRendererOptions {
 
 interface IEdgeRendererOptions {
 	/** Marker to be drawn on the source side of the edge */
-	markerSource?: "arrow" | "none"
+	markerSource?: "arrow" | "hollowArrow" | "none"
 	/** Marker to be drawn on the target side of the edge */
-	markerTarget?: "arrow" | "none"
+	markerTarget?: "arrow" | "hollowArrow" | "none"
 	/** Text label (name) for the edge */
 	label?: string
 	/** Text color */

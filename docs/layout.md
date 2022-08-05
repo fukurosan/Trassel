@@ -4,7 +4,7 @@ Trassel comes with a layout engine that can be used both to produce interactive 
 
 ## How it works
 
-The layout engine uses layout components to compute node positions either statically or through a simplified [velocity verlet](https://en.wikipedia.org/wiki/Verlet_integration) numerical method. Layout components can produce a variety of effects on nodes, such as pull certain nodes closer together, pull them apart, prevent collisions, form patterns, and much more. Trassel comes with a number of different components that fill a majority of use cases, but you can also develop your own components and apply them to your layout. 
+The layout engine uses layout components to compute node positions either statically or incrementally through a simplified [velocity verlet](https://en.wikipedia.org/wiki/Verlet_integration) numerical method. Layout components can produce a variety of effects on nodes, such as pull certain nodes closer together, pull them apart, prevent collisions, form patterns, and much more. Trassel comes with a number of different components that fill a majority of use cases, but you can also develop your own components and apply them to your layout. 
 
 There are two types of components: dynamic and static. Dynamic components are force-directed, and will affect nodes by updated their `.vx` and .`vy` values (velocity). Static layouts affect nodes' `.fx` and `.fy` coordinates (fixed), ignoring velocity and only requiring a single update to produce an optimal position. The two types of components are able to operate side by side in the layout. 
 
@@ -184,11 +184,38 @@ The following additional arguments can be passed to the constructor:
    - **Description**: *If set nodes will be set into a fixed order, trying to minimize edge crossings.*
    - **Type**: `boolean`
    - **Default**: `true`
- - **isRepulse** 
+ - **centerX** 
    - **Description**: *Center X coordinate of the component*
    - **Type**: `number`
    - **Default**: `null`
- - **isRepulse** 
+ - **centerY** 
+   - **Description**: *Center Y coordinate of the component*
+   - **Type**: `number`
+   - **Default**: `null`
+
+---
+
+### Tree
+***Type: Static***
+
+Tree is similar to hierarchy, but excels att processing layouts in hierarchies with single-parent relationships. Generally speaking tree will execute faster than hierarchy, but for complex data the result will be worse.
+
+The layout is based on the Reingold-Tilford algorithm, but has been slightly modified to allow for things like multiple root nodes, centering in a coordinate system, and varying node sizes
+
+The following additional arguments can be passed to the constructor:
+ - **isVerticalLayout** 
+   - **Description**: *If true the tree will be top to bottom, otherwise it will be left to right*
+   - **Type**: `boolean`
+   - **Default**: `true`
+ - **padding** 
+   - **Description**: *Padding between nodes*
+   - **Type**: `number`
+   - **Default**: `100`
+ - **centerX** 
+   - **Description**: *Center X coordinate of the component*
+   - **Type**: `number`
+   - **Default**: `null`
+ - **centerY** 
    - **Description**: *Center Y coordinate of the component*
    - **Type**: `number`
    - **Default**: `null`

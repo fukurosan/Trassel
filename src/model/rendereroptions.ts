@@ -25,9 +25,9 @@ export interface INodeRendererOptions {
 
 export interface IEdgeRendererOptions {
 	/** Marker to be drawn on the source side of the edge */
-	markerSource?: "arrow" | "none"
+	markerSource?: "arrow" | "hollowArrow" | "none"
 	/** Marker to be drawn on the target side of the edge */
-	markerTarget?: "arrow" | "none"
+	markerTarget?: "arrow" | "hollowArrow" | "none"
 	/** Text label (name) for the edge */
 	label?: string
 	/** Text color */

@@ -51,7 +51,7 @@
         })
         stage.position.set(width / 2, height / 2)
 
-        graph.addLayoutComponent("hierarchy", new Trassel.LayoutComponents.Hierarchy())
+        graph.addLayoutComponent("hierarchy", new Trassel.LayoutComponents.Tree())
         graph.on("layoutupdate", () => {
             graph.nodes.forEach((node) => {
                 let { x, y, gfx } = node

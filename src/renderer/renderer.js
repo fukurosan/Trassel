@@ -36,7 +36,9 @@ export class WebGLRenderer {
 		])
 		this.markers = {
 			none: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' %3E%3C/svg%3E",
-			arrow: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E"
+			arrow: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E",
+			hollowArrow:
+				"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23ffffff;stroke:%23000000;stroke-width:4;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E"
 		}
 		this.initializeRenderer()
 		this.initializePanAndBackdropEvents()
@@ -509,7 +511,7 @@ export class WebGLRenderer {
 					textContainer.on("click", onClick)
 					textContainer.on("rightclick", onRightClick)
 				}
-				this.stage.addChild(textContainer)
+				edge.renderer._private.container.addChild(textContainer)
 				edge.renderer._private.text = textContainer
 			}
 		})
