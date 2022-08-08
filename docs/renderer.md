@@ -162,7 +162,7 @@ The look and feel of edges' lines can be configured using the linetype option. T
 ```javascript
 import { Renderer } from "trassel"
 const renderer = new Renderer(element, nodes, edges, { lineType: "taxi" })
-//Possible options are "line" or "taxi"
+//Possible options are "line", "taxi", "orthogonal" or "cubicbezier"
 renderer.setLineType("line")
 ```
 
@@ -209,7 +209,7 @@ Some interfaces:
 ```javascript
 interface IRendererOptions {
 	/** How the shape of the lines in the graph will look like */
-	lineType?: "line" | "taxi"
+	lineType?: "line" | "taxi" | "orthogonal" | "cubicbezier"
 	/** Color used for things like selection and hover states */
 	primaryColor?: number
 	/** Color of the graph backdrop */
@@ -242,6 +242,10 @@ interface IEdgeRendererOptions {
 	labelBackgroundColor?: number
 	/** Is the label interactive? */
 	isInteractive?: boolean
+	/** In an orthogonal line type this can be used to control where the lines start and end */
+	sourceEdgePosition?: "top" | "right" | "bottom" | "left"
+	/** In an orthogonal line type this can be used to control where the lines start and end */
+	targetEdgePosition?: "top" | "right" | "bottom" | "left"
 }
 
 /**

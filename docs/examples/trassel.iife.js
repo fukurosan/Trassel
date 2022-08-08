@@ -43,7 +43,7 @@ var Trassel = (function (exports) {
 			}
 			//If no x or y coordinates exist then set a position based on a circle of nodes
 			if (isNaN(node.x) || isNaN(node.y)) {
-				const radius = node.radius * 2 * Math.sqrt(0.5 + i);
+				const radius = node.radius * Math.sqrt(0.5 + i);
 				const angle = i * (Math.PI * (3 - Math.sqrt(5)));
 				node.x = radius * Math.cos(angle);
 				node.y = radius * Math.sin(angle);
@@ -2441,7 +2441,7 @@ var Trassel = (function (exports) {
 	 * @param {number=} size - How large should each axis space be?
 	 * @param {number=} offsetMultiplier - If no size is provided the size of nodes will be used. This multiplier can be used to multiply the measurements by a given number.
 	 */
-	class Grid extends LayoutComponent {
+	class Grid$1 extends LayoutComponent {
 		constructor(useX = true, useY = true, strength = 0.6, size = undefined, offsetMultiplier = 3) {
 			super();
 			this.useX = useX;
@@ -3700,9 +3700,9 @@ var Trassel = (function (exports) {
 						const yDistance = node.y - node2.y;
 						const distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance) + 0.01;
 						if (distance > 0) {
-							const repulsiveForce = k * k / distance;
-							displacement.dx += xDistance / distance * repulsiveForce;
-							displacement.dy += yDistance / distance * repulsiveForce;
+							const repulsiveForce = (k * k) / distance;
+							displacement.dx += (xDistance / distance) * repulsiveForce;
+							displacement.dy += (yDistance / distance) * repulsiveForce;
 						}
 					}
 				}
@@ -3714,14 +3714,14 @@ var Trassel = (function (exports) {
 				const xDistance = edge.source.x - edge.target.x;
 				const yDistance = edge.source.y - edge.target.y;
 				const distance = Math.sqrt(xDistance * xDistance + yDistance * yDistance) + 0.01;
-				const attractionForce = distance * distance / k;
+				const attractionForce = (distance * distance) / k;
 				const sourceDisplayment = this.nodeDisplacementMap.get(edge.source);
 				const targetDisplayment = this.nodeDisplacementMap.get(edge.target);
 				if (distance > 0) {
-					sourceDisplayment.dx -= xDistance / distance * attractionForce;
-					sourceDisplayment.dy -= yDistance / distance * attractionForce;
-					targetDisplayment.dx += xDistance / distance * attractionForce;
-					targetDisplayment.dy += yDistance / distance * attractionForce;
+					sourceDisplayment.dx -= (xDistance / distance) * attractionForce;
+					sourceDisplayment.dy -= (yDistance / distance) * attractionForce;
+					targetDisplayment.dx += (xDistance / distance) * attractionForce;
+					targetDisplayment.dy += (yDistance / distance) * attractionForce;
 				}
 			}
 			//Compute gravity, speed and apply displacement
@@ -3731,8 +3731,8 @@ var Trassel = (function (exports) {
 				//Gravity
 				const distance = Math.sqrt(node.x * node.x + node.y * node.y);
 				const gravityForce = 0.01 * k * this.gravity * distance;
-				displacement.dx -= gravityForce * node.x / distance;
-				displacement.dy -= gravityForce * node.y / distance;
+				displacement.dx -= (gravityForce * node.x) / distance;
+				displacement.dy -= (gravityForce * node.y) / distance;
 				//Speed
 				displacement.dx *= this.speed;
 				displacement.dy *= this.speed;
@@ -3742,8 +3742,8 @@ var Trassel = (function (exports) {
 					const limitedDist = Math.min(maxDisplace * this.speed, displacementDistance);
 					//node.x += displacement.dx / displacementDistance * limitedDist
 					//node.y += displacement.dy / displacementDistance * limitedDist
-					node.vx += displacement.dx / displacementDistance * limitedDist * alpha;
-					node.vy += displacement.dy / displacementDistance * limitedDist * alpha;
+					node.vx += (displacement.dx / displacementDistance) * limitedDist * alpha;
+					node.vy += (displacement.dy / displacementDistance) * limitedDist * alpha;
 				}
 			}
 		}
@@ -3788,11 +3788,12 @@ var Trassel = (function (exports) {
 					if (!groups[group]) groups[group] = [];
 					groups[group].push(node);
 				});
-				Object.keys(groups).sort().forEach(key => {
-					hierarchy.push(groups[key]);
-				});
-			}
-			else {
+				Object.keys(groups)
+					.sort()
+					.forEach(key => {
+						hierarchy.push(groups[key]);
+					});
+			} else {
 				hierarchy = determineLevels([...this.nodes, { id: "FAKE__ISLAND" }], acyclicEdges).hierarchy;
 				//This is just because of how the determineLevels function works.
 				//If there are island nodes then these will all be placed in the top level, with the tree starting in the second level.
@@ -3818,10 +3819,12 @@ var Trassel = (function (exports) {
 			});
 			//Compute broadest level size
 			const broadestSize = hierarchy.reduce((acc, level) => {
-				const candidate = level.reduce((acc, node) => {
-					acc += this.isVerticalLayout ? this.getWidth(node) : this.getHeight(node);
-					return acc
-				}, 0) + this.PADDING_PX * (level.length - 1);
+				const candidate =
+					level.reduce((acc, node) => {
+						acc += this.isVerticalLayout ? this.getWidth(node) : this.getHeight(node);
+						return acc
+					}, 0) +
+					this.PADDING_PX * (level.length - 1);
 				return candidate > acc ? candidate : acc
 			}, 1);
 			//Sort levels
@@ -3872,8 +3875,7 @@ var Trassel = (function (exports) {
 						y: this.isVerticalLayout ? position : levelOffsets[levelIndex],
 						x: this.isVerticalLayout ? levelOffsets[levelIndex] : position
 					});
-				}
-				else {
+				} else {
 					level.forEach(node => {
 						const nodeSize = nodeSizes.get(node.id);
 						const position = lastOffset + nodeSize / 2;
@@ -3937,7 +3939,7 @@ var Trassel = (function (exports) {
 		D3Adapter: D3Adapter,
 		Fan: Fan,
 		LayoutComponent: LayoutComponent,
-		Grid: Grid,
+		Grid: Grid$1,
 		Hierarchy: Hierarchy,
 		Link: Link,
 		Matrix: Matrix$1,
@@ -9399,7 +9401,7 @@ var Trassel = (function (exports) {
 	 * point (x, y) and by its width and its height.
 	 * @memberof PIXI
 	 */
-	var Rectangle = /** @class */ (function () {
+	var Rectangle$1 = /** @class */ (function () {
 	    /**
 	     * @param x - The X coordinate of the upper-left corner of the rectangle
 	     * @param y - The Y coordinate of the upper-left corner of the rectangle
@@ -9694,7 +9696,7 @@ var Trassel = (function (exports) {
 	     * @returns The framing rectangle
 	     */
 	    Circle.prototype.getBounds = function () {
-	        return new Rectangle(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+	        return new Rectangle$1(this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
 	    };
 	    Circle.prototype.toString = function () {
 	        return "[@pixi/math:Circle x=" + this.x + " y=" + this.y + " radius=" + this.radius + "]";
@@ -9753,7 +9755,7 @@ var Trassel = (function (exports) {
 	     * @returns The framing rectangle
 	     */
 	    Ellipse.prototype.getBounds = function () {
-	        return new Rectangle(this.x - this.width, this.y - this.height, this.width, this.height);
+	        return new Rectangle$1(this.x - this.width, this.y - this.height, this.width, this.height);
 	    };
 	    Ellipse.prototype.toString = function () {
 	        return "[@pixi/math:Ellipse x=" + this.x + " y=" + this.y + " width=" + this.width + " height=" + this.height + "]";
@@ -10911,9 +10913,9 @@ var Trassel = (function (exports) {
 	     */
 	    Bounds.prototype.getRectangle = function (rect) {
 	        if (this.minX > this.maxX || this.minY > this.maxY) {
-	            return Rectangle.EMPTY;
+	            return Rectangle$1.EMPTY;
 	        }
-	        rect = rect || new Rectangle(0, 0, 1, 1);
+	        rect = rect || new Rectangle$1(0, 0, 1, 1);
 	        rect.x = this.minX;
 	        rect.y = this.minY;
 	        rect.width = this.maxX - this.minX;
@@ -11570,7 +11572,7 @@ var Trassel = (function (exports) {
 	        }
 	        if (!rect) {
 	            if (!this._boundsRect) {
-	                this._boundsRect = new Rectangle();
+	                this._boundsRect = new Rectangle$1();
 	            }
 	            rect = this._boundsRect;
 	        }
@@ -11584,7 +11586,7 @@ var Trassel = (function (exports) {
 	    DisplayObject.prototype.getLocalBounds = function (rect) {
 	        if (!rect) {
 	            if (!this._localBoundsRect) {
-	                this._localBoundsRect = new Rectangle();
+	                this._localBoundsRect = new Rectangle$1();
 	            }
 	            rect = this._localBoundsRect;
 	        }
@@ -18602,7 +18604,7 @@ var Trassel = (function (exports) {
 	        _this.noFrame = false;
 	        if (!frame) {
 	            _this.noFrame = true;
-	            frame = new Rectangle(0, 0, 1, 1);
+	            frame = new Rectangle$1(0, 0, 1, 1);
 	        }
 	        if (baseTexture instanceof Texture) {
 	            baseTexture = baseTexture.baseTexture;
@@ -19951,10 +19953,10 @@ var Trassel = (function (exports) {
 	        this.multisample = MSAA_QUALITY$4.NONE;
 	        // next three fields are created only for root
 	        // re-assigned for everything else
-	        this.sourceFrame = new Rectangle();
-	        this.destinationFrame = new Rectangle();
-	        this.bindingSourceFrame = new Rectangle();
-	        this.bindingDestinationFrame = new Rectangle();
+	        this.sourceFrame = new Rectangle$1();
+	        this.destinationFrame = new Rectangle$1();
+	        this.bindingSourceFrame = new Rectangle$1();
+	        this.bindingDestinationFrame = new Rectangle$1();
 	        this.filters = [];
 	        this.transform = null;
 	    }
@@ -20006,10 +20008,10 @@ var Trassel = (function (exports) {
 	        this.statePool = [];
 	        this.quad = new Quad();
 	        this.quadUv = new QuadUv();
-	        this.tempRect = new Rectangle();
+	        this.tempRect = new Rectangle$1();
 	        this.activeState = {};
 	        this.globalUniforms = new UniformGroup({
-	            outputFrame: new Rectangle(),
+	            outputFrame: new Rectangle$1(),
 	            inputSize: new Float32Array(4),
 	            inputPixel: new Float32Array(4),
 	            inputClamp: new Float32Array(4),
@@ -20714,7 +20716,7 @@ var Trassel = (function (exports) {
 	    return GLFramebuffer;
 	}());
 
-	var tempRectangle = new Rectangle();
+	var tempRectangle = new Rectangle$1();
 	/**
 	 * System plugin to the renderer to manage framebuffers.
 	 * @memberof PIXI
@@ -20734,7 +20736,7 @@ var Trassel = (function (exports) {
 	        var gl = this.gl = this.renderer.gl;
 	        this.CONTEXT_UID = this.renderer.CONTEXT_UID;
 	        this.current = this.unknownFramebuffer;
-	        this.viewport = new Rectangle();
+	        this.viewport = new Rectangle$1();
 	        this.hasMRT = true;
 	        this.writeDepthTexture = true;
 	        this.disposeAll(true);
@@ -21170,7 +21172,7 @@ var Trassel = (function (exports) {
 	    /** Resets framebuffer stored state, binds screen framebuffer. Should be called before renderTexture reset(). */
 	    FramebufferSystem.prototype.reset = function () {
 	        this.current = this.unknownFramebuffer;
-	        this.viewport = new Rectangle();
+	        this.viewport = new Rectangle$1();
 	    };
 	    FramebufferSystem.prototype.destroy = function () {
 	        this.renderer = null;
@@ -23509,9 +23511,9 @@ var Trassel = (function (exports) {
 	}());
 
 	// Temporary rectangle for assigned sourceFrame or destinationFrame
-	var tempRect = new Rectangle();
+	var tempRect = new Rectangle$1();
 	// Temporary rectangle for renderTexture destinationFrame
-	var tempRect2 = new Rectangle();
+	var tempRect2 = new Rectangle$1();
 	/* eslint-disable max-len */
 	/**
 	 * System plugin to the renderer to manage render textures.
@@ -23539,9 +23541,9 @@ var Trassel = (function (exports) {
 	        this.clearColor = renderer._backgroundColorRgba;
 	        this.defaultMaskStack = [];
 	        this.current = null;
-	        this.sourceFrame = new Rectangle();
-	        this.destinationFrame = new Rectangle();
-	        this.viewportFrame = new Rectangle();
+	        this.sourceFrame = new Rectangle$1();
+	        this.destinationFrame = new Rectangle$1();
+	        this.viewportFrame = new Rectangle$1();
 	    }
 	    /**
 	     * Bind the current render texture.
@@ -24946,7 +24948,7 @@ var Trassel = (function (exports) {
 	         * Its safe to use as filterArea or hitArea for the whole stage.
 	         * @member {PIXI.Rectangle}
 	         */
-	        _this.screen = new Rectangle(0, 0, options.width, options.height);
+	        _this.screen = new Rectangle$1(0, 0, options.width, options.height);
 	        /**
 	         * The canvas element that everything is drawn to.
 	         * @member {HTMLCanvasElement}
@@ -27628,9 +27630,9 @@ var Trassel = (function (exports) {
 	     */
 	    Bounds.prototype.getRectangle = function (rect) {
 	        if (this.minX > this.maxX || this.minY > this.maxY) {
-	            return Rectangle.EMPTY;
+	            return Rectangle$1.EMPTY;
 	        }
-	        rect = rect || new Rectangle(0, 0, 1, 1);
+	        rect = rect || new Rectangle$1(0, 0, 1, 1);
 	        rect.x = this.minX;
 	        rect.y = this.minY;
 	        rect.width = this.maxX - this.minX;
@@ -28287,7 +28289,7 @@ var Trassel = (function (exports) {
 	        }
 	        if (!rect) {
 	            if (!this._boundsRect) {
-	                this._boundsRect = new Rectangle();
+	                this._boundsRect = new Rectangle$1();
 	            }
 	            rect = this._boundsRect;
 	        }
@@ -28301,7 +28303,7 @@ var Trassel = (function (exports) {
 	    DisplayObject.prototype.getLocalBounds = function (rect) {
 	        if (!rect) {
 	            if (!this._localBoundsRect) {
-	                this._localBoundsRect = new Rectangle();
+	                this._localBoundsRect = new Rectangle$1();
 	            }
 	            rect = this._localBoundsRect;
 	        }
@@ -29818,7 +29820,7 @@ var Trassel = (function (exports) {
 	 */
 	Container.prototype.containerUpdateTransform = Container.prototype.updateTransform;
 
-	var TEMP_RECT = new Rectangle();
+	var TEMP_RECT = new Rectangle$1();
 	var BYTES_PER_PIXEL = 4;
 	/**
 	 * This class provides renderer-specific plugins for exporting content from a renderer.
@@ -36451,7 +36453,7 @@ var Trassel = (function (exports) {
 	     * @returns - This Graphics object. Good for chaining method calls
 	     */
 	    Graphics.prototype.drawRect = function (x, y, width, height) {
-	        return this.drawShape(new Rectangle(x, y, width, height));
+	        return this.drawShape(new Rectangle$1(x, y, width, height));
 	    };
 	    /**
 	     * Draw a rectangle shape with rounded/beveled corners.
@@ -37115,7 +37117,7 @@ var Trassel = (function (exports) {
 	            this._localBounds.maxY = this._texture.orig.height * (1 - this._anchor._y);
 	            if (!rect) {
 	                if (!this._localBoundsRect) {
-	                    this._localBoundsRect = new Rectangle();
+	                    this._localBoundsRect = new Rectangle$1();
 	                }
 	                rect = this._localBoundsRect;
 	            }
@@ -38701,8 +38703,8 @@ var Trassel = (function (exports) {
 	        canvas.width = 3;
 	        canvas.height = 3;
 	        var texture = Texture.from(canvas);
-	        texture.orig = new Rectangle();
-	        texture.trim = new Rectangle();
+	        texture.orig = new Rectangle$1();
+	        texture.trim = new Rectangle$1();
 	        _this = _super.call(this, texture) || this;
 	        _this._ownCanvas = ownCanvas;
 	        _this.canvas = canvas;
@@ -39812,16 +39814,16 @@ var Trassel = (function (exports) {
 	                var trim = null;
 	                var sourceSize = data.trimmed !== false && data.sourceSize
 	                    ? data.sourceSize : data.frame;
-	                var orig = new Rectangle(0, 0, Math.floor(sourceSize.w) / this.resolution, Math.floor(sourceSize.h) / this.resolution);
+	                var orig = new Rectangle$1(0, 0, Math.floor(sourceSize.w) / this.resolution, Math.floor(sourceSize.h) / this.resolution);
 	                if (data.rotated) {
-	                    frame = new Rectangle(Math.floor(rect.x) / this.resolution, Math.floor(rect.y) / this.resolution, Math.floor(rect.h) / this.resolution, Math.floor(rect.w) / this.resolution);
+	                    frame = new Rectangle$1(Math.floor(rect.x) / this.resolution, Math.floor(rect.y) / this.resolution, Math.floor(rect.h) / this.resolution, Math.floor(rect.w) / this.resolution);
 	                }
 	                else {
-	                    frame = new Rectangle(Math.floor(rect.x) / this.resolution, Math.floor(rect.y) / this.resolution, Math.floor(rect.w) / this.resolution, Math.floor(rect.h) / this.resolution);
+	                    frame = new Rectangle$1(Math.floor(rect.x) / this.resolution, Math.floor(rect.y) / this.resolution, Math.floor(rect.w) / this.resolution, Math.floor(rect.h) / this.resolution);
 	                }
 	                //  Check to see if the sprite is trimmed
 	                if (data.trimmed !== false && data.spriteSourceSize) {
-	                    trim = new Rectangle(Math.floor(data.spriteSourceSize.x) / this.resolution, Math.floor(data.spriteSourceSize.y) / this.resolution, Math.floor(rect.w) / this.resolution, Math.floor(rect.h) / this.resolution);
+	                    trim = new Rectangle$1(Math.floor(data.spriteSourceSize.x) / this.resolution, Math.floor(data.spriteSourceSize.y) / this.resolution, Math.floor(rect.w) / this.resolution, Math.floor(rect.h) / this.resolution);
 	                }
 	                this.textures[i] = new Texture(this.baseTexture, frame, orig, trim, data.rotated ? 2 : 0, data.anchor);
 	                // lets also add the frame to pixi's global cache for 'from' and 'fromLoader' functions
@@ -40161,7 +40163,7 @@ var Trassel = (function (exports) {
 	            this._bounds.maxY = this._height * (1 - this._anchor._y);
 	            if (!rect) {
 	                if (!this._localBoundsRect) {
-	                    this._localBoundsRect = new Rectangle();
+	                    this._localBoundsRect = new Rectangle$1();
 	                }
 	                rect = this._localBoundsRect;
 	            }
@@ -41471,7 +41473,7 @@ var Trassel = (function (exports) {
 	            xoffset /= res;
 	            yoffset /= res;
 	            xadvance /= res;
-	            var rect = new Rectangle(x + (pageTextures[page_1].frame.x / res), y + (pageTextures[page_1].frame.y / res), width, height);
+	            var rect = new Rectangle$1(x + (pageTextures[page_1].frame.x / res), y + (pageTextures[page_1].frame.y / res), width, height);
 	            this.chars[id] = {
 	                xOffset: xoffset,
 	                yOffset: yoffset,
@@ -46172,6 +46174,729 @@ var Trassel = (function (exports) {
 	Application.registerPlugin(TickerPlugin);
 	Application.registerPlugin(AppLoaderPlugin);
 
+	/**
+	 * This is taken straight from:
+	 * https://gist.github.com/jose-mdz/4a8894c152383b9d7a870c24a04447e4
+	 * https://medium.com/swlh/routing-orthogonal-diagram-connectors-in-javascript-191dc2c5ff70
+	 * Code has been converted to regular JavaScript.
+	 * A few changes have been made. Most especially if no side for the provided points has been provided the closest sides will be computed.
+	 *
+	 * Usage like so:
+	 * // Define shapes
+	 * const shapeA = {left: 50,  top: 50, width: 100, height: 100}
+	 * const shapeB = {left: 200, top: 200, width: 50, height: 100}
+	 *
+	 * // Get the connector path
+	 * const path = OrthogonalConnector.route({
+	 *     pointA: {shape: shapeA, side: 'bottom', distance: 0.5},
+	 *     pointB: {shape: shapeB, side: 'right',  distance: 0.5},
+	 *     shapeMargin: 10,
+	 *     globalBoundsMargin: 100,
+	 *     globalBounds: {left: 0, top: 0, width: 500, height: 500},
+	 * })
+	 *
+	 * // Draw path
+	 * const {x, y} = path.shift()
+	 * moveTo(x, y)
+	 * path.forEach(path => context.lineTo(path.x, path.y))
+	 */
+
+	/**
+	 * Utility Point creator
+	 * @param x
+	 * @param y
+	 */
+	function makePt(x, y) {
+		return { x, y }
+	}
+
+	/**
+	 * Computes distance between two points
+	 * @param a
+	 * @param b
+	 */
+	function distance(a, b) {
+		return Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2))
+	}
+
+	/**
+	 * Abstracts a Rectangle and adds geometric utilities
+	 */
+	class Rectangle {
+		constructor(left, top, width, height) {
+			this.left = left;
+			this.top = top;
+			this.width = width;
+			this.height = height;
+		}
+
+		static get empty() {
+			return new Rectangle(0, 0, 0, 0)
+		}
+
+		static fromRect(r) {
+			return new Rectangle(r.left, r.top, r.width, r.height)
+		}
+
+		static fromLTRB(left, top, right, bottom) {
+			return new Rectangle(left, top, right - left, bottom - top)
+		}
+
+		contains(p) {
+			return p.x >= this.left && p.x <= this.right && p.y >= this.top && p.y <= this.bottom
+		}
+
+		inflate(horizontal, vertical) {
+			return Rectangle.fromLTRB(this.left - horizontal, this.top - vertical, this.right + horizontal, this.bottom + vertical)
+		}
+
+		intersects(rectangle) {
+			const thisX = this.left;
+			const thisY = this.top;
+			const thisW = this.width;
+			const thisH = this.height;
+			const rectX = rectangle.left;
+			const rectY = rectangle.top;
+			const rectW = rectangle.width;
+			const rectH = rectangle.height;
+			return rectX < thisX + thisW && thisX < rectX + rectW && rectY < thisY + thisH && thisY < rectY + rectH
+		}
+
+		union(r) {
+			const x = [this.left, this.right, r.left, r.right];
+			const y = [this.top, this.bottom, r.top, r.bottom];
+			return Rectangle.fromLTRB(Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y))
+		}
+
+		get center() {
+			return {
+				x: this.left + this.width / 2,
+				y: this.top + this.height / 2
+			}
+		}
+
+		get right() {
+			return this.left + this.width
+		}
+
+		get bottom() {
+			return this.top + this.height
+		}
+
+		get location() {
+			return makePt(this.left, this.top)
+		}
+
+		get northEast() {
+			return { x: this.right, y: this.top }
+		}
+
+		get southEast() {
+			return { x: this.right, y: this.bottom }
+		}
+
+		get southWest() {
+			return { x: this.left, y: this.bottom }
+		}
+
+		get northWest() {
+			return { x: this.left, y: this.top }
+		}
+
+		get east() {
+			return makePt(this.right, this.center.y)
+		}
+
+		get north() {
+			return makePt(this.center.x, this.top)
+		}
+
+		get south() {
+			return makePt(this.center.x, this.bottom)
+		}
+
+		get west() {
+			return makePt(this.left, this.center.y)
+		}
+
+		get size() {
+			return { width: this.width, height: this.height }
+		}
+	}
+
+	/**
+	 * Represents a node in a graph, whose data is a Point
+	 */
+	class PointNode {
+		constructor(data) {
+			this.data = data;
+			this.distance = Number.MAX_SAFE_INTEGER;
+			this.shortestPath = [];
+			this.adjacentNodes = new Map();
+		}
+	}
+
+	/***
+	 * Represents a Graph of Point nodes
+	 */
+	class PointGraph {
+		constructor() {
+			this.index = {};
+		}
+
+		add(p) {
+			const { x, y } = p;
+			const xs = x.toString();
+			const ys = y.toString();
+			if (!(xs in this.index)) {
+				this.index[xs] = {};
+			}
+			if (!(ys in this.index[xs])) {
+				this.index[xs][ys] = new PointNode(p);
+			}
+		}
+
+		getLowestDistanceNode(unsettledNodes) {
+			let lowestDistanceNode = null;
+			let lowestDistance = Number.MAX_SAFE_INTEGER;
+			for (const node of unsettledNodes) {
+				const nodeDistance = node.distance;
+				if (nodeDistance < lowestDistance) {
+					lowestDistance = nodeDistance;
+					lowestDistanceNode = node;
+				}
+			}
+			return lowestDistanceNode
+		}
+
+		inferPathDirection(node) {
+			if (node.shortestPath.length == 0) {
+				return null
+			}
+			return this.directionOfNodes(node.shortestPath[node.shortestPath.length - 1], node)
+		}
+
+		calculateShortestPathFromSource(graph, source) {
+			source.distance = 0;
+			const settledNodes = new Set();
+			const unsettledNodes = new Set();
+			unsettledNodes.add(source);
+			while (unsettledNodes.size != 0) {
+				const currentNode = this.getLowestDistanceNode(unsettledNodes);
+				unsettledNodes.delete(currentNode);
+				for (const [adjacentNode, edgeWeight] of currentNode.adjacentNodes) {
+					if (!settledNodes.has(adjacentNode)) {
+						this.calculateMinimumDistance(adjacentNode, edgeWeight, currentNode);
+						unsettledNodes.add(adjacentNode);
+					}
+				}
+				settledNodes.add(currentNode);
+			}
+			return graph
+		}
+
+		calculateMinimumDistance(evaluationNode, edgeWeigh, sourceNode) {
+			const sourceDistance = sourceNode.distance;
+			const comingDirection = this.inferPathDirection(sourceNode);
+			const goingDirection = this.directionOfNodes(sourceNode, evaluationNode);
+			const changingDirection = comingDirection && goingDirection && comingDirection != goingDirection;
+			const extraWeigh = changingDirection ? Math.pow(edgeWeigh + 1, 2) : 0;
+			if (sourceDistance + edgeWeigh + extraWeigh < evaluationNode.distance) {
+				evaluationNode.distance = sourceDistance + edgeWeigh + extraWeigh;
+				const shortestPath = [...sourceNode.shortestPath];
+				shortestPath.push(sourceNode);
+				evaluationNode.shortestPath = shortestPath;
+			}
+		}
+
+		directionOf(a, b) {
+			if (a.x === b.x) {
+				return "h"
+			} else if (a.y === b.y) {
+				return "v"
+			} else {
+				return null
+			}
+		}
+
+		directionOfNodes(a, b) {
+			return this.directionOf(a.data, b.data)
+		}
+
+		connect(a, b) {
+			const nodeA = this.get(a);
+			const nodeB = this.get(b);
+			if (!nodeA || !nodeB) {
+				throw new Error("A point was not found")
+			}
+			nodeA.adjacentNodes.set(nodeB, distance(a, b));
+		}
+
+		has(p) {
+			const { x, y } = p;
+			const xs = x.toString();
+			const ys = y.toString();
+			return xs in this.index && ys in this.index[xs]
+		}
+
+		get(p) {
+			const { x, y } = p;
+			const xs = x.toString();
+			const ys = y.toString();
+			if (xs in this.index && ys in this.index[xs]) {
+				return this.index[xs][ys]
+			}
+			return null
+		}
+	}
+
+	/**
+	 * Gets the actual point of the connector based on the distance parameter
+	 * @param p
+	 */
+	function computePt(p) {
+		const b = Rectangle.fromRect(p.shape);
+		switch (p.side) {
+			case "bottom":
+				return makePt(b.left + b.width * p.distance, b.bottom)
+			case "top":
+				return makePt(b.left + b.width * p.distance, b.top)
+			case "left":
+				return makePt(b.left, b.top + b.height * p.distance)
+			case "right":
+				return makePt(b.right, b.top + b.height * p.distance)
+		}
+	}
+
+	/**
+	 * Extrudes the connector point by margin depending on it's side
+	 * @param cp
+	 * @param margin
+	 */
+	function extrudeCp(cp, margin) {
+		const { x, y } = computePt(cp);
+		switch (cp.side) {
+			case "top":
+				return makePt(x, y - margin)
+			case "right":
+				return makePt(x + margin, y)
+			case "bottom":
+				return makePt(x, y + margin)
+			case "left":
+				return makePt(x - margin, y)
+		}
+	}
+
+	/**
+	 * Returns flag indicating if the side belongs on a vertical axis
+	 * @param side
+	 */
+	function isVerticalSide(side) {
+		return side == "top" || side == "bottom"
+	}
+
+	/**
+	 * Creates a grid of rectangles from the specified set of rulers, contained on the specified bounds
+	 * @param verticals
+	 * @param horizontals
+	 * @param bounds
+	 */
+	function rulersToGrid(verticals, horizontals, bounds) {
+		const result = new Grid();
+		verticals.sort((a, b) => a - b);
+		horizontals.sort((a, b) => a - b);
+		let lastX = bounds.left;
+		let lastY = bounds.top;
+		let column = 0;
+		let row = 0;
+		for (const y of horizontals) {
+			for (const x of verticals) {
+				result.set(row, column++, Rectangle.fromLTRB(lastX, lastY, x, y));
+				lastX = x;
+			}
+			// Last cell of the row
+			result.set(row, column, Rectangle.fromLTRB(lastX, lastY, bounds.right, y));
+			lastX = bounds.left;
+			lastY = y;
+			column = 0;
+			row++;
+		}
+		lastX = bounds.left;
+		// Last fow of cells
+		for (const x of verticals) {
+			result.set(row, column++, Rectangle.fromLTRB(lastX, lastY, x, bounds.bottom));
+			lastX = x;
+		}
+		// Last cell of last row
+		result.set(row, column, Rectangle.fromLTRB(lastX, lastY, bounds.right, bounds.bottom));
+		return result
+	}
+
+	/**
+	 * Returns an array without repeated points
+	 * @param points
+	 */
+	function reducePoints(points) {
+		const result = [];
+		const map = new Map();
+		points.forEach(p => {
+			const { x, y } = p;
+			const arr = map.get(y) || map.set(y, []).get(y);
+			if (arr.indexOf(x) < 0) {
+				arr.push(x);
+			}
+		});
+		for (const [y, xs] of map) {
+			for (const x of xs) {
+				result.push(makePt(x, y));
+			}
+		}
+		return result
+	}
+
+	/**
+	 * Returns a set of spots generated from the grid, avoiding colliding spots with specified obstacles
+	 * @param grid
+	 * @param obstacles
+	 */
+	function gridToSpots(grid, obstacles) {
+		const obstacleCollision = p => obstacles.filter(o => o.contains(p)).length > 0;
+		const gridPoints = [];
+		for (const [row, data] of grid.data) {
+			const firstRow = row == 0;
+			const lastRow = row == grid.rows - 1;
+			for (const [col, r] of data) {
+				const firstCol = col == 0;
+				const lastCol = col == grid.columns - 1;
+				const nw = firstCol && firstRow;
+				const ne = firstRow && lastCol;
+				const se = lastRow && lastCol;
+				const sw = lastRow && firstCol;
+				if (nw || ne || se || sw) {
+					gridPoints.push(r.northWest, r.northEast, r.southWest, r.southEast);
+				} else if (firstRow) {
+					gridPoints.push(r.northWest, r.north, r.northEast);
+				} else if (lastRow) {
+					gridPoints.push(r.southEast, r.south, r.southWest);
+				} else if (firstCol) {
+					gridPoints.push(r.northWest, r.west, r.southWest);
+				} else if (lastCol) {
+					gridPoints.push(r.northEast, r.east, r.southEast);
+				} else {
+					gridPoints.push(r.northWest, r.north, r.northEast, r.east, r.southEast, r.south, r.southWest, r.west, r.center);
+				}
+			}
+		}
+		// for(const r of grid) {
+		//     gridPoints.push(
+		//         r.northWest, r.north, r.northEast, r.east,
+		//         r.southEast, r.south, r.southWest, r.west, r.center);
+		// }
+		// Reduce repeated points and filter out those who touch shapes
+		return reducePoints(gridPoints).filter(p => !obstacleCollision(p))
+	}
+
+	/**
+	 * Creates a graph connecting the specified points orthogonally
+	 * @param spots
+	 */
+	function createGraph(spots) {
+		const hotXs = [];
+		const hotYs = [];
+		const graph = new PointGraph();
+		const connections = [];
+		spots.forEach(p => {
+			const { x, y } = p;
+			if (hotXs.indexOf(x) < 0) {
+				hotXs.push(x);
+			}
+			if (hotYs.indexOf(y) < 0) {
+				hotYs.push(y);
+			}
+			graph.add(p);
+		});
+		hotXs.sort((a, b) => a - b);
+		hotYs.sort((a, b) => a - b);
+		const inHotIndex = p => graph.has(p);
+		for (let i = 0; i < hotYs.length; i++) {
+			for (let j = 0; j < hotXs.length; j++) {
+				const b = makePt(hotXs[j], hotYs[i]);
+				if (!inHotIndex(b)) {
+					continue
+				}
+				if (j > 0) {
+					const a = makePt(hotXs[j - 1], hotYs[i]);
+					if (inHotIndex(a)) {
+						graph.connect(a, b);
+						graph.connect(b, a);
+						connections.push({ a, b });
+					}
+				}
+				if (i > 0) {
+					const a = makePt(hotXs[j], hotYs[i - 1]);
+					if (inHotIndex(a)) {
+						graph.connect(a, b);
+						graph.connect(b, a);
+						connections.push({ a, b });
+					}
+				}
+			}
+		}
+		return { graph, connections }
+	}
+
+	/**
+	 * Solves the shotest path for the origin-destination path of the graph
+	 * @param graph
+	 * @param origin
+	 * @param destination
+	 */
+	function shortestPath(graph, origin, destination) {
+		const originNode = graph.get(origin);
+		const destinationNode = graph.get(destination);
+		if (!originNode) {
+			throw new Error(`Origin node {${origin.x},${origin.y}} not found`)
+		}
+		if (!destinationNode) {
+			throw new Error(`Origin node {${origin.x},${origin.y}} not found`)
+		}
+		graph.calculateShortestPathFromSource(graph, originNode);
+		return destinationNode.shortestPath.map(n => n.data)
+	}
+
+	/**
+	 * Given two segments represented by 3 points,
+	 * determines if the second segment bends on an orthogonal direction or not, and which.
+	 * @param a
+	 * @param b
+	 * @param c
+	 * @return Bend direction, unknown if not orthogonal or 'none' if straight line
+	 */
+	function getBend(a, b, c) {
+		const equalX = a.x === b.x && b.x === c.x;
+		const equalY = a.y === b.y && b.y === c.y;
+		const segment1Horizontal = a.y === b.y;
+		const segment1Vertical = a.x === b.x;
+		const segment2Horizontal = b.y === c.y;
+		const segment2Vertical = b.x === c.x;
+		if (equalX || equalY) {
+			return "none"
+		}
+		if (!(segment1Vertical || segment1Horizontal) || !(segment2Vertical || segment2Horizontal)) {
+			return "unknown"
+		}
+		if (segment1Horizontal && segment2Vertical) {
+			return c.y > b.y ? "s" : "n"
+		} else if (segment1Vertical && segment2Horizontal) {
+			return c.x > b.x ? "e" : "w"
+		}
+		throw new Error("Nope")
+	}
+
+	/**
+	 * Simplifies the path by removing unnecessary points, based on orthogonal pathways
+	 * @param points
+	 */
+	function simplifyPath(points) {
+		if (points.length <= 2) {
+			return points
+		}
+		const r = [points[0]];
+		for (let i = 1; i < points.length; i++) {
+			const cur = points[i];
+			if (i === points.length - 1) {
+				r.push(cur);
+				break
+			}
+			const prev = points[i - 1];
+			const next = points[i + 1];
+			const bend = getBend(prev, cur, next);
+			if (bend !== "none") {
+				r.push(cur);
+			}
+		}
+		return r
+	}
+
+	/**
+	 * Helps create the grid portion of the algorithm
+	 */
+	class Grid {
+		constructor() {
+			this._rows = 0;
+			this._cols = 0;
+			this.data = new Map();
+		}
+
+		set(row, column, rectangle) {
+			this._rows = Math.max(this.rows, row + 1);
+			this._cols = Math.max(this.columns, column + 1);
+			const rowMap = this.data.get(row) || this.data.set(row, new Map()).get(row);
+			rowMap.set(column, rectangle);
+		}
+
+		get(row, column) {
+			const rowMap = this.data.get(row);
+			if (rowMap) {
+				return rowMap.get(column) || null
+			}
+			return null
+		}
+
+		rectangles() {
+			const r = [];
+			for (const [, data] of this.data) {
+				for (const [, rect] of data) {
+					r.push(rect);
+				}
+			}
+			return r
+		}
+
+		get columns() {
+			return this._cols
+		}
+
+		get rows() {
+			return this._rows
+		}
+	}
+
+	/**
+	 * Main logic wrapped in a class to hold a space for potential future functionallity
+	 */
+	class OrthogonalConnector {
+		constructor() {
+			this.byproduct = {
+				hRulers: [],
+				vRulers: [],
+				spots: [],
+				grid: [],
+				connections: []
+			};
+		}
+
+		getPoints(x, y, width, height) {
+			return [
+				{ name: "top", x: x + width / 2, y },
+				{ name: "bottom", x: x + width / 2, y: y + height },
+				{ name: "left", x, y: y + height / 2 },
+				{ name: "right", x: x + width, y: y + height / 2 }
+			]
+		}
+
+		assignSides(pointA, pointB) {
+			if (!pointA.side || !pointB.side) {
+				const sourcePoints = this.getPoints(pointA.shape.left, pointA.shape.top, pointA.shape.width, pointA.shape.height);
+				const targetPoints = this.getPoints(pointB.shape.left, pointB.shape.top, pointB.shape.width, pointB.shape.height);
+				let closestCombination = { source: null, target: null, distance: Infinity };
+				for (let i = 0; i < 4; i++) {
+					for (let j = 0; j < 4; j++) {
+						const distance = Math.sqrt(Math.pow(sourcePoints[i].x - targetPoints[j].x, 2) + Math.pow(sourcePoints[i].y - targetPoints[j].y, 2));
+						if (distance < closestCombination.distance) {
+							closestCombination = { source: sourcePoints[i].name, target: targetPoints[j].name, distance };
+						}
+					}
+				}
+				pointA.side = pointA.side || closestCombination.source;
+				pointB.side = pointB.side || closestCombination.target;
+			}
+		}
+
+		route(opts) {
+			const { pointA, pointB, globalBoundsMargin } = opts;
+			this.assignSides(pointA, pointB);
+			const spots = [];
+			const verticals = [];
+			const horizontals = [];
+			const sideA = pointA.side;
+			const sideAVertical = isVerticalSide(sideA);
+			const sideB = pointB.side;
+			const sideBVertical = isVerticalSide(sideB);
+			const originA = computePt(pointA);
+			const originB = computePt(pointB);
+			const shapeA = Rectangle.fromRect(pointA.shape);
+			const shapeB = Rectangle.fromRect(pointB.shape);
+			const bigBounds = Rectangle.fromRect(opts.globalBounds);
+			let shapeMargin = opts.shapeMargin;
+			let inflatedA = shapeA.inflate(shapeMargin, shapeMargin);
+			let inflatedB = shapeB.inflate(shapeMargin, shapeMargin);
+			// Check bounding boxes collision
+			if (inflatedA.intersects(inflatedB)) {
+				shapeMargin = 0;
+				inflatedA = shapeA;
+				inflatedB = shapeB;
+			}
+			const inflatedBounds = inflatedA.union(inflatedB).inflate(globalBoundsMargin, globalBoundsMargin);
+			// Curated bounds to stick to
+			const bounds = Rectangle.fromLTRB(
+				Math.max(inflatedBounds.left, bigBounds.left),
+				Math.max(inflatedBounds.top, bigBounds.top),
+				Math.min(inflatedBounds.right, bigBounds.right),
+				Math.min(inflatedBounds.bottom, bigBounds.bottom)
+			);
+			// Add edges to rulers
+			for (const b of [inflatedA, inflatedB]) {
+				verticals.push(b.left);
+				verticals.push(b.right);
+				horizontals.push(b.top);
+				horizontals.push(b.bottom);
+			}
+	(sideAVertical ? verticals : horizontals).push(sideAVertical ? originA.x : originA.y)
+			;(sideBVertical ? verticals : horizontals).push(sideBVertical ? originB.x : originB.y);
+			// Points of shape antennas
+			for (const connectorPt of [pointA, pointB]) {
+				const p = computePt(connectorPt);
+				const add = (dx, dy) => spots.push(makePt(p.x + dx, p.y + dy));
+				switch (connectorPt.side) {
+					case "top":
+						add(0, -shapeMargin);
+						break
+					case "right":
+						add(shapeMargin, 0);
+						break
+					case "bottom":
+						add(0, shapeMargin);
+						break
+					case "left":
+						add(-shapeMargin, 0);
+						break
+				}
+			}
+			// Sort rulers
+			verticals.sort((a, b) => a - b);
+			horizontals.sort((a, b) => a - b);
+			// Create grid
+			const grid = rulersToGrid(verticals, horizontals, bounds);
+			const gridPoints = gridToSpots(grid, [inflatedA, inflatedB]);
+			// Add to spots
+			spots.push(...gridPoints);
+			// Create graph
+			const { graph, connections } = createGraph(spots);
+			// Origin and destination by extruding antennas
+			const origin = extrudeCp(pointA, shapeMargin);
+			const destination = extrudeCp(pointB, shapeMargin);
+			const start = computePt(pointA);
+			const end = computePt(pointB);
+			this.byproduct.spots = spots;
+			this.byproduct.vRulers = verticals;
+			this.byproduct.hRulers = horizontals;
+			this.byproduct.grid = grid.rectangles();
+			this.byproduct.connections = connections;
+			const path = shortestPath(graph, origin, destination);
+			if (path.length > 0) {
+				return simplifyPath([start, ...shortestPath(graph, origin, destination), end])
+			} else {
+				return []
+			}
+		}
+	}
+
+	/**
+	 * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
+	 * There are also several performance optimizations that could be made. Most especially with regards to text and culling of edges.
+	 * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
+	 */
 	class WebGLRenderer {
 		constructor(element, nodes, edges, options) {
 			this.element = element;
@@ -46184,6 +46909,8 @@ var Trassel = (function (exports) {
 			this.resizeObserver = null;
 			this.lassoEnabled = false;
 			this.lineType = options?.lineType || "line";
+			this.LINE_MARGIN_PX = 10;
+			this.sceneSize = 50000;
 			this.primaryColor = options?.primaryColor ? options.primaryColor : 0x3289e2;
 			this.backgroundColor = this.options?.backdropColor ? this.options.backdropColor : 0xe6e7e8;
 			this.listeners = new Map([
@@ -46241,8 +46968,8 @@ var Trassel = (function (exports) {
 		 * Initializes the main renderer classes and variables
 		 */
 		initializeRenderer() {
-			this.worldWidth = 50000;
-			this.worldHeight = 50000;
+			this.worldWidth = this.sceneSize;
+			this.worldHeight = this.sceneSize;
 			const width = this.element.clientWidth;
 			const height = this.element.clientHeight;
 			this.stage = new Container$1();
@@ -47171,7 +47898,7 @@ var Trassel = (function (exports) {
 				let curvePoint;
 				let labelPoint;
 				if (source === target) {
-					const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, 10);
+					const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, this.LINE_MARGIN_PX);
 					curvePoint = selfPath.curvePoint;
 					pathStart = selfPath.start;
 					pathEnd = selfPath.end;
@@ -47181,8 +47908,8 @@ var Trassel = (function (exports) {
 					line.endFill();
 				} else if (this.lineType === "taxi") {
 					curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
-					pathStart = this.calculateIntersection(curvePoint, source, 10);
-					pathEnd = this.calculateIntersection(curvePoint, target, 10);
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 					labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
 					const midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2;
 					line.moveTo(pathStart.x, pathStart.y);
@@ -47190,10 +47917,66 @@ var Trassel = (function (exports) {
 					line.lineTo(pathEnd.x, midPointY);
 					line.lineTo(pathEnd.x, pathEnd.y);
 					line.endFill();
+				} else if (this.lineType === "cubicbezier") {
+					//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
+					curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
+					labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
+					line.moveTo(pathStart.x, pathStart.y);
+					line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y);
+					line.endFill();
+				} else if (this.lineType === "orthogonal") {
+					const router = new OrthogonalConnector();
+					const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2;
+					const sourceHeight = edge.source.height ? edge.source.height : edge.source.radius * 2;
+					const targetWidth = edge.target.width ? edge.target.width : edge.target.radius * 2;
+					const targetHeight = edge.target.height ? edge.target.height : edge.target.radius * 2;
+					const sourceSide = edge.renderer.sourceEdgePosition;
+					const targetSide = edge.renderer.targetEdgePosition;
+					const routeOptions = {
+						pointA: {
+							shape: {
+								left: edge.source.x - sourceWidth / 2 - this.LINE_MARGIN_PX / 2,
+								top: edge.source.y - sourceHeight / 2 - this.LINE_MARGIN_PX / 2,
+								width: sourceWidth + this.LINE_MARGIN_PX,
+								height: sourceHeight + this.LINE_MARGIN_PX
+							},
+							side: sourceSide,
+							distance: 0.5
+						},
+						pointB: {
+							shape: {
+								left: edge.target.x - targetWidth / 2 - this.LINE_MARGIN_PX / 2,
+								top: edge.target.y - targetHeight / 2 - this.LINE_MARGIN_PX / 2,
+								width: targetWidth + this.LINE_MARGIN_PX,
+								height: targetHeight + this.LINE_MARGIN_PX
+							},
+							side: targetSide,
+							distance: 0.5
+						},
+						shapeMargin: this.LINE_MARGIN_PX,
+						globalBoundsMargin: 100,
+						globalBounds: { left: -this.sceneSize / 2, top: -this.sceneSize / 2, width: this.sceneSize, height: this.sceneSize }
+					};
+					const path = router.route(routeOptions);
+					if (!path.length) {
+						console.log(edge.source, edge.target);
+						return
+					}
+					const { x, y } = path.shift();
+					const finalStep = path[path.length - 1];
+					pathStart = { x, y };
+					pathEnd = { x: finalStep.x, y: finalStep.y };
+					labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
+					curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side };
+					line.moveTo(x, y);
+					path.forEach(path => line.lineTo(path.x, path.y));
+					line.endFill();
 				} else {
 					curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
-					pathStart = this.calculateIntersection(curvePoint, source, 10);
-					pathEnd = this.calculateIntersection(curvePoint, target, 10);
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 					labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
 					line.moveTo(pathStart.x, pathStart.y);
 					line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
@@ -47205,6 +47988,13 @@ var Trassel = (function (exports) {
 					markerTarget.position = new Point(pathEnd.x, pathEnd.y);
 					const markerSource = edge.renderer._private.markerSource;
 					markerSource.angle = source.y > target.y ? 90 : 270;
+					markerSource.position = new Point(pathStart.x, pathStart.y);
+				} else if (this.lineType === "orthogonal" && source !== target) {
+					const markerTarget = edge.renderer._private.markerTarget;
+					markerTarget.angle = curvePoint.target === "left" ? 0 : curvePoint.target === "top" ? 90 : curvePoint.target === "right" ? 180 : 270;
+					markerTarget.position = new Point(pathEnd.x, pathEnd.y);
+					const markerSource = edge.renderer._private.markerSource;
+					markerSource.angle = curvePoint.source === "left" ? 0 : curvePoint.source === "top" ? 90 : curvePoint.source === "right" ? 180 : 270;
 					markerSource.position = new Point(pathStart.x, pathStart.y);
 				} else {
 					const markerTarget = edge.renderer._private.markerTarget;

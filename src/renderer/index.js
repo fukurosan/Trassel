@@ -58,7 +58,7 @@ export class Renderer {
 
 	/**
 	 * Sets the line type for edges
-	 * @param {"line" | "taxi"} newType
+	 * @param {"line" | "taxi" | "orthogonal" | "cubicbezier"} newType
 	 */
 	setLineType(newType) {
 		this.WebGLRenderer.setLineType(newType)

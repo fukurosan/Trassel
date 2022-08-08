@@ -1,5 +1,11 @@
 import * as PIXI from "pixi.js"
+import { OrthogonalConnector } from "./orthogonalRouter"
 
+/**
+ * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
+ * There are also several performance optimizations that could be made. Most especially with regards to text and culling of edges.
+ * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
+ */
 export class WebGLRenderer {
 	constructor(element, nodes, edges, options) {
 		this.element = element
@@ -12,6 +18,8 @@ export class WebGLRenderer {
 		this.resizeObserver = null
 		this.lassoEnabled = false
 		this.lineType = options?.lineType || "line"
+		this.LINE_MARGIN_PX = 10
+		this.sceneSize = 50000
 		this.primaryColor = options?.primaryColor ? options.primaryColor : 0x3289e2
 		this.backgroundColor = this.options?.backdropColor ? this.options.backdropColor : 0xe6e7e8
 		this.listeners = new Map([
@@ -69,8 +77,8 @@ export class WebGLRenderer {
 	 * Initializes the main renderer classes and variables
 	 */
 	initializeRenderer() {
-		this.worldWidth = 50000
-		this.worldHeight = 50000
+		this.worldWidth = this.sceneSize
+		this.worldHeight = this.sceneSize
 		const width = this.element.clientWidth
 		const height = this.element.clientHeight
 		this.stage = new PIXI.Container()
@@ -675,7 +683,7 @@ export class WebGLRenderer {
 
 	/**
 	 * Sets the line type for edges
-	 * @param {"line" | "taxi"} newType
+	 * @param {"line" | "taxi" | "orthogonal" | "cubicbezier"} newType
 	 */
 	setLineType(newType) {
 		this.lineType = newType
@@ -1001,7 +1009,7 @@ export class WebGLRenderer {
 			let curvePoint
 			let labelPoint
 			if (source === target) {
-				const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, 10)
+				const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, this.LINE_MARGIN_PX)
 				curvePoint = selfPath.curvePoint
 				pathStart = selfPath.start
 				pathEnd = selfPath.end
@@ -1011,8 +1019,8 @@ export class WebGLRenderer {
 				line.endFill()
 			} else if (this.lineType === "taxi") {
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
-				pathStart = this.calculateIntersection(curvePoint, source, 10)
-				pathEnd = this.calculateIntersection(curvePoint, target, 10)
+				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
+				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				const midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
 				line.moveTo(pathStart.x, pathStart.y)
@@ -1020,10 +1028,69 @@ export class WebGLRenderer {
 				line.lineTo(pathEnd.x, midPointY)
 				line.lineTo(pathEnd.x, pathEnd.y)
 				line.endFill()
+			} else if (this.lineType === "cubicbezier") {
+				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
+				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
+				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
+				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
+				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
+				line.moveTo(pathStart.x, pathStart.y)
+				line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y)
+				line.endFill()
+			} else if (this.lineType === "orthogonal") {
+				//TODO:: Make this go faster
+				const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2
+				const sourceHeight = edge.source.height ? edge.source.height : edge.source.radius * 2
+				const targetWidth = edge.target.width ? edge.target.width : edge.target.radius * 2
+				const targetHeight = edge.target.height ? edge.target.height : edge.target.radius * 2
+				const sourceSide = edge.renderer.sourceEdgePosition
+				const targetSide = edge.renderer.targetEdgePosition
+				const routeOptions = {
+					pointA: {
+						shape: {
+							left: edge.source.x - sourceWidth / 2 - this.LINE_MARGIN_PX / 2,
+							top: edge.source.y - sourceHeight / 2 - this.LINE_MARGIN_PX / 2,
+							width: sourceWidth + this.LINE_MARGIN_PX,
+							height: sourceHeight + this.LINE_MARGIN_PX
+						},
+						side: sourceSide,
+						distance: 0.5
+					},
+					pointB: {
+						shape: {
+							left: edge.target.x - targetWidth / 2 - this.LINE_MARGIN_PX / 2,
+							top: edge.target.y - targetHeight / 2 - this.LINE_MARGIN_PX / 2,
+							width: targetWidth + this.LINE_MARGIN_PX,
+							height: targetHeight + this.LINE_MARGIN_PX
+						},
+						side: targetSide,
+						distance: 0.5
+					},
+					shapeMargin: this.LINE_MARGIN_PX,
+					globalBoundsMargin: 100,
+					globalBounds: { left: -this.sceneSize / 2, top: -this.sceneSize / 2, width: this.sceneSize, height: this.sceneSize }
+				}
+				const router = new OrthogonalConnector()
+				const path = router.route(routeOptions)
+				if (!path.length) {
+					//this can occur if the sides are so close that the padding makes a path impossible.
+					//If so we just exit the loop.
+					return
+				}
+				const { x, y } = path.shift()
+				const finalStep = path[path.length - 1]
+				pathStart = { x, y }
+				pathEnd = { x: finalStep.x, y: finalStep.y }
+				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
+				//We hijack the curvepoint parameter to use later for positioning the markers
+				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side }
+				line.moveTo(x, y)
+				path.forEach(path => line.lineTo(path.x, path.y))
+				line.endFill()
 			} else {
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
-				pathStart = this.calculateIntersection(curvePoint, source, 10)
-				pathEnd = this.calculateIntersection(curvePoint, target, 10)
+				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
+				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
@@ -1035,6 +1102,13 @@ export class WebGLRenderer {
 				markerTarget.position = new PIXI.Point(pathEnd.x, pathEnd.y)
 				const markerSource = edge.renderer._private.markerSource
 				markerSource.angle = source.y > target.y ? 90 : 270
+				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
+			} else if (this.lineType === "orthogonal" && source !== target) {
+				const markerTarget = edge.renderer._private.markerTarget
+				markerTarget.angle = curvePoint.target === "left" ? 0 : curvePoint.target === "top" ? 90 : curvePoint.target === "right" ? 180 : 270
+				markerTarget.position = new PIXI.Point(pathEnd.x, pathEnd.y)
+				const markerSource = edge.renderer._private.markerSource
+				markerSource.angle = curvePoint.source === "left" ? 0 : curvePoint.source === "top" ? 90 : curvePoint.source === "right" ? 180 : 270
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			} else {
 				const markerTarget = edge.renderer._private.markerTarget

@@ -5,6 +5,8 @@
 - Added tree layout
 - Added force layout
 - Added connections layout
+- Added "orthogonal" line type to renderer
+- Added "cubicbezier" line type to renderer
 
 ### 0.1.3
 - Several bug fixes
