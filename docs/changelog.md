@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.1.6
+- Improvements and bug fixes for tree layout
+
 ### 0.1.5
 - Added "orthogonal" line type to renderer
 - Added "cubicbezier" line type to renderer

@@ -75,6 +75,7 @@ export default class Tree extends LayoutComponent {
 					node,
 					children: [],
 					size,
+					parent,
 					previousSibling: previousParent === parent ? previousNode : null,
 					levelOffset: levelOffsets[level],
 					orderOffset: null,
@@ -125,47 +126,89 @@ export default class Tree extends LayoutComponent {
 		}
 		tree.forEach(treeNode => secondPass(treeNode, 0))
 		//Fix node conflicts
-		const maxSize = Math.max(...allTreeNodes.map(node => node.size))
-		const getContour = (root, value, fn) => {
-			let nodes = [root]
-			while (nodes.length) {
-				const node = nodes.shift()
-				nodes = nodes.concat(node.children)
-				value = fn(value, node.orderOffset)
+		const getContour = node => {
+			//This returns an array of levels (below) the input node, with a lowest (left) orderOffset and a highest (right) orderOffset
+			const levels = []
+			let nextLevel = [node]
+			do {
+				levels.push(nextLevel)
+				nextLevel = []
+				levels[levels.length - 1].forEach(node => (nextLevel = nextLevel.concat(node.children)))
+			} while (nextLevel.length)
+			levels.shift()
+			return levels.map(level => {
+				const result = { left: Infinity, right: -Infinity }
+				level.forEach(node => {
+					result.left = Math.min(
+						result.left,
+						node.orderOffset - (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
+					)
+					result.right = Math.max(
+						result.right,
+						node.orderOffset + (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
+					)
+				})
+				return result
+			})
+		}
+		const applyBranchAdjustment = (node, adjustment) => {
+			//This moves nodes and all sub-branches x pixels to the right
+			let children = [node]
+			while (children.length) {
+				const next = children.shift()
+				children = children.concat(next.children)
+				next.orderOffset += adjustment
 			}
-			return value
 		}
 		const fixNodeConflicts = treeNode => {
+			//This algorithm executes from bottom to top
 			for (let i = 0; i < treeNode.children.length; i++) {
 				fixNodeConflicts(treeNode.children[i])
 			}
+			//If there is less than two children then we don't need to do anything
+			if (treeNode.children.length < 2) return
+			//For each child, compare it to everything to the right of it.
 			for (let i = 0; i < treeNode.children.length - 1; i++) {
-				const nodeOne = treeNode.children[i]
-				const nodeTwo = treeNode.children[i + 1]
-				const bottomContour = getContour(nodeOne, -Infinity, Math.max)
-				const topContour = getContour(nodeTwo, Infinity, Math.min)
-				if (bottomContour >= topContour) {
-					let nodes = [treeNode.children[i + 1]]
-					while (nodes.length) {
-						const node = nodes.shift()
-						nodes = nodes.concat(node.children)
-						node.orderOffset += bottomContour - topContour + maxSize / 2 + this.PADDING_PX
+				const leftNode = treeNode.children[i]
+				const leftContour = getContour(leftNode)
+				for (let j = i + 1; j < treeNode.children.length; j++) {
+					const rightNode = treeNode.children[j]
+					const rightContour = getContour(rightNode)
+					//There may be a different amount of levels. We will compare all possible levels
+					for (let n = 0; n < Math.min(leftContour.length, rightContour.length); n++) {
+						const left = Math.max(leftContour[n].right)
+						const right = Math.min(rightContour[n].left)
+						//If the right side branch overlaps the left side branch we need to make an adjustment
+						if (left > right) {
+							const adjustment = left - right + this.PADDING_PX
+							//Adjust the entire right branch
+							applyBranchAdjustment(rightNode, adjustment)
+							//All nodes (and branches) between (i) and (j) need to also be adjusted now to fill the newly created space
+							const middleSiblings = []
+							for (let m = i + 1; m < j; m++) {
+								middleSiblings.push(treeNode.children[m])
+							}
+							if (middleSiblings.length) {
+								const middleAdjustment = adjustment / middleSiblings.length / 2
+								for (let m = 0; m < middleSiblings.length; m++) {
+									applyBranchAdjustment(middleSiblings[m], middleAdjustment)
+								}
+							}
+						}
 					}
 				}
 			}
-		}
-		//There can be multiple root nodes, so we create a "fake" root node to handle this.
-		fixNodeConflicts({ children: tree })
-		//Center the root nodes, since these will not be affected by the position fix
-		tree.forEach(rootNode => {
-			if (rootNode.children.length) {
+			//Finally, we center the root nodes around their children
+			if (!treeNode.parent && treeNode.children.length) {
 				let offset = 0
-				rootNode.children.forEach(child => {
+				treeNode.children.forEach(child => {
 					offset += child.orderOffset
 				})
-				rootNode.orderOffset = offset / rootNode.children.length
+				treeNode.orderOffset = offset / treeNode.children.length
 			}
-		})
+		}
+		//There can be multiple root nodes, so we create a "fake" root node to handle this.
+		fixNodeConflicts({ children: tree, levelOffset: 0 })
 		//Write positions to member state
 		allTreeNodes.forEach(treeNode => {
 			this.nodePositions.set(treeNode.node, {
