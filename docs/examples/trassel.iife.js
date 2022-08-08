@@ -1,6 +1,6 @@
 /** @preserve @license @cc_on
  * ----------------------------------------------------------
- * trassel version 0.1.4
+ * trassel version 0.1.5
  * Graph computing in JavaScript
  * https://fukurosan.github.io/Trassel/
  * Copyright (c) 2022 Henrik Olofsson
@@ -46198,7 +46198,7 @@ var Trassel = (function (exports) {
 	 * // Draw path
 	 * const {x, y} = path.shift()
 	 * moveTo(x, y)
-	 * path.forEach(path => context.lineTo(path.x, path.y))
+	 * path.forEach(path => lineTo(path.x, path.y))
 	 */
 
 	/**
@@ -47574,7 +47574,7 @@ var Trassel = (function (exports) {
 
 		/**
 		 * Sets the line type for edges
-		 * @param {"line" | "taxi"} newType
+		 * @param {"line" | "taxi" | "orthogonal" | "cubicbezier"} newType
 		 */
 		setLineType(newType) {
 			this.lineType = newType;
@@ -47927,7 +47927,7 @@ var Trassel = (function (exports) {
 					line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y);
 					line.endFill();
 				} else if (this.lineType === "orthogonal") {
-					const router = new OrthogonalConnector();
+					//TODO:: Make this go faster
 					const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2;
 					const sourceHeight = edge.source.height ? edge.source.height : edge.source.radius * 2;
 					const targetWidth = edge.target.width ? edge.target.width : edge.target.radius * 2;
@@ -47959,9 +47959,11 @@ var Trassel = (function (exports) {
 						globalBoundsMargin: 100,
 						globalBounds: { left: -this.sceneSize / 2, top: -this.sceneSize / 2, width: this.sceneSize, height: this.sceneSize }
 					};
+					const router = new OrthogonalConnector();
 					const path = router.route(routeOptions);
 					if (!path.length) {
-						console.log(edge.source, edge.target);
+						//this can occur if the sides are so close that the padding makes a path impossible.
+						//If so we just exit the loop.
 						return
 					}
 					const { x, y } = path.shift();
@@ -47969,6 +47971,7 @@ var Trassel = (function (exports) {
 					pathStart = { x, y };
 					pathEnd = { x: finalStep.x, y: finalStep.y };
 					labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
+					//We hijack the curvepoint parameter to use later for positioning the markers
 					curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side };
 					line.moveTo(x, y);
 					path.forEach(path => line.lineTo(path.x, path.y));
@@ -48088,7 +48091,7 @@ var Trassel = (function (exports) {
 
 		/**
 		 * Sets the line type for edges
-		 * @param {"line" | "taxi"} newType
+		 * @param {"line" | "taxi" | "orthogonal" | "cubicbezier"} newType
 		 */
 		setLineType(newType) {
 			this.WebGLRenderer.setLineType(newType);
