@@ -244,27 +244,37 @@ export class WebGLRenderer {
 			}
 			//Draw shape
 			const nodeGfx = node.renderer._private.node
+			const nodeShape = node.renderer.shape
+			const nodeHeight = node.height || node.radius * 2
+			const nodeWidth = node.width || node.radius * 2
 			nodeGfx.lineStyle(2, 0xffffff)
 			nodeGfx.beginFill(node.renderer.backgroundColor || 0xffffff)
-			if (node.renderer.shape === "rectangle") {
-				nodeGfx.drawRoundedRect(-(node.width / 2), -(node.height / 2), node.width, node.height, 4)
+			if (nodeShape === "rectangle") {
+				nodeGfx.drawRoundedRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
 			} else {
 				nodeGfx.drawCircle(0, 0, node.radius)
 			}
 			//Draw label
+			const fontSize = Math.max(nodeHeight * 0.1, 12)
+			const icon = node.renderer.icon
+			const iconMaxSize = 50
+			const iconMinSize = 16
+			const iconSize = Math.max(Math.min(nodeHeight * 0.2, iconMaxSize), iconMinSize)
+			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.radius * 1.25
 			const textStyle = new PIXI.TextStyle({
 				fontFamily: "Arial",
-				fontSize: Math.max(node.radius * 0.2, 12),
+				fontSize,
 				wordWrap: true,
 				breakWords: true,
-				wordWrapWidth: node.radius,
+				wordWrapWidth,
 				align: "center",
 				fill: node.renderer.textColor || 0x000000
 			})
 			const label = node.renderer.label || node.id
 			const measurements = PIXI.TextMetrics.measureText(label, textStyle)
 			let processedLabel = measurements.lines.shift()
-			if (measurements.lines.length && (node.radius > 40 || node.width > 20)) {
+			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.radius > 40)
+			if (measurements.lines.length && shouldWrapText) {
 				processedLabel = `${processedLabel}\n${measurements.lines.shift()}`
 			}
 			if (measurements.lines.length) {
@@ -278,12 +288,20 @@ export class WebGLRenderer {
 			//Draw icon
 			if (node.renderer.icon) {
 				const icon = PIXI.Sprite.from(node.renderer.icon)
+				icon.width = iconSize
+				icon.height = iconSize
 				icon.anchor.x = 0.5
-				icon.anchor.y = 1
-				icon.width = node.radius * 0.5
-				icon.height = node.radius * 0.5
+				icon.anchor.y = 0.5
+				text.anchor.y = 0.5
+				text.anchor.x = 0.5
 				nodeGfx.addChild(icon)
-				text.anchor.y = -0.2
+				if (nodeShape === "rectangle") {
+					icon.x = -measurements.maxLineWidth / 2 - icon.width / 2
+					text.x = iconSize / 2
+				} else {
+					icon.anchor.y = 1.2
+					text.anchor.y = 0
+				}
 				node.renderer._private.icon = icon
 			}
 			//Add selection graphics

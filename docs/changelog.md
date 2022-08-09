@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.1.7
+- Improved rendering of shapes and positioning / sizing of their content
+
 ### 0.1.6
 - Improvements and bug fixes for tree layout
 

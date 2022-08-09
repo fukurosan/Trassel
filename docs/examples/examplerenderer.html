@@ -27,14 +27,14 @@
              */
             const nodes = [
                 { id: "n0", radius: 30, mass: 1000 },
-                { id: "n1", radius: 80, mass: 1000, renderer: { label: "Hello World", icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>" } },
+                { id: "n1", radius: 50, mass: 1000, renderer: { label: "Helloooooooooooooooooooooooooooooooo World", icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>" } },
                 { id: "n2", radius: 30, mass: 1000, renderer: { label: "Hello World", backgroundColor: 0x00AE8D, textColor: 0xFFFFFF } },
                 { id: "n3", radius: 30, mass: 1000, renderer: { label: "Hello World", icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>" } },
                 { id: "n4", radius: 30, mass: 1000, renderer: { label: "Hello World" } },
                 { id: "n5", radius: 30, mass: 1000, renderer: { label: "Hello World" } },
                 { id: "n6", radius: 30, mass: 1000, renderer: { label: "Hello World" } },
                 { id: "n7", radius: 30, mass: 1000 },
-                { id: "n8", width: 100, height: 70, mass: 1000, renderer: { shape: "rectangle" } },
+                { id: "n8", width: 200, height: 70, mass: 1000, renderer: { label: "Helloooooooooooooooooooooooooooooooooooooooooooo", shape: "rectangle", icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>" } },
             ]
             const edges = [
                 { sourceNode: "n0", targetNode: "n1", visibleDistance: 100, renderer: { color: 0x00594E, label: "Hello World!!!!" } },
@@ -47,7 +47,7 @@
                 { sourceNode: "n6", targetNode: "n7", visibleDistance: 100 },
                 { sourceNode: "n7", targetNode: "n7", visibleDistance: 100, renderer: { isInteractive: true, color: 0x00594E, label: "Hello World!!!!" } },
                 { sourceNode: "n7", targetNode: "n7", visibleDistance: 100, renderer: { color: 0x00594E, label: "Hello World!!!!" } },
-                { sourceNode: "n0", targetNode: "n8", visibleDistance: 100, renderer: { isInteractive: true, color: 0x00594E, label: "Hello World!!!!" } }
+                { sourceNode: "n0", targetNode: "n8", visibleDistance: 100, renderer: { isInteractive: true, color: 0x00594E, label: "Hello World!!!!" } },
             ]
             const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
             const renderer = new Trassel.Renderer(document.querySelector(".graph"), nodes, edges)
@@ -76,7 +76,7 @@
             })
             renderer.on("entitydragmove", event => {
                 event.node.fx = event.position.x
-				event.node.fy = event.position.y
+                event.node.fy = event.position.y
             })
             renderer.on("entitydragend", event => {
                 delete event.node.fx
