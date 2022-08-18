@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.1.8
+- Fixed graphical glitch in renderer that would sometimes occur on some operating systems
+
 ### 0.1.7
 - Improved rendering of shapes and positioning / sizing of their content
 

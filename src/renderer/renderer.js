@@ -92,6 +92,7 @@ export class WebGLRenderer {
 			backgroundAlpha: 1,
 			backgroundColor: this.backgroundColor
 		})
+		this.renderer.view.style.display = "block"
 		this.element.appendChild(this.renderer.view)
 		this.backdrop = new PIXI.Container()
 		this.backdrop.interactive = true

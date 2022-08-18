@@ -1,6 +1,6 @@
 /** @preserve @license @cc_on
  * ----------------------------------------------------------
- * trassel version 0.1.7
+ * trassel version 0.1.8
  * Graph computing in JavaScript
  * https://fukurosan.github.io/Trassel/
  * Copyright (c) 2022 Henrik Olofsson
@@ -47026,6 +47026,7 @@ var Trassel = (function (exports) {
 				backgroundAlpha: 1,
 				backgroundColor: this.backgroundColor
 			});
+			this.renderer.view.style.display = "block";
 			this.element.appendChild(this.renderer.view);
 			this.backdrop = new Container$1();
 			this.backdrop.interactive = true;
