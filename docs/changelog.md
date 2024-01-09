@@ -1,5 +1,8 @@
 # Changelog
 
+### 0.1.9
+- Fixed broken image links
+
 ### 0.1.8
 - Fixed graphical glitch in renderer that would sometimes occur on some operating systems
 
