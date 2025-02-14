@@ -2,11 +2,10 @@
   "name": "trassel",
   "version": "0.1.9",
   "description": "Graph computing in JavaScript",
-  "main": "./dist/trassel.cjs.min.js",
-  "module": "./dist/trassel.esm.js",
-  "unpkg": "./dist/trassel.umd.min.js",
-  "jsdelivr": "./dist/trassel.umd.min.js",
+  "main": "./dist/js/umd-bundle.js",
+  "module": "./dist/js/esm-bundle.js",
   "types": "./dist/types/index.d.ts",
+  "unpkg": "./dist/umd-bundle.js",
   "type": "module",
   "repository": {
     "type": "git",
@@ -23,8 +22,8 @@
     "test": "node --experimental-vm-modules ./node_modules/.bin/jest --verbose --coverage --no-cache --maxtestworkers=50%  --collectCoverageFrom=src/**/*.{js,js}",
     "clear": "rimraf dist",
     "types": "tsc --declaration --emitDeclarationOnly --outDir ./dist/types/",
-    "rollup": "rollup -c",
-    "build": "npm run lint:fix && npm run clear && npm run test && npm run rollup && npm run types"
+    "build:vite": "vite build",
+    "build": "npm run lint:fix && npm run clear && npm run test && npm run build:vite && npm run types"
   },
   "keywords": [
     "network",
@@ -45,8 +44,6 @@
   "author": "Henrik Olofsson",
   "license": "MIT",
   "devDependencies": {
-    "@rollup/plugin-commonjs": "^22.0.1",
-    "@rollup/plugin-node-resolve": "^13.3.0",
     "@types/jest": "^28.1.4",
     "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.5.0",
@@ -54,10 +51,8 @@
     "jest": "^28.1.2",
     "prettier": "^2.7.1",
     "rimraf": "^3.0.2",
-    "rollup": "^2.75.7",
-    "rollup-plugin-copy": "^3.4.0",
-    "rollup-plugin-terser": "^7.0.2",
-    "typescript": "^4.7.4"
+    "typescript": "^4.7.4",
+    "vite": "^6.1.0"
   },
   "dependencies": {
     "pixi.js": "^6.4.2"
