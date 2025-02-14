@@ -7,6 +7,9 @@
   "types": "./dist/types/index.d.ts",
   "unpkg": "./dist/umd-bundle.js",
   "type": "module",
+  "files": [
+    "dist/**/"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/fukurosan/Trassel.git"
