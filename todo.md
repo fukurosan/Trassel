@@ -1,0 +1,9 @@
+- Update all dependencies
+    - OK! Rollup -> Vite
+    - Jest -> Vitest
+    - Eslint
+    - Prettier
+- Move from ts interfaces to 100% jsdoc
+- Create development playground
+- Update pixijs
+- Modularize and make the renderer type safe

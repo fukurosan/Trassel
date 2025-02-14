@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from "vitest"
 import { initializeNodesAndEdges } from "../util/initializer"
 import Quadtree from "../util/quadtree"
 import {

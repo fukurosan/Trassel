@@ -1,6 +1,7 @@
 import Quadtree from "./quadtree"
 import { Env } from "../config/env"
 import { initializeNodesAndEdges } from "./initializer"
+import { describe, expect, it } from "vitest"
 
 describe("Quadtree", () => {
 	//prettier-ignore

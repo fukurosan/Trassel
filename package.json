@@ -19,7 +19,7 @@
     "prettier": "prettier \"*/**/*.js\" --write",
     "lint": "eslint \"*/**/*.js\"",
     "lint:fix": "npm run prettier && eslint \"*/**/*.js\" --fix",
-    "test": "node --experimental-vm-modules ./node_modules/.bin/jest --verbose --coverage --no-cache --maxtestworkers=50%  --collectCoverageFrom=src/**/*.{js,js}",
+    "test": "npx vitest run",
     "clear": "rimraf dist",
     "types": "tsc --declaration --emitDeclarationOnly --outDir ./dist/types/",
     "build:vite": "vite build",
@@ -44,15 +44,13 @@
   "author": "Henrik Olofsson",
   "license": "MIT",
   "devDependencies": {
-    "@types/jest": "^28.1.4",
     "eslint": "^8.19.0",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-jest": "^26.5.3",
-    "jest": "^28.1.2",
     "prettier": "^2.7.1",
     "rimraf": "^3.0.2",
     "typescript": "^4.7.4",
-    "vite": "^6.1.0"
+    "vite": "^6.1.0",
+    "vitest": "^3.0.5"
   },
   "dependencies": {
     "pixi.js": "^6.4.2"

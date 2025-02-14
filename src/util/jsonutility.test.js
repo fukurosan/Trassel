@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest"
 import { deepCopyObject } from "./jsonutility"
 
 describe("JSON utilities", () => {
