@@ -19,9 +19,7 @@
   },
   "homepage": "https://fukurosan.github.io/Trassel/",
   "scripts": {
-    "prettier": "prettier \"*/**/*.js\" --write",
-    "lint": "eslint \"*/**/*.js\"",
-    "lint:fix": "npm run prettier && eslint \"*/**/*.js\" --fix",
+    "lint:fix": "prettier \"src/**/*.js\" \"test/**/*.js\" --write && eslint \"src/**/*.js\" \"test/**/*.js\" --fix",
     "test": "npx vitest run",
     "clear": "rimraf dist",
     "types": "tsc --declaration --emitDeclarationOnly --outDir ./dist/types/",
@@ -47,9 +45,9 @@
   "author": "Henrik Olofsson",
   "license": "MIT",
   "devDependencies": {
-    "eslint": "^8.19.0",
-    "eslint-config-prettier": "^8.5.0",
-    "prettier": "^2.7.1",
+    "eslint": "^9.20.1",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.5.1",
     "rimraf": "^3.0.2",
     "typescript": "^4.7.4",
     "vite": "^6.1.0",

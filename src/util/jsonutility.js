@@ -8,7 +8,7 @@ export const deepCopyObject = o => {
 			out[key] = typeof v === "object" && v !== null ? deepCopyObject(v) : v
 		}
 		return out
-	} else if (typeof o === "object" && o !== {}) {
+	} else if (typeof o === "object" && Object.keys(o).length > 0) {
 		const out = {}
 		for (const key in o) {
 			const v = o[key]
