@@ -5,16 +5,16 @@ export interface IRendererOptions {
 	/** How the shape of the lines in the graph will look like */
 	lineType?: "line" | "taxi" | "orthogonal" | "cubicbezier"
 	/** Color used for things like selection and hover states */
-	primaryColor?: number
+	primaryColor?: number | string
 	/** Color of the graph backdrop */
-	backdropColor?: number
+	backdropColor?: number | string
 }
 
 export interface INodeRendererOptions {
 	/** Background of the node */
-	backgroundColor?: number
+	backgroundColor?: number | string
 	/** Text color of the node */
-	textColor?: number
+	textColor?: number | string
 	/** Shape of the node */
 	shape?: "circle" | "rectangle"
 	/** Icon URL/URI */
@@ -31,9 +31,9 @@ export interface IEdgeRendererOptions {
 	/** Text label (name) for the edge */
 	label?: string
 	/** Text color */
-	labelColor?: number
+	labelColor?: number | string
 	/** Text label background color */
-	labelBackgroundColor?: number
+	labelBackgroundColor?: number | string
 	/** Is the label interactive? */
 	isInteractive?: boolean
 	/** In an orthogonal line type this can be used to control where the lines start and end */

@@ -20,8 +20,8 @@ export class WebGLRenderer {
 		this.lineType = options?.lineType || "line"
 		this.LINE_MARGIN_PX = 10
 		this.sceneSize = 50000
-		this.primaryColor = options?.primaryColor ? options.primaryColor : 0x3289e2
-		this.backgroundColor = this.options?.backdropColor ? this.options.backdropColor : 0xe6e7e8
+		this.primaryColor = options?.primaryColor ? this.getHexColor(options.primaryColor) : 0x3289e2
+		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
@@ -55,6 +55,17 @@ export class WebGLRenderer {
 		this.initializeData(nodes, edges)
 		this.initializeEdgeCounters()
 		this.initializeLasso()
+	}
+
+	/**
+	 * Takes a hex color as input either as a number or string, returns the value as a number
+	 * @param {string | number} value - The value
+	 */
+	getHexColor(value) {
+		if (typeof value == "string") {
+			return PIXI.utils.string2hex(value)
+		}
+		return value
 	}
 
 	/**
@@ -249,7 +260,7 @@ export class WebGLRenderer {
 			const nodeHeight = node.height || node.radius * 2
 			const nodeWidth = node.width || node.radius * 2
 			nodeGfx.lineStyle(2, 0xffffff)
-			nodeGfx.beginFill(node.renderer.backgroundColor || 0xffffff)
+			nodeGfx.beginFill(this.getHexColor(node.renderer.backgroundColor || 0xffffff))
 			if (nodeShape === "rectangle") {
 				nodeGfx.drawRoundedRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
 			} else {
@@ -269,7 +280,7 @@ export class WebGLRenderer {
 				breakWords: true,
 				wordWrapWidth,
 				align: "center",
-				fill: node.renderer.textColor || 0x000000
+				fill: this.getHexColor(node.renderer.textColor || 0x000000)
 			})
 			const label = node.renderer.label || node.id
 			const measurements = PIXI.TextMetrics.measureText(label, textStyle)
@@ -451,7 +462,7 @@ export class WebGLRenderer {
 					breakWords: true,
 					align: "center",
 					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: edge.renderer.labelColor || 0x000000
+					fill: this.getHexColor(edge.renderer.labelColor || 0x000000)
 				})
 				const label = edge.renderer.label
 				const measurements = PIXI.TextMetrics.measureText(label, textStyle)
@@ -476,8 +487,8 @@ export class WebGLRenderer {
 					const width = text.width + 10
 					const height = text.height + 10
 					const textBackground = new PIXI.Graphics()
-					textBackground.lineStyle(2, edge.renderer.labelBackgroundColor || 0xffffff)
-					textBackground.beginFill(edge.renderer.labelBackgroundColor || 0xffffff)
+					textBackground.lineStyle(2, this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff))
+					textBackground.beginFill(this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff))
 					textBackground.alpha = 1
 					textBackground.drawRoundedRect(-width / 2, -height / 2, width, height, 4)
 					textBackground.endFill()
