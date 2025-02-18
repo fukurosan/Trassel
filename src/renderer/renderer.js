@@ -1033,7 +1033,7 @@ export class WebGLRenderer {
 			const line = edge.renderer._private.line
 			line.clear()
 			line.alpha = 1
-			line.lineStyle(1, edge.renderer.color || 0x000000)
+			line.lineStyle(1, this.getHexColor(edge.renderer.color || 0x000000))
 			let pathStart
 			let pathEnd
 			let curvePoint
