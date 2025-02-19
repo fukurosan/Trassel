@@ -8,6 +8,7 @@ import { OrthogonalConnector } from "./orthogonalRouter"
  */
 export class WebGLRenderer {
 	constructor(element, nodes, edges, options) {
+		console.log(PIXI.Sprite)
 		this.element = element
 		this.nodes = nodes
 		this.edges = edges
@@ -334,7 +335,7 @@ export class WebGLRenderer {
 			node.renderer._private.container.addChild(selectedGfx)
 			//Make node dragable
 			nodeGfx.interactive = true
-			nodeGfx.buttonMode = true
+			nodeGfx.cursor = "pointer" //Added in pixi v7 to replace nodegfx.buttonMode = true
 			let dragEventData = null
 			let dragging = false
 			let blockClick = false
@@ -365,6 +366,7 @@ export class WebGLRenderer {
 			}
 			nodeGfx.on("pointerdown", onDragStart)
 			nodeGfx.on("pointermove", onDragMove)
+			this.backdrop.on("pointermove", onDragMove) //Added in pixi v7 since pointermove will no longer fire when quickly moving cursor outside hit box
 			nodeGfx.on("pointerup", onDragEnd)
 			nodeGfx.on("pointerupoutside", onDragEnd)
 			//Give node hover effect
@@ -438,10 +440,10 @@ export class WebGLRenderer {
 				target: nodeLookupMap.get(edge.targetNode),
 				container: new PIXI.Container(),
 				line: new PIXI.Graphics(),
-				markerSource: new PIXI.Sprite.from(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none, {
+				markerSource: PIXI.Sprite.from(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none, {
 					resolution: 4
 				}),
-				markerTarget: new PIXI.Sprite.from(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow, {
+				markerTarget: PIXI.Sprite.from(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow, {
 					resolution: 4
 				}),
 				text: null
