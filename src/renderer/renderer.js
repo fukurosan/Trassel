@@ -8,7 +8,6 @@ import { OrthogonalConnector } from "./orthogonalRouter"
  */
 export class WebGLRenderer {
 	constructor(element, nodes, edges, options) {
-		console.log(PIXI.Sprite)
 		this.element = element
 		this.nodes = nodes
 		this.edges = edges
