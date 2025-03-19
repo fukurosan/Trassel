@@ -42142,7 +42142,8 @@ class OrthogonalConnector {
 class WebGLRenderer {
 	constructor(element, nodes, edges, options) {
 		this.element = element;
-		this.element.style.overflow = this.nodes = nodes;
+		this.element.style.overflow = "hidden";
+		this.nodes = nodes;
 		this.edges = edges;
 		this.options = options;
 		this.renderer = null;
@@ -43318,6 +43319,9 @@ class Renderer {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options);
 	}
 
+	/**
+	 * Initializes the renderer. Must be called before rendering anything!
+	 */
 	async initialize() {
 		await this.WebGLRenderer.initialize();
 	}
@@ -43359,7 +43363,7 @@ class Renderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} - Node to check
+	 * @param {import("../model/ibasicnode").IBasicNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {

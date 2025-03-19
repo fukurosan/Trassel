@@ -2,8 +2,8 @@
   "name": "trassel",
   "version": "0.1.9",
   "description": "Graph computing in JavaScript",
-  "main": "./dist/js/umd-bundle.js",
-  "module": "./dist/js/esm-bundle.js",
+  "main": "./dist/umd-bundle.js",
+  "module": "./dist/esm-bundle.js",
   "types": "./dist/types/index.d.ts",
   "unpkg": "./dist/umd-bundle.js",
   "type": "module",
@@ -50,6 +50,7 @@
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.5.1",
     "rimraf": "^3.0.2",
+    "typescript": "^5.8.2",
     "vite": "^6.1.0",
     "vitest": "^3.0.5"
   },

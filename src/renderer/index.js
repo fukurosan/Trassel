@@ -49,7 +49,7 @@ export class Renderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} - Node to check
+	 * @param {import("../model/ibasicnode").IBasicNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
