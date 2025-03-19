@@ -21,7 +21,7 @@
         }
     </style>
     <script>
-        window.onload = () => {
+        window.onload = async () => {
             /**
              * A simple example of how the library can be utilized with a renderer to compute interactive graphs
              */
@@ -51,6 +51,7 @@
             ]
             const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
             const renderer = new Trassel.Renderer(document.querySelector(".graph"), nodes, edges)
+            await renderer.initialize()
             let shiftKey = false
             let ctrlKey = false
             let altKey = false

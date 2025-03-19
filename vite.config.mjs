@@ -35,6 +35,11 @@ export default defineConfig({
 			fileName: format => {
 				return format === "umd" ? "umd-bundle.js" : "esm-bundle.js"
 			}
+		},
+		rollupOptions: {
+			output: {
+				inlineDynamicImports: true
+			}
 		}
 	},
 	plugins: [
@@ -54,11 +59,7 @@ export default defineConfig({
 						fs.writeFileSync(`${DOCS_EXAMPLES_FOLDER}/${file}`, data)
 					}
 				}
-				const examples = [
-					"examplehierarchy.html",
-					"exampleanimatestate.html",
-					"examplerenderer.html"
-				]
+				const examples = ["examplehierarchy.html", "exampleanimatestate.html", "examplerenderer.html"]
 				examples.forEach(file => {
 					fs.copyFileSync(`${DOCS_EXAMPLES_FOLDER}/${file}`, `${DIST_FOLDER}/${file}`)
 				})

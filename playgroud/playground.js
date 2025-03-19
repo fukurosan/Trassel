@@ -8,6 +8,7 @@ const nodes = data.nodes
 const edges = data.edges
 const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
 const renderer = new Trassel.Renderer(document.querySelector(".graph"), nodes, edges)
+await renderer.initialize()
 let shiftKey = false
 let ctrlKey = false
 let altKey = false
@@ -59,3 +60,6 @@ graph.on("layoutupdate", () => {
 })
 graph.startLayoutLoop()
 document.querySelector(".graph").addEventListener("contextmenu", event => event.preventDefault())
+setTimeout(() => {
+	renderer.zoomToFit()
+}, 200)

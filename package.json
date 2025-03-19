@@ -50,11 +50,10 @@
     "eslint-config-prettier": "^10.0.1",
     "prettier": "^3.5.1",
     "rimraf": "^3.0.2",
-    "typescript": "^4.7.4",
     "vite": "^6.1.0",
     "vitest": "^3.0.5"
   },
   "dependencies": {
-    "pixi.js": "^7.4.2"
+    "pixi.js": "^8.8.0"
   }
 }

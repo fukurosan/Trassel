@@ -6,6 +6,13 @@ export class Renderer {
 	}
 
 	/**
+	 * Initializes the renderer. Must be called before rendering anything!
+	 */
+	async initialize() {
+		await this.WebGLRenderer.initialize()
+	}
+
+	/**
 	 * Registers an event listener
 	 * @param {string} name - Event name to listen for
 	 * @param {() => any} fn - Callback on event
@@ -36,8 +43,8 @@ export class Renderer {
 	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
 	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
 	 */
-	updateNodesAndEdges(nodes, edges) {
-		this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
+	async updateNodesAndEdges(nodes, edges) {
+		await this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
 	}
 
 	/**

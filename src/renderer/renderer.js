@@ -9,6 +9,7 @@ import { OrthogonalConnector } from "./orthogonalRouter"
 export class WebGLRenderer {
 	constructor(element, nodes, edges, options) {
 		this.element = element
+		this.element.style.overflow = "hidden"
 		this.nodes = nodes
 		this.edges = edges
 		this.options = options
@@ -43,18 +44,11 @@ export class WebGLRenderer {
 			["lassoend", new Set()]
 		])
 		this.markers = {
-			none: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' %3E%3C/svg%3E",
-			arrow: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E",
+			none: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'></svg>",
+			arrow: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'><polygon points='0,0 30,15 0,30' /></svg>",
 			hollowArrow:
-				"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23ffffff;stroke:%23000000;stroke-width:4;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E"
+				"data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23ffffff;stroke:%23000000;stroke-width:4;'><polygon points='0,0 30,15 0,30' /></svg>"
 		}
-		this.initializeRenderer()
-		this.initializePanAndBackdropEvents()
-		this.initializeZoom()
-		this.initializeResizer()
-		this.initializeData(nodes, edges)
-		this.initializeEdgeCounters()
-		this.initializeLasso()
 	}
 
 	/**
@@ -63,7 +57,7 @@ export class WebGLRenderer {
 	 */
 	getHexColor(value) {
 		if (typeof value == "string") {
-			return PIXI.utils.string2hex(value)
+			return PIXI.Color.shared.setValue(value).toNumber()
 		}
 		return value
 	}
@@ -84,17 +78,28 @@ export class WebGLRenderer {
 		this.listeners.get(name).forEach(fn => fn(payload))
 	}
 
+	async initialize() {
+		await this.initializeRenderer()
+		this.initializePanAndBackdropEvents()
+		this.initializeZoom()
+		this.initializeResizer()
+		await this.initializeData(this.nodes, this.edges)
+		this.initializeEdgeCounters()
+		this.initializeLasso()
+	}
+
 	/**
 	 * Initializes the main renderer classes and variables
 	 */
-	initializeRenderer() {
+	async initializeRenderer() {
 		this.worldWidth = this.sceneSize
 		this.worldHeight = this.sceneSize
 		const width = this.element.clientWidth
 		const height = this.element.clientHeight
 		this.stage = new PIXI.Container()
 		this.stage.position.set(width / 2, height / 2)
-		this.renderer = PIXI.autoDetectRenderer({
+		this.renderer = await PIXI.autoDetectRenderer({
+			preference: "webgpu",
 			resolution: 2,
 			width,
 			height,
@@ -103,16 +108,16 @@ export class WebGLRenderer {
 			backgroundAlpha: 1,
 			backgroundColor: this.backgroundColor
 		})
-		this.renderer.view.style.display = "block"
-		this.element.appendChild(this.renderer.view)
+		this.renderer.view.canvas.style.display = "block"
+		this.element.appendChild(this.renderer.view.canvas)
 		this.backdrop = new PIXI.Container()
 		this.backdrop.interactive = true
 		this.backdrop.containsPoint = () => true
-		const svg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='200' height='200' style='background-color:%23${this.backgroundColor.toString(
+		const svg = `data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='200' height='200' style='background-color:%23${this.backgroundColor.toString(
 			16
-		)};'%3E%3Cpath style='stroke: %23a0a0a0; stroke-width: 4px;fill: none;stroke-dasharray: 0;stroke-linecap: round; stroke-linejoin: round;' d='M95 100 L105 100 M100 95 L100 105 Z' /%3E%3C/svg%3E`
-		const texture = PIXI.Texture.from(svg, { resolution: 4 })
-		const tilingSprite = new PIXI.TilingSprite(texture, this.worldWidth, this.worldHeight)
+		)};'><path style='stroke: %23a0a0a0; stroke-width: 4px;fill: none;stroke-dasharray: 0;stroke-linecap: round; stroke-linejoin: round;' d='M95 100 L105 100 M100 95 L100 105 Z' /></svg>`
+		const texture = await PIXI.Assets.load(svg)
+		const tilingSprite = new PIXI.TilingSprite({ texture, width: this.worldWidth, height: this.worldHeight, tileScale: { x: 0.25, y: 0.25 } })
 		tilingSprite.anchor.set(0.5)
 		this.backdrop.addChild(tilingSprite)
 		this.stage.addChild(this.backdrop)
@@ -174,7 +179,6 @@ export class WebGLRenderer {
 	 * makes the canvas zoomable
 	 */
 	initializeZoom() {
-		let scale = 1
 		const maxScale = 4
 		const minScale = 0.05
 		const handleZoom = event => {
@@ -185,13 +189,14 @@ export class WebGLRenderer {
 			const localPointBefore = this.stage.toLocal(new PIXI.Point(mouseX, mouseY))
 			const alpha = 1 + Math.abs(event.wheelDelta) / 2000
 			let shouldRender = false
+			let scale = this.stage.scale._x
 			if (event.wheelDelta < 0) {
 				scale = Math.min(scale * alpha, maxScale)
-				this.stage.setTransform(this.stage.x, this.stage.y, scale, scale)
+				this.stage.updateTransform({ x: this.stage.x, y: this.stage.y, scaleX: scale, scaleY: scale })
 				shouldRender = true
 			} else if (event.wheelDelta) {
 				scale = Math.max(scale / alpha, minScale)
-				this.stage.setTransform(this.stage.x, this.stage.y, scale, scale)
+				this.stage.updateTransform({ x: this.stage.x, y: this.stage.y, scaleX: scale, scaleY: scale })
 				shouldRender = true
 			}
 			const localPointAfter = this.stage.toLocal(new PIXI.Point(mouseX, mouseY))
@@ -203,7 +208,7 @@ export class WebGLRenderer {
 				this.render()
 			}
 		}
-		this.renderer.view.addEventListener("wheel", handleZoom)
+		this.renderer.view.canvas.addEventListener("wheel", handleZoom)
 	}
 
 	/**
@@ -228,14 +233,14 @@ export class WebGLRenderer {
 	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
 	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
 	 */
-	initializeData(nodes, edges) {
+	async initializeData(nodes, edges) {
 		const FOCUS_SHAPE_SIZE_HALF = 6
 		this.nodes = nodes
 		this.edges = edges
 		const nodeLookupMap = new Map()
 		const stageNodes = []
 		//Initializes Nodes
-		this.nodes.forEach(node => {
+		for (const node of this.nodes) {
 			nodeLookupMap.set(node.id, node)
 			if (!node.renderer) node.renderer = {}
 			if (node.renderer.shape === "rectangle") {
@@ -259,13 +264,13 @@ export class WebGLRenderer {
 			const nodeShape = node.renderer.shape
 			const nodeHeight = node.height || node.radius * 2
 			const nodeWidth = node.width || node.radius * 2
-			nodeGfx.lineStyle(2, 0xffffff)
-			nodeGfx.beginFill(this.getHexColor(node.renderer.backgroundColor || 0xffffff))
 			if (nodeShape === "rectangle") {
-				nodeGfx.drawRoundedRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
+				nodeGfx.roundRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
 			} else {
-				nodeGfx.drawCircle(0, 0, node.radius)
+				nodeGfx.circle(0, 0, node.radius)
 			}
+			nodeGfx.fill(this.getHexColor(node.renderer.backgroundColor || 0xffffff))
+			nodeGfx.stroke({ width: 2, color: 0xffffff })
 			//Draw label
 			const fontSize = Math.max(nodeHeight * 0.1, 12)
 			const icon = node.renderer.icon
@@ -283,7 +288,7 @@ export class WebGLRenderer {
 				fill: this.getHexColor(node.renderer.textColor || 0x000000)
 			})
 			const label = node.renderer.label || node.id
-			const measurements = PIXI.TextMetrics.measureText(label, textStyle)
+			const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 			let processedLabel = measurements.lines.shift()
 			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.radius > 40)
 			if (measurements.lines.length && shouldWrapText) {
@@ -292,14 +297,15 @@ export class WebGLRenderer {
 			if (measurements.lines.length) {
 				processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 			}
-			const text = new PIXI.Text(processedLabel, textStyle)
+			const text = new PIXI.Text({ text: processedLabel, style: textStyle })
 			text.resolution = 3
 			text.anchor.set(0.5)
 			nodeGfx.addChild(text)
 			node.renderer._private.text = text
 			//Draw icon
 			if (node.renderer.icon) {
-				const icon = PIXI.Sprite.from(node.renderer.icon)
+				const texture = await PIXI.Assets.load(node.renderer.icon)
+				const icon = PIXI.Sprite.from(texture)
 				icon.width = iconSize
 				icon.height = iconSize
 				icon.anchor.x = 0.5
@@ -318,9 +324,8 @@ export class WebGLRenderer {
 			}
 			//Add selection graphics
 			const selectedGfx = node.renderer._private.selected
-			selectedGfx.beginFill(this.primaryColor)
 			if (node.renderer.shape === "rectangle") {
-				selectedGfx.drawRoundedRect(
+				selectedGfx.roundRect(
 					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
 					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
@@ -328,8 +333,9 @@ export class WebGLRenderer {
 					12
 				)
 			} else {
-				selectedGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
+				selectedGfx.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
 			}
+			selectedGfx.fill(this.primaryColor)
 			selectedGfx.alpha = 0
 			node.renderer._private.container.addChild(selectedGfx)
 			//Make node dragable
@@ -371,19 +377,17 @@ export class WebGLRenderer {
 			//Give node hover effect
 			const focusGfx = new PIXI.Graphics()
 			const focusGfx2 = new PIXI.Graphics()
-			focusGfx.beginFill(this.primaryColor)
-			focusGfx2.beginFill(this.primaryColor)
 			focusGfx.alpha = 0.2
 			focusGfx2.alpha = 0.1
 			if (node.renderer.shape === "rectangle") {
-				focusGfx.drawRoundedRect(
+				focusGfx.roundRect(
 					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
 					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
 					node.height + FOCUS_SHAPE_SIZE_HALF * 2,
 					12
 				)
-				focusGfx2.drawRoundedRect(
+				focusGfx2.roundRect(
 					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					node.width + FOCUS_SHAPE_SIZE_HALF * 4,
@@ -391,9 +395,11 @@ export class WebGLRenderer {
 					16
 				)
 			} else {
-				focusGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
-				focusGfx2.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF * 2)
+				focusGfx.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
+				focusGfx2.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF * 2)
 			}
+			focusGfx.fill(this.primaryColor)
+			focusGfx2.fill(this.primaryColor)
 			const pointerOver = () => {
 				if (!dragging) {
 					node.renderer._private.container.addChildAt(focusGfx, 0)
@@ -429,22 +435,27 @@ export class WebGLRenderer {
 			node.renderer._private.container.addChild(nodeGfx)
 			node.renderer._private.container.cullable = true
 			stageNodes.push(node)
-		})
+		}
 		//Initialize Edges
-		this.edges.forEach(edge => {
+		for (const edge of this.edges) {
 			//Initialize edge properties
 			if (!edge.renderer) edge.renderer = {}
+			const markerSourceAsset = await PIXI.Assets.load(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none)
+			const markerTargetAsset = await PIXI.Assets.load(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow)
+			const markerSource = PIXI.Sprite.from(markerSourceAsset)
+			const markerTarget = PIXI.Sprite.from(markerTargetAsset)
+			const markerSize = 16
+			markerSource.width = markerSize
+			markerSource.height = markerSize
+			markerTarget.width = markerSize
+			markerTarget.height = markerSize
 			edge.renderer._private = {
 				source: nodeLookupMap.get(edge.sourceNode),
 				target: nodeLookupMap.get(edge.targetNode),
 				container: new PIXI.Container(),
 				line: new PIXI.Graphics(),
-				markerSource: PIXI.Sprite.from(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none, {
-					resolution: 4
-				}),
-				markerTarget: PIXI.Sprite.from(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow, {
-					resolution: 4
-				}),
+				markerSource,
+				markerTarget,
 				text: null
 			}
 			edge.renderer._private.container.addChild(edge.renderer._private.line)
@@ -466,12 +477,12 @@ export class WebGLRenderer {
 					fill: this.getHexColor(edge.renderer.labelColor || 0x000000)
 				})
 				const label = edge.renderer.label
-				const measurements = PIXI.TextMetrics.measureText(label, textStyle)
+				const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 				let processedLabel = measurements.lines[0]
 				if (measurements.lines.length > 1) {
 					processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 				}
-				const text = new PIXI.Text(processedLabel, textStyle)
+				const text = new PIXI.Text({ text: processedLabel, style: textStyle })
 				text.resolution = 3
 				if (edge.sourceNode !== edge.targetNode) {
 					text.anchor.x = 0.5
@@ -488,32 +499,29 @@ export class WebGLRenderer {
 					const width = text.width + 10
 					const height = text.height + 10
 					const textBackground = new PIXI.Graphics()
-					textBackground.lineStyle(2, this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff))
-					textBackground.beginFill(this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff))
 					textBackground.alpha = 1
-					textBackground.drawRoundedRect(-width / 2, -height / 2, width, height, 4)
-					textBackground.endFill()
+					textBackground.roundRect(-width / 2, -height / 2, width, height, 4)
+					textBackground.fill(this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff))
+					textBackground.stroke({ width: 2, color: this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff) })
 					textContainer.addChildAt(textBackground, 0)
 					const textFocusBackground = new PIXI.Graphics()
 					const textFocusBackground2 = new PIXI.Graphics()
-					textFocusBackground.beginFill(this.primaryColor)
-					textFocusBackground2.beginFill(this.primaryColor)
-					textFocusBackground.drawRoundedRect(
+					textFocusBackground.roundRect(
 						-width / 2 - FOCUS_SHAPE_SIZE_HALF * 2,
 						-height / 2 - FOCUS_SHAPE_SIZE_HALF * 2,
 						width + FOCUS_SHAPE_SIZE_HALF * 4,
 						height + FOCUS_SHAPE_SIZE_HALF * 4,
 						12
 					)
-					textFocusBackground2.drawRoundedRect(
+					textFocusBackground2.roundRect(
 						-width / 2 - FOCUS_SHAPE_SIZE_HALF,
 						-height / 2 - FOCUS_SHAPE_SIZE_HALF,
 						width + FOCUS_SHAPE_SIZE_HALF * 2,
 						height + FOCUS_SHAPE_SIZE_HALF * 2,
 						8
 					)
-					textFocusBackground.endFill()
-					textFocusBackground2.endFill()
+					textFocusBackground.fill(this.primaryColor)
+					textFocusBackground2.fill(this.primaryColor)
 					textFocusBackground.alpha = 0.1
 					textFocusBackground2.alpha = 0.2
 					textContainer.interactive = true
@@ -553,7 +561,7 @@ export class WebGLRenderer {
 				edge.renderer._private.container.addChild(textContainer)
 				edge.renderer._private.text = textContainer
 			}
-		})
+		}
 		stageNodes.forEach(node => {
 			this.stage.addChild(node.renderer._private.container)
 		})
@@ -602,24 +610,25 @@ export class WebGLRenderer {
 		const onLassoMove = event => {
 			if (moving) {
 				const currentMouse = this.stage.toLocal(new PIXI.Point(event.data.global.x, event.data.global.y))
-				const width = currentMouse.x - initialMouse.x
-				const height = currentMouse.y - initialMouse.y
+				const width = Math.abs(currentMouse.x - initialMouse.x)
+				const height = Math.abs(currentMouse.y - initialMouse.y)
+				const rectTopLeftX = initialMouse.x < currentMouse.x ? initialMouse.x : currentMouse.x
+				const rectTopLeftY = initialMouse.y < currentMouse.y ? initialMouse.y : currentMouse.y
 				rect.clear()
-				rect.beginFill(this.primaryColor)
-				rect.drawRect(initialMouse.x, initialMouse.y, width, height)
-				rect.endFill()
-				const lassoEndX = initialMouse.x + width
-				const lassoEndY = initialMouse.y + height
+				rect.rect(rectTopLeftX, rectTopLeftY, width, height)
+				rect.fill(this.primaryColor)
+				const lassoEndX = rectTopLeftX + width
+				const lassoEndY = rectTopLeftY + height
 				const coveredSelection = new Set(Array.from(lastLassoCoveredSelection))
 				let selectionChanged = false
 				const removed = []
 				const added = []
 				this.nodes.forEach(node => {
 					if (
-						node.x >= Math.min(initialMouse.x, lassoEndX) &&
-						node.y >= Math.min(initialMouse.y, lassoEndY) &&
-						node.x + (node.width || node.radius) <= Math.max(lassoEndX, initialMouse.x) &&
-						node.y + (node.height || node.radius) <= Math.max(lassoEndY, initialMouse.y)
+						node.x >= Math.min(rectTopLeftX, lassoEndX) &&
+						node.y >= Math.min(rectTopLeftY, lassoEndY) &&
+						node.x + (node.width || node.radius) <= Math.max(lassoEndX, rectTopLeftX) &&
+						node.y + (node.height || node.radius) <= Math.max(lassoEndY, rectTopLeftY)
 					) {
 						if (!lastLassoCoveredSelection.has(node.id)) {
 							added.push(node)
@@ -646,7 +655,11 @@ export class WebGLRenderer {
 			lastLassoCoveredSelection = new Set()
 			this.render()
 		}
-		this.backdrop.on("pointerdown", onLassoStart).on("pointermove", onLassoMove).on("pointerup", onStageLassoEnd).on("pointerupoutside", onStageLassoEnd)
+		this.backdrop
+			.on("pointerdown", onLassoStart)
+			.on("globalpointermove", onLassoMove)
+			.on("pointerup", onStageLassoEnd)
+			.on("pointerupoutside", onStageLassoEnd)
 	}
 
 	/**
@@ -681,14 +694,14 @@ export class WebGLRenderer {
 	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
 	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
 	 */
-	updateNodesAndEdges(nodes, edges) {
+	async updateNodesAndEdges(nodes, edges) {
 		while (this.stage.children[0]) {
 			this.stage.removeChild(this.stage.children[0])
 		}
 		this.stage.addChild(this.backdrop)
 		this.nodes.forEach(node => delete node.renderer._private)
 		this.edges.forEach(edge => delete edge.renderer._private)
-		this.initializeData(nodes, edges)
+		await this.initializeData(nodes, edges)
 		this.render()
 	}
 
@@ -761,7 +774,7 @@ export class WebGLRenderer {
 				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation
 				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation
 				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation
-				this.stage.setTransform(nextX, nextY, nextScale, nextScale)
+				this.stage.updateTransform({ x: nextX, y: nextY, scaleX: nextScale, scaleY: nextScale })
 				this.render()
 				if (deltaTime < duration) {
 					loop()
@@ -778,7 +791,7 @@ export class WebGLRenderer {
 	 * @param {number} scale
 	 */
 	setTransform(x, y, scale) {
-		this.stage.setTransform(-x + this.element.clientWidth / 2, -y + this.element.clientHeight / 2, scale, scale)
+		this.stage.updateTransform({ x: -x + this.element.clientWidth / 2, y: -y + this.element.clientHeight / 2, scaleX: scale, scaleY: scale })
 		this.render()
 	}
 
@@ -1034,7 +1047,6 @@ export class WebGLRenderer {
 			const line = edge.renderer._private.line
 			line.clear()
 			line.alpha = 1
-			line.lineStyle(1, this.getHexColor(edge.renderer.color || 0x000000))
 			let pathStart
 			let pathEnd
 			let curvePoint
@@ -1047,7 +1059,6 @@ export class WebGLRenderer {
 				labelPoint = selfPath.label
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
-				line.endFill()
 			} else if (this.lineType === "taxi") {
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
@@ -1058,7 +1069,6 @@ export class WebGLRenderer {
 				line.lineTo(pathStart.x, midPointY)
 				line.lineTo(pathEnd.x, midPointY)
 				line.lineTo(pathEnd.x, pathEnd.y)
-				line.endFill()
 			} else if (this.lineType === "cubicbezier") {
 				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
@@ -1067,7 +1077,6 @@ export class WebGLRenderer {
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				line.moveTo(pathStart.x, pathStart.y)
 				line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y)
-				line.endFill()
 			} else if (this.lineType === "orthogonal") {
 				//TODO:: Make this go faster
 				const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2
@@ -1117,7 +1126,6 @@ export class WebGLRenderer {
 				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side }
 				line.moveTo(x, y)
 				path.forEach(path => line.lineTo(path.x, path.y))
-				line.endFill()
 			} else {
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
@@ -1125,7 +1133,6 @@ export class WebGLRenderer {
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
-				line.endFill()
 			}
 			if (this.lineType === "taxi" && source !== target) {
 				const markerTarget = edge.renderer._private.markerTarget
@@ -1149,6 +1156,7 @@ export class WebGLRenderer {
 				markerSource.rotation = Math.atan2(source.y - curvePoint.y, source.x - curvePoint.x)
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			}
+			line.stroke({ width: 1, color: this.getHexColor(edge.renderer.color || 0x000000) })
 			const text = edge.renderer._private.text
 			if (text) {
 				text.position = new PIXI.Point(labelPoint.x, labelPoint.y)

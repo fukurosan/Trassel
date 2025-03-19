@@ -25,6 +25,7 @@ Check out this simple example:
 	]
 	const element = document.querySelector(".graph")
 	const renderer = new Renderer(element, nodes, edges)
+	await renderer.initialize()
 	renderer.render()
 </script>
 ```
@@ -40,7 +41,7 @@ to update data after creating the graph simply use the updateNodesAndEdges() fun
 ```javascript
 const nodes = []
 const edges = []
-renderer.updateNodesAndEdges(nodes, edges)
+await renderer.updateNodesAndEdges(nodes, edges)
 ```
 
 To render the current state onto the screen use the render() function like so:
