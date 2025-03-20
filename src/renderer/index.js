@@ -1,6 +1,16 @@
 import { WebGLRenderer } from "./renderer"
 
+/**
+ * Renderer API Class
+ * This class i used to create and interact with visual graphs.
+ */
 export class Renderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
+	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options)
 	}

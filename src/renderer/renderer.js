@@ -7,21 +7,36 @@ import { OrthogonalConnector } from "./orthogonalRouter"
  * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
  */
 export class WebGLRenderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
+	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 */
 	constructor(element, nodes, edges, options) {
+		/** @type {HTMLElement} */
 		this.element = element
 		this.element.style.overflow = "hidden"
+		/** @type {import("../model/rendereroptions").INodeWithRendererOptions[]} */
 		this.nodes = nodes
+		/** @type {import("../model/rendereroptions").IEdgeWithRendererOptions[]} */
 		this.edges = edges
+		/** @type {import("../model/rendereroptions").IRendererOptions[]} */
 		this.options = options
+		/** @type {PIXI.Renderer} */
 		this.renderer = null
+		/** @type {PIXI.Container} */
 		this.stage = null
+		/** @type {PIXI.Container} */
 		this.backdrop = null
+		/** @type {ResizeObserver | null} */
 		this.resizeObserver = null
 		this.lassoEnabled = false
-		this.lineType = options?.lineType || "line"
+		/** @type {import("../model/rendereroptions").LineTypes} */
+		this.lineType = this.options?.lineType || "line"
 		this.LINE_MARGIN_PX = 10
 		this.sceneSize = 50000
-		this.primaryColor = options?.primaryColor ? this.getHexColor(options.primaryColor) : 0x3289e2
+		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2
 		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8
 		this.listeners = new Map([
 			["backdropclick", new Set()],
@@ -43,6 +58,7 @@ export class WebGLRenderer {
 			["lassoupdate", new Set()],
 			["lassoend", new Set()]
 		])
+		//Markers are the tips of the edges, the arrow heads
 		this.markers = {
 			none: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'></svg>",
 			arrow: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'><polygon points='0,0 30,15 0,30' /></svg>",
@@ -120,7 +136,10 @@ export class WebGLRenderer {
 		const tilingSprite = new PIXI.TilingSprite({ texture, width: this.worldWidth, height: this.worldHeight, tileScale: { x: 0.25, y: 0.25 } })
 		tilingSprite.anchor.set(0.5)
 		this.backdrop.addChild(tilingSprite)
+
+		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
 		this.stage.addChild(this.backdrop)
+		PIXI.extensions.add(PIXI.CullerPlugin)
 	}
 
 	/**

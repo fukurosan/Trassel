@@ -1,9 +1,14 @@
 import { IBasicEdge } from "./ibasicedge"
 import { IBasicNode } from "./ibasicnode"
 
+export type LineTypes = "line" | "taxi" | "orthogonal" | "cubicbezier"
+export type NodeShapes = "circle" | "rectangle"
+export type MarkerTypes = "arrow" | "hollowArrow" | "none"
+export type EdgePositions = "top" | "right" | "bottom" | "left"
+
 export interface IRendererOptions {
 	/** How the shape of the lines in the graph will look like */
-	lineType?: "line" | "taxi" | "orthogonal" | "cubicbezier"
+	lineType?: LineTypes
 	/** Color used for things like selection and hover states */
 	primaryColor?: number | string
 	/** Color of the graph backdrop */
@@ -16,7 +21,7 @@ export interface INodeRendererOptions {
 	/** Text color of the node */
 	textColor?: number | string
 	/** Shape of the node */
-	shape?: "circle" | "rectangle"
+	shape?: NodeShapes
 	/** Icon URL/URI */
 	icon?: string
 	/** Text label (name) for the node */
@@ -25,9 +30,9 @@ export interface INodeRendererOptions {
 
 export interface IEdgeRendererOptions {
 	/** Marker to be drawn on the source side of the edge */
-	markerSource?: "arrow" | "hollowArrow" | "none"
+	markerSource?: MarkerTypes
 	/** Marker to be drawn on the target side of the edge */
-	markerTarget?: "arrow" | "hollowArrow" | "none"
+	markerTarget?: MarkerTypes
 	/** Text label (name) for the edge */
 	label?: string
 	/** Text color */
@@ -37,9 +42,9 @@ export interface IEdgeRendererOptions {
 	/** Is the label interactive? */
 	isInteractive?: boolean
 	/** In an orthogonal line type this can be used to control where the lines start and end */
-	sourceEdgePosition?: "top" | "right" | "bottom" | "left"
+	sourceEdgePosition?: EdgePositions
 	/** In an orthogonal line type this can be used to control where the lines start and end */
-	targetEdgePosition?: "top" | "right" | "bottom" | "left"
+	targetEdgePosition?: EdgePositions
 }
 
 /**

@@ -50,7 +50,7 @@ export const initializeNodesAndEdges = (nodes = [], edges = []) => {
 		edge.source = nodes.find(node => node.id === edge.sourceNode)
 		edge.target = nodes.find(node => node.id === edge.targetNode)
 		if (!edge.source || !edge.target) {
-			throw new Error("Broken Edge " + `${edge}`)
+			throw new Error("Broken Edge " + `${edge.sourceNode} -> ${edge.targetNode}`)
 		}
 		//Initialize the edge's length
 		if (!edge.distance) {
