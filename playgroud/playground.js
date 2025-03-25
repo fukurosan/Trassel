@@ -4,8 +4,32 @@ import data from "./graph.json"
 
 window.Trassel = Trassel
 
-const nodes = data.nodes
-const edges = data.edges
+// Import graph
+// const nodes = data.nodes
+// const edges = data.edges
+
+//Heavy graph
+const nodes = []
+const edges = []
+for (let i = 0; i < 2000; i++) {
+	nodes.push({
+		id: "n" + i,
+		radius: 50,
+		mass: 1000
+	})
+}
+for (let i = 0; i < 5000; i++) {
+	edges.push({
+		sourceNode: "n" + Math.round(Math.abs(i / 5)),
+		targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
+		visibleDistance: 100,
+		renderer: {
+			color: "#00594E",
+			label: "Hello World!!!!"
+		}
+	})
+}
+
 const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
 const renderer = new Trassel.Renderer(document.querySelector(".graph"), nodes, edges)
 await renderer.initialize()
@@ -60,6 +84,26 @@ graph.on("layoutupdate", () => {
 })
 graph.startLayoutLoop()
 document.querySelector(".graph").addEventListener("contextmenu", event => event.preventDefault())
+
 setTimeout(() => {
 	renderer.zoomToFit()
-}, 200)
+}, 2000)
+
+const FPSCounter = document.createElement("div")
+FPSCounter.setAttribute(
+	"style",
+	"position:fixed;left:24px;top:24px;font-size:1rem;font-weight:bold;color:black;padding:16px;background-color:white;border-radius:8px;font-family:sans-serif;border:1px solid lightgray;"
+)
+FPSCounter.innerHTML = "0 FPS"
+document.body.appendChild(FPSCounter)
+let lastDate = Date.now()
+let now = null
+let frames = 0
+setInterval(() => {
+	frames++
+	if ((now = Date.now()) - lastDate > 1000) {
+		FPSCounter.innerHTML = `${frames} FPS`
+		frames = 0
+		lastDate = now
+	}	
+}, 0)

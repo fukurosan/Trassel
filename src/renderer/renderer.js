@@ -3,7 +3,7 @@ import { OrthogonalConnector } from "./orthogonalRouter"
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
- * There are also several performance optimizations that could be made. Most especially with regards to text and culling of edges.
+ * There are also several performance optimizations that could be made.
  * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
  */
 export class WebGLRenderer {
@@ -38,6 +38,7 @@ export class WebGLRenderer {
 		this.sceneSize = 50000
 		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2
 		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8
+		this.renderIteration = 0
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
@@ -136,10 +137,7 @@ export class WebGLRenderer {
 		const tilingSprite = new PIXI.TilingSprite({ texture, width: this.worldWidth, height: this.worldHeight, tileScale: { x: 0.25, y: 0.25 } })
 		tilingSprite.anchor.set(0.5)
 		this.backdrop.addChild(tilingSprite)
-
-		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
 		this.stage.addChild(this.backdrop)
-		PIXI.extensions.add(PIXI.CullerPlugin)
 	}
 
 	/**
@@ -155,6 +153,7 @@ export class WebGLRenderer {
 				initialMouseX = event.data.global.x - this.stage.x
 				initialMouseY = event.data.global.y - this.stage.y
 				mouseDrag = true
+				this.backdrop.on("globalpointermove", onStageDragMove)
 				this.triggerEvent("canvasdragstart")
 			}
 		}
@@ -163,12 +162,14 @@ export class WebGLRenderer {
 				blockCanvasClick = true
 				this.stage.x = event.data.global.x - initialMouseX
 				this.stage.y = event.data.global.y - initialMouseY
+				PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
 				requestAnimationFrame(() => this.renderer.render(this.stage))
 			}
 		}
 		const onStageDragEnd = () => {
 			if (mouseDrag) {
 				mouseDrag = false
+				this.backdrop.removeEventListener("globalpointermove", onStageDragMove)
 				this.triggerEvent("canvasdragend")
 				setTimeout(() => {
 					blockCanvasClick = false
@@ -187,7 +188,6 @@ export class WebGLRenderer {
 		}
 		this.backdrop
 			.on("pointerdown", onStageDragStart)
-			.on("pointermove", onStageDragMove)
 			.on("pointerup", onStageDragEnd)
 			.on("pointerupoutside", onStageDragEnd)
 			.on("click", onClick)
@@ -200,6 +200,7 @@ export class WebGLRenderer {
 	initializeZoom() {
 		const maxScale = 4
 		const minScale = 0.05
+		let isZooming = false
 		const handleZoom = event => {
 			event.stopPropagation()
 			event.preventDefault()
@@ -224,7 +225,14 @@ export class WebGLRenderer {
 				this.stage.y += (localPointAfter.y - localPointBefore.y) * this.stage.scale.y
 			}
 			if (shouldRender) {
-				this.render()
+				//This prevents us from spamming zoom events that lock the event loop
+				isZooming = true
+				setTimeout(() => {
+					if (isZooming) {
+						isZooming = false
+						this.render()
+					}
+				}, 0)
 			}
 		}
 		this.renderer.view.canvas.addEventListener("wheel", handleZoom)
@@ -369,6 +377,7 @@ export class WebGLRenderer {
 				dragEventData = event.data
 				initialMouse = dragEventData.getLocalPosition(this.stage)
 				dragging = true
+				nodeGfx.on("globalpointermove", onDragMove)
 				initialNode = { x: node.x, y: node.y }
 				this.triggerEvent("entitydragstart", { node, position: { ...initialNode } })
 			}
@@ -385,12 +394,11 @@ export class WebGLRenderer {
 					blockClick = false
 				}, 1)
 				dragging = false
+				nodeGfx.removeEventListener("globalpointermove", onDragMove)
 				dragEventData = null
 				this.triggerEvent("entitydragend", { node })
 			}
 			nodeGfx.on("pointerdown", onDragStart)
-			nodeGfx.on("pointermove", onDragMove)
-			this.backdrop.on("pointermove", onDragMove) //Added in pixi v7 since pointermove will no longer fire when quickly moving cursor outside hit box
 			nodeGfx.on("pointerup", onDragEnd)
 			nodeGfx.on("pointerupoutside", onDragEnd)
 			//Give node hover effect
@@ -453,6 +461,7 @@ export class WebGLRenderer {
 			//Add node to stage
 			node.renderer._private.container.addChild(nodeGfx)
 			node.renderer._private.container.cullable = true
+			node.renderer._private.container.cullableChildren = false
 			stageNodes.push(node)
 		}
 		//Initialize Edges
@@ -483,6 +492,7 @@ export class WebGLRenderer {
 			edge.renderer._private.markerSource.anchor.set(0.45, 0.25)
 			edge.renderer._private.markerTarget.anchor.set(0.45, 0.25)
 			edge.renderer._private.container.cullable = true
+			edge.renderer._private.container.cullableChildren = false
 			this.stage.addChild(edge.renderer._private.container)
 			//Initialize label
 			if (edge.renderer.label) {
@@ -623,6 +633,7 @@ export class WebGLRenderer {
 				this.stage.addChild(rect)
 				rect.alpha = 0.4
 				moving = true
+				this.backdrop.on("globalpointermove", onLassoMove)
 				this.triggerEvent("lassostart")
 			}
 		}
@@ -669,16 +680,13 @@ export class WebGLRenderer {
 		}
 		const onStageLassoEnd = () => {
 			moving = false
+			this.backdrop.removeEventListener("globalpointermove", onLassoMove)
 			this.stage.removeChild(rect)
 			this.triggerEvent("lassoend", { selection: Array.from(lastLassoCoveredSelection) })
 			lastLassoCoveredSelection = new Set()
 			this.render()
 		}
-		this.backdrop
-			.on("pointerdown", onLassoStart)
-			.on("globalpointermove", onLassoMove)
-			.on("pointerup", onStageLassoEnd)
-			.on("pointerupoutside", onStageLassoEnd)
+		this.backdrop.on("pointerdown", onLassoStart).on("pointerup", onStageLassoEnd).on("pointerupoutside", onStageLassoEnd)
 	}
 
 	/**
@@ -780,7 +788,7 @@ export class WebGLRenderer {
 		const animation = {
 			sourceX: this.stage.x,
 			sourceY: this.stage.y,
-			sourceScale: this.stage.scale.x,
+			sourceScale: this.stage.scale._x,
 			targetX: -midX + parentWidth / 2,
 			targetY: -midY + parentHeight / 2,
 			targetScale: newScale
@@ -789,7 +797,7 @@ export class WebGLRenderer {
 		const loop = () => {
 			setTimeout(() => {
 				const deltaTime = Date.now() - startTime
-				const percentOfAnimation = Math.min(deltaTime / duration, 100)
+				const percentOfAnimation = Math.min(deltaTime / duration, 1)
 				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation
 				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation
 				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation
@@ -1030,6 +1038,7 @@ export class WebGLRenderer {
 	 * Main render function that updates the canvas
 	 */
 	render() {
+		this.renderIteration += 1
 		this.nodes.forEach(node => {
 			const { x, y } = node
 			node.renderer._private.container.position = new PIXI.Point(x, y)
@@ -1182,7 +1191,7 @@ export class WebGLRenderer {
 				if (this.lineType === "line") {
 					text.angle = this.computeLabelAngle(source, target)
 				}
-				text.alpha = this.stage.scale._x < 0.3 ? 0 : 1
+				text.renderable = this.stage.scale._x < 0.3 ? false : true
 			}
 			if (edge.renderer._private.isDisabled) {
 				edge.renderer._private.line.alpha = 0.2
@@ -1198,6 +1207,11 @@ export class WebGLRenderer {
 				edge.renderer._private.text && (edge.renderer._private.text.interactive = true)
 			}
 		})
+		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
+		if (this.renderIteration % 2 != 0) {
+			//Only culling every second frame provides a performance advantage on large graphs
+			PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
+		} 
 		requestAnimationFrame(() => this.renderer.render(this.stage))
 	}
 }

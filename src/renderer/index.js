@@ -83,9 +83,9 @@ export class Renderer {
 
 	/**
 	 * scales and moves the view so that all nodes are included in the view
-	 * @param {number} duration - Time in milliseconds for the transition
+	 * @param {number=} duration - Time in milliseconds for the transition
 	 */
-	zoomToFit(duration = 200) {
+	zoomToFit(duration) {
 		this.WebGLRenderer.zoomToFit(duration)
 	}
 
