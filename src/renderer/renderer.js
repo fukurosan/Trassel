@@ -116,7 +116,7 @@ export class WebGLRenderer {
 		this.stage = new PIXI.Container()
 		this.stage.position.set(width / 2, height / 2)
 		this.renderer = await PIXI.autoDetectRenderer({
-			preference: "webgpu",
+			preference: "webgl",
 			resolution: 2,
 			width,
 			height,
@@ -468,6 +468,7 @@ export class WebGLRenderer {
 		for (const edge of this.edges) {
 			//Initialize edge properties
 			if (!edge.renderer) edge.renderer = {}
+			
 			const markerSourceAsset = await PIXI.Assets.load(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none)
 			const markerTargetAsset = await PIXI.Assets.load(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow)
 			const markerSource = PIXI.Sprite.from(markerSourceAsset)
@@ -1039,9 +1040,12 @@ export class WebGLRenderer {
 	 */
 	render() {
 		this.renderIteration += 1
+		//Process nodes
 		this.nodes.forEach(node => {
+			//Update position
 			const { x, y } = node
 			node.renderer._private.container.position = new PIXI.Point(x, y)
+			//Update renderable sections based on scale
 			if (this.stage.scale._x < 0.3) {
 				if (node.renderer._private?.text) node.renderer._private.text.renderable = false
 				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = false
@@ -1049,6 +1053,7 @@ export class WebGLRenderer {
 				if (node.renderer._private?.text) node.renderer._private.text.renderable = true
 				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = true
 			}
+			//Update disabled state
 			if (node.renderer._private.isDisabled) {
 				node.renderer._private.node.alpha = 0.2
 				node.renderer._private.node.interactive = false
@@ -1057,7 +1062,9 @@ export class WebGLRenderer {
 				node.renderer._private.node.interactive = true
 			}
 		})
+		//Process edges
 		this.edges.forEach(edge => {
+			//Update renderable based on scale
 			if (this.stage.scale._x < 0.1) {
 				edge.renderer._private.line.renderable = false
 				edge.renderer._private.markerSource.renderable = false
@@ -1070,6 +1077,7 @@ export class WebGLRenderer {
 				edge.renderer._private.markerTarget.renderable = true
 				if (edge.renderer._private.text) edge.renderer._private.text.renderable = true
 			}
+			//Compute and redraw lines
 			const source = edge.renderer._private.source
 			const target = edge.renderer._private.target
 			const line = edge.renderer._private.line
@@ -1155,6 +1163,7 @@ export class WebGLRenderer {
 				line.moveTo(x, y)
 				path.forEach(path => line.lineTo(path.x, path.y))
 			} else {
+				//Straight lines
 				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
@@ -1162,6 +1171,7 @@ export class WebGLRenderer {
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
 			}
+			//Compute marker positions (arrow heads)
 			if (this.lineType === "taxi" && source !== target) {
 				const markerTarget = edge.renderer._private.markerTarget
 				markerTarget.angle = target.y > source.y ? 90 : 270
@@ -1184,7 +1194,9 @@ export class WebGLRenderer {
 				markerSource.rotation = Math.atan2(source.y - curvePoint.y, source.x - curvePoint.x)
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			}
+			//Complete drawing the line
 			line.stroke({ width: 1, color: this.getHexColor(edge.renderer.color || 0x000000) })
+			//Compute label position (if applicable)
 			const text = edge.renderer._private.text
 			if (text) {
 				text.position = new PIXI.Point(labelPoint.x, labelPoint.y)
@@ -1193,6 +1205,7 @@ export class WebGLRenderer {
 				}
 				text.renderable = this.stage.scale._x < 0.3 ? false : true
 			}
+			//Update disabled state
 			if (edge.renderer._private.isDisabled) {
 				edge.renderer._private.line.alpha = 0.2
 				edge.renderer._private.markerSource.alpha = 0.2

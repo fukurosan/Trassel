@@ -9,19 +9,39 @@ window.Trassel = Trassel
 // const edges = data.edges
 
 //Heavy graph
+// const nodes = []
+// const edges = []
+// for (let i = 0; i < 2000; i++) {
+// 	nodes.push({
+// 		id: "n" + i,
+// 		radius: 50,
+// 		mass: 1000
+// 	})
+// }
+// for (let i = 0; i < 5000; i++) {
+// 	edges.push({
+// 		sourceNode: "n" + Math.round(Math.abs(i / 5)),
+// 		targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
+// 		visibleDistance: 100,
+// 		renderer: {
+// 			color: "#00594E",
+// 			label: "Hello World!!!!"
+// 		}
+// 	})
+// }
+
+//Heavy graph 2
 const nodes = []
 const edges = []
-for (let i = 0; i < 2000; i++) {
+for (let i = 0; i < 3500; i++) {
 	nodes.push({
 		id: "n" + i,
 		radius: 50,
 		mass: 1000
 	})
-}
-for (let i = 0; i < 5000; i++) {
 	edges.push({
-		sourceNode: "n" + Math.round(Math.abs(i / 5)),
-		targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
+		sourceNode: "n" + Math.floor(Math.sqrt(i)),
+		targetNode: "n" + i,
 		visibleDistance: 100,
 		renderer: {
 			color: "#00594E",
@@ -105,5 +125,5 @@ setInterval(() => {
 		FPSCounter.innerHTML = `${frames} FPS`
 		frames = 0
 		lastDate = now
-	}	
+	}
 }, 0)
