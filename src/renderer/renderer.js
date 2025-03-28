@@ -38,7 +38,6 @@ export class WebGLRenderer {
 		this.sceneSize = 50000
 		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2
 		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8
-		this.renderIteration = 0
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
@@ -468,7 +467,6 @@ export class WebGLRenderer {
 		for (const edge of this.edges) {
 			//Initialize edge properties
 			if (!edge.renderer) edge.renderer = {}
-			
 			const markerSourceAsset = await PIXI.Assets.load(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none)
 			const markerTargetAsset = await PIXI.Assets.load(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow)
 			const markerSource = PIXI.Sprite.from(markerSourceAsset)
@@ -1039,7 +1037,6 @@ export class WebGLRenderer {
 	 * Main render function that updates the canvas
 	 */
 	render() {
-		this.renderIteration += 1
 		//Process nodes
 		this.nodes.forEach(node => {
 			//Update position
@@ -1221,10 +1218,7 @@ export class WebGLRenderer {
 			}
 		})
 		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
-		if (this.renderIteration % 2 != 0) {
-			//Only culling every second frame provides a performance advantage on large graphs
-			PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
-		} 
+		PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
 		requestAnimationFrame(() => this.renderer.render(this.stage))
 	}
 }
