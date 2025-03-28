@@ -33,7 +33,7 @@ window.Trassel = Trassel
 //Heavy graph 2
 const nodes = []
 const edges = []
-for (let i = 0; i < 3500; i++) {
+for (let i = 0; i < 1000; i++) {
 	nodes.push({
 		id: "n" + i,
 		radius: 50,
