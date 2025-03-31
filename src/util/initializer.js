@@ -6,7 +6,7 @@ import { applyTemplateToObject } from "./jsonutility"
  * @param {import("../model/nodesandedges").DraftNode[]} nodes
  * @param {import("../model/nodesandedges").DraftEdge[]} edges
  * @param {import("../model/nodesandedges").GraphObjectTemplates} templates
- * @returns { { nodes: import("../model/nodesandedges").IGraphNode[] edges: import("../model/nodesandedges").IGraphEdge[] } }
+ * @returns { { nodes: import("../model/nodesandedges").TrasselNode[] edges: import("../model/nodesandedges").TrasselEdge[] } }
  */
 export const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
 	const nodeTemplates = Array.isArray(templates.nodes) ? templates.nodes : []

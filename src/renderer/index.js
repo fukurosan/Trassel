@@ -7,8 +7,8 @@ import { WebGLRenderer } from "./renderer"
 export class Renderer {
 	/**
 	 * @param {HTMLElement} element
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
-	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
 	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
@@ -41,7 +41,7 @@ export class Renderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
 	toggleSelectNodes(nodes, value = null) {
@@ -50,8 +50,8 @@ export class Renderer {
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
-	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async updateNodesAndEdges(nodes, edges) {
 		await this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
@@ -120,7 +120,7 @@ export class Renderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/nodesandedges").IGraphNode => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.WebGLRenderer.disableNodes(fn)

@@ -1,5 +1,5 @@
 import { IBounds } from "./ibounds"
-import { IGraphNode } from "./nodesandedges"
+import { LayoutNode } from "./nodesandedges"
 import { IQuadrant } from "./iquadrant"
 
 /** Quadtree class used for collision detection and approximation algorithms */
@@ -9,7 +9,7 @@ export interface IQuadtree {
 	/** Has computeLargestRadius been executed? */
 	isLargestRadiusComputed: boolean
 	/** All layout entities */
-	entities: IGraphNode[]
+	entities: LayoutNode[]
 	/** Top level quadrants */
 	quadrants: IQuadrant
 	/** Bounds of the quadtree */

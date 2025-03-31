@@ -9,17 +9,17 @@ import { OrthogonalConnector } from "./orthogonalRouter"
 export class WebGLRenderer {
 	/**
 	 * @param {HTMLElement} element
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
-	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
 	 */
 	constructor(element, nodes, edges, options) {
 		/** @type {HTMLElement} */
 		this.element = element
 		this.element.style.overflow = "hidden"
-		/** @type {import("../model/nodesandedges").IGraphNode[]} */
+		/** @type {import("../model/nodesandedges").InternalRendererNode[]} */
 		this.nodes = nodes
-		/** @type {import("../model/nodesandedges").IGraphEdge[]} */
+		/** @type {import("../model/nodesandedges").InternalRendererEdge[]} */
 		this.edges = edges
 		/** @type {import("../model/rendereroptions").IRendererOptions[]} */
 		this.options = options
@@ -256,8 +256,8 @@ export class WebGLRenderer {
 
 	/**
 	 * Initializes all the graphics for provided nodes and edges
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
-	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async initializeData(nodes, edges) {
 		const FOCUS_SHAPE_SIZE_HALF = 6
@@ -700,7 +700,7 @@ export class WebGLRenderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
 	toggleSelectNode(nodes, value = null) {
@@ -721,8 +721,8 @@ export class WebGLRenderer {
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
-	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async updateNodesAndEdges(nodes, edges) {
 		while (this.stage.children[0]) {
@@ -849,7 +849,7 @@ export class WebGLRenderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/nodesandedges").IGraphNode => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.clearAllFilters()
@@ -890,8 +890,8 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates the point where the edge between the source and target node intersects the border of the target node.
-	 * @param {import("../model/nodesandedges").IGraphNode} source - source node of the edge
-	 * @param {import("../model/nodesandedges").IGraphNode} target - target node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} source - source node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} target - target node of the edge
 	 * @param {number} additionalDistance - additional distance, or what is essentially a padding.
 	 * @returns {{x: number, y: number}}
 	 */
@@ -946,8 +946,8 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates a point between two points for creating a curved line.
-	 * @param {import("../model/nodesandedges").IGraphNode} source - Point where the source node is intersected by the edge
-	 * @param {import("../model/nodesandedges").IGraphNode} target - Point where the target node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} source - Point where the source node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} target - Point where the target node is intersected by the edge
 	 * @param {{total: number, index: number}} edgeCounter - Edge counter
 	 */
 	computeCurvePoint(source, target, edgeCounter) {
@@ -1010,7 +1010,7 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates edges to its input and stores the point for the labels. Only for circle shaped nodes!
-	 * @param {import("../model/nodesandedges").IGraphNode} node - Edge to be processed
+	 * @param {import("../model/nodesandedges").RendererNode} node - Edge to be processed
 	 * @param {{total: number, index: number}} edgeCounter - Edge to be processed
 	 * @param {number} additionalDistance - Additional padding in px
 	 */

@@ -14,9 +14,9 @@ export default class Graph {
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
 		const initialized = initializeNodesAndEdges(nodes, edges, options?.templates)
-		/** @private @type { import("./model/nodesandedges").IGraphNode[] } */
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
 		this.nodes = initialized.nodes
-		/** @private @type { import("./model/nodesandedges").IGraphNode[] } */
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
 		this.edges = initialized.edges
 		/** @private @type { import("./model/ioptions").IOptions } */
 		this.options = options
@@ -172,8 +172,8 @@ export default class Graph {
 	 * Adds a component to the layout engine
 	 * @param {string} id - Unique identifier for the component
 	 * @param {import("./model/ilayoutcomponent").ILayoutComponent} component - A layout component compatible class instance
-	 * @param {(node: import("/model/nodesandedges").IGraphNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
-	 * @param {(edge: import("./model/nodesandedges").IGraphEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
+	 * @param {(node: import("./model/nodesandedges").LayoutNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
+	 * @param {(edge: import("./model/nodesandedges").LayoutEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
 	 * @returns {Graph} - this
 	 */
 	addLayoutComponent(id, component, nodeBindings = null, edgeBindings = null) {
@@ -195,7 +195,7 @@ export default class Graph {
 	 * Finds the node closest to the provided coordinates in the graph
 	 * @param {number} x
 	 * @param {number} y
-	 * @returns {import("/model/nodesandedges").IGraphNode} - The node
+	 * @returns {import("/model/nodesandedges").TrasselNode} - The node
 	 */
 	findClosestNodeByCoordinates(x, y) {
 		return this.layout.findClosestNodeByCoordinates(x, y)

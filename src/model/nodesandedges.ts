@@ -3,7 +3,15 @@ import { Graphics } from "../../node_modules/pixi.js/lib/scene/graphics/shared/G
 import { Sprite } from "../../node_modules/pixi.js/lib/scene/sprite/Sprite"
 import { Text } from "../../node_modules/pixi.js/lib/scene/text/Text"
 
+/** Makes a set of properties on a type required */
+type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
+	[Property in Key]-?: Type[Property]
+}
+
+/** Types of markers that the renderer can render for edges */
 export type EdgeMarkerTypes = "arrow" | "hollowArrow" | "none"
+
+/** Positions in an orthogonal rendering of edges where an edge can start and end relative to a source or target node */
 export type OrthogonalEdgePositions = "top" | "right" | "bottom" | "left"
 
 /** Node IDs can be either strings or number */
@@ -36,8 +44,8 @@ export interface IBasicEdge {
 	targetNode: NodeID
 }
 
-/** Internal node structure */
-export interface IGraphNode extends IBasicNode {
+/** Trassel node */
+export interface TrasselNode extends IBasicNode {
 	/** Template for object, used for shared properties */
 	template?: string
 	/** Index for the node in the list of nodes */
@@ -81,16 +89,16 @@ export interface IGraphNode extends IBasicNode {
 	}
 }
 
-/** Internal edge structure */
-export interface IGraphEdge extends IBasicEdge {
+/** Trassel Edge */
+export interface TrasselEdge extends IBasicEdge {
 	/** Template for object, used for shared properties */
 	template?: string
 	/** Index for the edge in the list of edges */
 	index: number
 	/** Actual source node object */
-	source: IGraphNode
+	source: TrasselNode
 	/** Actual target node object */
-	target: IGraphNode
+	target: TrasselNode
 	/** Strength of the edge */
 	strength: number
 	/** How long is the edge */
@@ -134,25 +142,49 @@ export interface IGraphEdge extends IBasicEdge {
 	}
 }
 
-export type LayoutNode = Pick<IGraphNode, "id" | "index" | "shape" | "template" | "mass" | "x" | "y" | "fx" | "fy" | "vx" | "vy">
-export type RendererNode = Pick<IGraphNode, "id" | "shape" | "template" | "x" | "y" | "rendererOptions">
-export type InternalRendererNode = RendererNode & Pick<IGraphNode, "rendererInternals">
+/** Partial Trassel node for the Layout engine */
+export type LayoutNode = Pick<TrasselNode, "id" | "index" | "shape" | "template" | "mass" | "x" | "y" | "fx" | "fy" | "vx" | "vy">
+/** Partial Trassel node for the renderer */
+export type RendererNode = Pick<TrasselNode, "id" | "shape" | "template" | "x" | "y" | "rendererOptions">
+/** Partial Trassel node for the renderer internally */
+export type InternalRendererNode = WithRequiredProperty<RendererNode & Pick<TrasselNode, "rendererInternals">, "rendererInternals">
 
+/** Partial Trassel edge for the Layout engine */
 export type LayoutEdge = Pick<
-	IGraphEdge,
+	TrasselEdge,
 	"distance" | "index" | "source" | "sourceNode" | "target" | "targetNode" | "template" | "strength" | "visibleDistance" | "weight"
->
+> & {
+	source: LayoutNode
+	target: LayoutNode
+}
+/** Partial Trassel edge for the renderer */
 export type RendererEdge = Pick<
-	IGraphEdge,
+	TrasselEdge,
 	"distance" | "source" | "sourceNode" | "target" | "targetNode" | "template" | "visibleDistance" | "weight" | "rendererOptions"
+> & {
+	source: RendererNode
+	target: RendererNode
+}
+/** Partial Trassel edge for the renderer internally */
+export type InternalRendererEdge = WithRequiredProperty<
+	RendererEdge &
+		Pick<TrasselEdge, "rendererInternals"> & {
+			source: InternalRendererNode
+			target: InternalRendererNode
+		},
+	"rendererInternals"
 >
-export type InternalRendererEdge = RendererEdge & Pick<IGraphEdge, "rendererInternals">
 
-export type DraftNode = Partial<IGraphNode> & IBasicNode
-export type DraftEdge = Partial<IGraphEdge> & IBasicEdge
+/** A draft for a trassel node */
+export type DraftNode = Partial<TrasselNode> & IBasicNode
+/** A draft for a trassel edge */
+export type DraftEdge = Partial<TrasselEdge> & IBasicEdge
 
-export type NodeTemplate = Partial<Pick<IGraphNode, "shape" | "mass" | "rendererOptions">>
-export type EdgeTemplate = Partial<Pick<IGraphEdge, "strength" | "weight" | "distance" | "visibleDistance" | "rendererOptions">>
+/** A template for a Trassel node */
+export type NodeTemplate = Partial<Pick<TrasselNode, "shape" | "mass" | "rendererOptions">>
+/** A template for a Trassel edge */
+export type EdgeTemplate = Partial<Pick<TrasselEdge, "strength" | "weight" | "distance" | "visibleDistance" | "rendererOptions">>
+/** A collection of node and edge templates */
 export interface GraphObjectTemplates {
 	nodes: {
 		id: string

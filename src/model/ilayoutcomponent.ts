@@ -1,9 +1,9 @@
 import { IQuadtree } from "./iquadtree"
-import { IGraphNode, IGraphEdge } from "./nodesandedges"
+import { LayoutNode, LayoutEdge } from "./nodesandedges"
 
 /** Interface for layout forces */
 export interface ILayoutComponent {
-	initialize: (nodes: IGraphNode[], edges: IGraphEdge[], utils: ILayoutComponentUtilities) => void
+	initialize: (nodes: LayoutNode[], edges: LayoutEdge[], utils: ILayoutComponentUtilities) => void
 	execute: (alpha: number) => void
 	dismount: () => void
 }

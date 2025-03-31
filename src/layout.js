@@ -6,8 +6,8 @@ import Quadtree from "./util/quadtree"
  */
 export default class Layout {
 	/**
-	 * @param {import("./model/nodesandedges").IGraphNode[]=} nodes - Initial nodes
-	 * @param {import("./model/nodesandedges").IGraphEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").LayoutNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").LayoutEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").ILayoutOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {

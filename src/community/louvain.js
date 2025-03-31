@@ -5,8 +5,8 @@
  * To read more about the Louvain community detection algorithm:
  * https://arxiv.org/pdf/0803.0476.pdf
  * https://medium.com/walmartglobaltech/demystifying-louvains-algorithm-and-its-implementation-in-gpu-9a07cdd3b010
- * @param {import("./model/nodesandedges").IGraphNode[]} nodes
- * @param {import("../model/nodesandedges").IGraphEdge[]} edges
+ * @param {import("../model/nodesandedges").LayoutNode[]} nodes
+ * @param {import("../model/nodesandedges").LayoutEdge[]} edges
  * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
  */
 export default function (nodes, edges) {
