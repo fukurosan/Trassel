@@ -17,7 +17,10 @@ describe("Quadtree", () => {
 		{ id: "n9" },
 		{ id: "n10" }
 	]
-	nodes[0].radius = 1000
+	nodes[0].shape = {
+		id: "circle",
+		radius: 1000
+	}
 	initializeNodesAndEdges(nodes, [])
 
 	it("Quadtree bounds fill all nodes", () => {

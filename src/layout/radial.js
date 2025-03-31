@@ -23,7 +23,7 @@ export default class Radial extends LayoutComponent {
 		super.initialize(...args)
 		this.diameter = this.userProvidedDiameter
 			? this.userProvidedDiameter
-			: (this.nodes.reduce((acc, node) => acc + node.radius * 2, 0) / 3.14) * this.sizeMultiplier
+			: (this.nodes.reduce((acc, node) => acc + node.shape.radius * 2, 0) / 3.14) * this.sizeMultiplier
 		//Center will only be determined on the first initialization
 		const averageCoordinates = this.getAverageCoordinates()
 		this.centerX === null && (this.centerX = averageCoordinates[0])

@@ -9,7 +9,7 @@
             "id": "n1",
             "radius": 50,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Helloooooooooooooooooooooooooooooooo World",
                 "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
             }
@@ -18,7 +18,7 @@
             "id": "n2",
             "radius": 30,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Hello World",
                 "backgroundColor": "#00AE8D",
                 "textColor": "#FFFFFF"
@@ -28,7 +28,7 @@
             "id": "n3",
             "radius": 30,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Hello World",
                 "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
             }
@@ -37,7 +37,7 @@
             "id": "n4",
             "radius": 30,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Hello World"
             }
         },
@@ -45,7 +45,7 @@
             "id": "n5",
             "radius": 30,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Hello World"
             }
         },
@@ -53,7 +53,7 @@
             "id": "n6",
             "radius": 30,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Hello World"
             }
         },
@@ -67,7 +67,7 @@
             "width": 200,
             "height": 70,
             "mass": 1000,
-            "renderer": {
+            "rendererOptions": {
                 "label": "Helloooooooooooooooooooooooooooooooooooooooooooo",
                 "shape": "rectangle",
                 "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
@@ -79,7 +79,7 @@
             "sourceNode": "n0",
             "targetNode": "n1",
             "visibleDistance": 100,
-            "renderer": {
+            "rendererOptions": {
                 "color": "#00594E",
                 "label": "Hello World!!!!"
             }
@@ -123,7 +123,7 @@
             "sourceNode": "n7",
             "targetNode": "n7",
             "visibleDistance": 100,
-            "renderer": {
+            "rendererOptions": {
                 "labelBackgroundColor": "#00ffff",
                 "isInteractive": true,
                 "color": "#00594E",
@@ -134,7 +134,7 @@
             "sourceNode": "n7",
             "targetNode": "n7",
             "visibleDistance": 100,
-            "renderer": {
+            "rendererOptions": {
                 "color": "#00594E",
                 "label": "Hello World!!!!"
             }
@@ -143,7 +143,7 @@
             "sourceNode": "n0",
             "targetNode": "n8",
             "visibleDistance": 100,
-            "renderer": {
+            "rendererOptions": {
                 "isInteractive": true,
                 "color": "#00594E",
                 "label": "Hello World!!!!"

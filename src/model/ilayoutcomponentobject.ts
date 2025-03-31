@@ -1,6 +1,5 @@
 import { ILayoutComponent } from "./ilayoutcomponent"
-import { IGraphEdge } from "./igraphedge"
-import { IGraphNode } from "./igraphnode"
+import { IGraphNode, IGraphEdge } from "./nodesandedges"
 
 /** Internal force object structure for the layout engine */
 export interface ILayoutComponentObject {

@@ -46,7 +46,7 @@ export default class Fan extends LayoutComponent {
 			const initialY = this.centerY + this.space * radianSin
 			let lastPosition = [initialX, initialY]
 			groupsMap.get(key).forEach(node => {
-				const diameter = node.radius * 2
+				const diameter = node.shape.radius * 2
 				const x = diameter * radianCos + lastPosition[0]
 				const y = diameter * radianSin + lastPosition[1]
 				this.positionMap.set(node.id, [x, y])

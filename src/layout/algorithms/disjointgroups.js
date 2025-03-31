@@ -1,8 +1,8 @@
 /**
  * Computes groups based on disjointed graphs within the graph.
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes - Nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges - Edges
- * @returns {import("../../model/ibasicnode").IBasicNode[][]} - Disjointed node groups
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes - Nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges - Edges
+ * @returns {import("../../model/nodesandedges").IBasicNode[][]} - Disjointed node groups
  */
 export default (nodes, edges) => {
 	const seenNodes = new Set()

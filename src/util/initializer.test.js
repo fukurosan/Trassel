@@ -3,7 +3,7 @@ import { initializeNodesAndEdges } from "./initializer"
 
 describe("Initializer", () => {
 	const baseNodes = JSON.stringify([
-		{ id: "n1" },
+		{ id: "n1", type: "node" },
 		{ id: "n2" },
 		{ id: "n3" },
 		{ id: "n4" },
@@ -15,7 +15,7 @@ describe("Initializer", () => {
 		{ id: "n10" }
 	])
 	const baseEdges = JSON.stringify([
-		{ sourceNode: "n1", targetNode: "n2" },
+		{ sourceNode: "n1", targetNode: "n2", type: "edge" },
 		{ sourceNode: "n1", targetNode: "n3" },
 		{ sourceNode: "n1", targetNode: "n4" },
 		{ sourceNode: "n2", targetNode: "n5" },
@@ -26,13 +26,33 @@ describe("Initializer", () => {
 		{ sourceNode: "n8", targetNode: "n9" },
 		{ sourceNode: "n9", targetNode: "n10" }
 	])
+	const baseTemplates = JSON.stringify({
+		nodes: [
+			{
+				id: "node",
+				template: {
+					nodeProperty: true
+				}
+			}
+		],
+		edges: [
+			{
+				id: "edge",
+				template: {
+					edgeProperty: true
+				}
+			}
+		]
+	})
 
 	let nodes
 	let edges
+	let templates
 	beforeEach(() => {
 		nodes = JSON.parse(baseNodes)
 		edges = JSON.parse(baseEdges)
-		initializeNodesAndEdges(nodes, edges)
+		templates = JSON.parse(baseTemplates)
+		initializeNodesAndEdges(nodes, edges, templates)
 	})
 
 	it("Initializes nodes correctly", () => {
@@ -43,8 +63,14 @@ describe("Initializer", () => {
 			expect(typeof node.y).toEqual("number")
 			expect(typeof node.vx).toEqual("number")
 			expect(typeof node.vy).toEqual("number")
-			expect(typeof node.radius).toEqual("number")
+			expect(node.shape.id).toEqual("circle")
+			expect(typeof node.shape.radius).toEqual("number")
 			expect(typeof node.mass).toEqual("number")
+			if (i === 0) {
+				expect(typeof node.nodeProperty).toEqual("boolean")
+			} else {
+				expect(node.nodeProperty).toBeUndefined()
+			}
 		}
 	})
 
@@ -59,6 +85,11 @@ describe("Initializer", () => {
 			expect(edge.target).not.toBeNull()
 			expect(typeof edge.distance).toEqual("number")
 			expect(typeof edge.weight).toEqual("number")
+			if (i === 0) {
+				expect(typeof edge.edgeProperty).toEqual("boolean")
+			} else {
+				expect(edge.edgeProperty).toBeUndefined()
+			}
 		}
 	})
 })

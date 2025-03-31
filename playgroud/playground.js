@@ -36,14 +36,17 @@ const edges = []
 for (let i = 0; i < 1000; i++) {
 	nodes.push({
 		id: "n" + i,
-		radius: 50,
+		shape: {
+			id: "circle",
+			radius: 50
+		},
 		mass: 1000
 	})
 	edges.push({
 		sourceNode: "n" + Math.floor(Math.sqrt(i)),
 		targetNode: "n" + i,
 		visibleDistance: 100,
-		renderer: {
+		rendererOptions: {
 			color: "#00594E",
 			label: "Hello World!!!!"
 		}
@@ -86,13 +89,13 @@ renderer.on("entitydragend", event => {
 })
 renderer.on("entityclick", event => {
 	if (!shiftKey) renderer.clearAllNodeSelections()
-	renderer.toggleSelectNode(event.node)
+	renderer.toggleSelectNodes([event.node])
 })
 renderer.on("backdropclick", () => {
 	renderer.clearAllNodeSelections()
 })
 renderer.on("lassoupdate", event => {
-	;[...event.added, ...event.removed].forEach(node => renderer.toggleSelectNode(node))
+	renderer.toggleSelectNodes([...event.added, ...event.removed])
 })
 graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())

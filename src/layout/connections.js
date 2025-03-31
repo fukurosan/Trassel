@@ -4,7 +4,7 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * Creates a rectangular connection graph layout.
- * @param {(import("../model/ibasicnode").IBasicNode) => number} groupBy - Optional function to group nodes
+ * @param {(import("../model/nodesandedges").IBasicNode) => number} groupBy - Optional function to group nodes
  * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
  * @param {number=} padding - Minimum padding between nodes described in pixels
  * @param {number=} centerX - Center X coordinate of the component
@@ -21,12 +21,18 @@ export default class Connections extends LayoutComponent {
 		this.nodePositions = new Map()
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {

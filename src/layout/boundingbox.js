@@ -15,12 +15,18 @@ export default class BoundingBox extends LayoutComponent {
 		this.multiplier = 5
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node 
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node 
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {

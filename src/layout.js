@@ -1,4 +1,3 @@
-import { initializeNodesAndEdges } from "./util/initializer"
 import Loop from "./loop"
 import Quadtree from "./util/quadtree"
 
@@ -7,8 +6,8 @@ import Quadtree from "./util/quadtree"
  */
 export default class Layout {
 	/**
-	 * @param {import("./model/ibasicnode").IBasicNode[]=} nodes - Initial nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").IGraphNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").IGraphEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").ILayoutOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
@@ -27,7 +26,7 @@ export default class Layout {
 			["layoutloopend", new Set()]
 		])
 		this.loop = new Loop(this.runLoop.bind(this), options.updateCap ? options.updateCap : 60)
-		this.initializeNodesAndEdges()
+		this.updateQuadTree()
 		this.quadtree = new Quadtree(this.nodes)
 		this.isAnimating = false
 	}
@@ -63,12 +62,11 @@ export default class Layout {
 	updateNodesAndEdges(nodes, edges) {
 		this.nodes = nodes
 		this.edges = edges
-		this.initializeNodesAndEdges()
+		this.updateQuadTree()
 		this.components.forEach(component => this.initializeComponent(component))
 	}
 
-	initializeNodesAndEdges() {
-		initializeNodesAndEdges(this.nodes, this.edges)
+	updateQuadTree() {
 		this.quadtree = new Quadtree(this.nodes)
 	}
 

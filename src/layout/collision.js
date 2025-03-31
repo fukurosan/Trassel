@@ -25,7 +25,7 @@ export default class Collision extends LayoutComponent {
 		let computedNodeRadius
 		for (let i = 0; i < this.nodes.length; i++) {
 			node = this.nodes[i]
-			computedNodeRadius = node.radius + this.radiusPadding
+			computedNodeRadius = node.shape.radius + this.radiusPadding
 			this.utils.quadtree.traverseTopBottom((quadNode, xStart, yStart, xEnd, yEnd) => {
 				const data = quadNode.entity
 				const otherNodeRadius = quadNode.radius + this.radiusPadding

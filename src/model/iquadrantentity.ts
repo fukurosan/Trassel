@@ -1,4 +1,4 @@
-import { IGraphNode } from "./igraphnode"
+import { IGraphNode } from "./nodesandedges"
 
 /** An entity node in the Quadtree class */
 export interface IQuadrantEntity {

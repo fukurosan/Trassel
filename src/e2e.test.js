@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { Attraction, Collision, Link, NBody } from "./layout/layoutcomponents"
 import Layout from "./layout"
 import Graph from "./graph"
+import { initializeNodesAndEdges } from "./util/initializer"
 
 describe("End-to-End Tests", () => {
 	const baseNodes = JSON.stringify([
@@ -36,6 +37,7 @@ describe("End-to-End Tests", () => {
 	})
 
 	it("Typical layout loop works", async () => {
+		initializeNodesAndEdges(nodes, edges)
 		const layout = new Layout(nodes, edges, { updateCap: Infinity })
 		layout.addLayoutComponent("collide", new Collision())
 		layout.addLayoutComponent("manybody", new NBody())

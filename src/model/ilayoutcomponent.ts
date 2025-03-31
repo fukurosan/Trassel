@@ -1,6 +1,5 @@
 import { IQuadtree } from "./iquadtree"
-import { IGraphNode } from "./igraphnode"
-import { IGraphEdge } from "./igraphedge"
+import { IGraphNode, IGraphEdge } from "./nodesandedges"
 
 /** Interface for layout forces */
 export interface ILayoutComponent {

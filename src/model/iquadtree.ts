@@ -1,5 +1,5 @@
 import { IBounds } from "./ibounds"
-import { IGraphNode } from "./igraphnode"
+import { IGraphNode } from "./nodesandedges"
 import { IQuadrant } from "./iquadrant"
 
 /** Quadtree class used for collision detection and approximation algorithms */

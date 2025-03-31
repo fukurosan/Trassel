@@ -7,8 +7,8 @@ import { WebGLRenderer } from "./renderer"
 export class Renderer {
 	/**
 	 * @param {HTMLElement} element
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
+	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
 	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
 	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
@@ -41,17 +41,17 @@ export class Renderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {{id: string, renderer: { _private: { selected: boolean } }}} node
+	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(node, value = null) {
-		this.WebGLRenderer.toggleSelectNode(node, value)
+	toggleSelectNodes(nodes, value = null) {
+		this.WebGLRenderer.toggleSelectNode(nodes, value)
 	}
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").IGraphNode[]} nodes
+	 * @param {import("../model/nodesandedges").IGraphEdge[]} edges
 	 */
 	async updateNodesAndEdges(nodes, edges) {
 		await this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
@@ -59,7 +59,7 @@ export class Renderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} node - Node to check
+	 * @param {import("../model/nodesandedges").IBasicNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
@@ -120,7 +120,7 @@ export class Renderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").IGraphNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.WebGLRenderer.disableNodes(fn)

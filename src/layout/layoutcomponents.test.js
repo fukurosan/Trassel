@@ -186,14 +186,14 @@ describe("Layout Components", () => {
 
 	it("Tree component", () => {
 		const treeNodes = [
-			{ id: "n0", radius: 30, mass: 1000 },
-			{ id: "n1", radius: 30, mass: 1000 },
-			{ id: "n2", radius: 30, mass: 1000 },
-			{ id: "n3", radius: 30, mass: 1000 },
-			{ id: "n4", radius: 30, mass: 1000 },
-			{ id: "n5", radius: 30, mass: 1000 },
-			{ id: "n6", radius: 30, mass: 1000 },
-			{ id: "n7", radius: 30, mass: 1000 }
+			{ id: "n0", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n1", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n2", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n3", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n4", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n5", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n6", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n7", shape: { id: "circle", radius: 30 }, mass: 1000 }
 		]
 		const treeEdges = [
 			{ sourceNode: "n0", targetNode: "n1", distance: 50 },
@@ -212,14 +212,14 @@ describe("Layout Components", () => {
 
 	it("Connection component", () => {
 		const treeNodes = [
-			{ id: "n0", radius: 30, mass: 1000 },
-			{ id: "n1", radius: 30, mass: 1000 },
-			{ id: "n2", radius: 30, mass: 1000 },
-			{ id: "n3", radius: 30, mass: 1000 },
-			{ id: "n4", radius: 30, mass: 1000 },
-			{ id: "n5", radius: 30, mass: 1000 },
-			{ id: "n6", radius: 30, mass: 1000 },
-			{ id: "n7", radius: 30, mass: 1000 }
+			{ id: "n0", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n1", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n2", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n3", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n4", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n5", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n6", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n7", shape: { id: "circle", radius: 30 }, mass: 1000 }
 		]
 		const treeEdges = [
 			{ sourceNode: "n0", targetNode: "n1", distance: 50 },

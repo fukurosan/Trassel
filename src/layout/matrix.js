@@ -17,12 +17,18 @@ export default class Matrix extends LayoutComponent {
 		this.multiplier = 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").IGraphNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -53,8 +59,8 @@ export default class Matrix extends LayoutComponent {
 			}
 			currentColumn += 1
 			const node = this.nodes[i]
-			node.fx = (currentColumn - 1) * this.maxSize - this.halfSize + this.centerX + node.radius
-			node.fy = currentRow * this.maxSize - this.halfSize + this.centerY + node.radius
+			node.fx = (currentColumn - 1) * this.maxSize - this.halfSize + this.centerX + node.shape.radius
+			node.fy = currentRow * this.maxSize - this.halfSize + this.centerY + node.shape.radius
 			//node.vx -= (node.x - ((currentColumn - 1) * this.maxSize - this.halfSize) + this.centerX) * force
 			//node.vy -= (node.y - (currentRow * this.maxSize - this.halfSize) + this.centerY) * force
 		}

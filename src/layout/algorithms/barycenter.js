@@ -3,9 +3,9 @@ import disjointGroups from "./disjointgroups.js"
 /**
  * Orders nodes by barycenter and returns a new array without mutating the original one.
  * Inspired by: http://profs.etsmtl.ca/mmcguffin/research/2012-mcguffin-simpleNetVis/mcguffin-2012-simpleNetVis.pdf
- * @param {import("../../model/ibasicnode.js").IBasicNode[]} nodes - Nodes
- * @param {import("../../model/ibasicedge.js").IBasicEdge[]} edges - Edges
- * @return {import("../../model/ibasicnode.js").IBasicNode[]} - Ordered nodes
+ * @param {import("../../model/nodesandedges.js").IBasicNode[]} nodes - Nodes
+ * @param {import("../../model/nodesandedges.js").IBasicEdge[]} edges - Edges
+ * @return {import("../../model/nodesandedges.js").IBasicNode[]} - Ordered nodes
  */
 export default (nodes, edges) => {
 	const edgeMap = new Map()

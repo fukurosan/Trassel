@@ -6,38 +6,38 @@
 export default class DataManager {
 	/**
 	 * Constructor
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes
-	 * @param {import("./model/ibasicnode").IBasicEdge[]} edges
+	 * @param {import("./model/nodesandedges").IBasicNode[]} nodes
+	 * @param {import("./model/nodesandedges").IBasicEdge[]} edges
 	 */
 	constructor(nodes = [], edges = []) {
 		/**
 		 * All Nodes in the data manager regardless of online/offline status
-		 * @type {import("./model/nodeid").NodeID[]} */
+		 * @type {import("./model/nodesandedges").NodeID[]} */
 		this.allNodes = []
 		/**
 		 * All edges in the data manager regardless of online/offline status
-		 * @type {import("./model/ibasicedge").IBasicEdge[]} */
+		 * @type {import("./model/nodesandedges").IBasicEdge[]} */
 		this.allEdges = []
 		/**
 		 * A set that contains all currently online nodes. Used for example when we want to process a large dataset
 		 * but only want to expose a small subset of data to an application, renderer or other process.
-		 * @type {Set<import("./model/nodeid").NodeID>} */
+		 * @type {Set<import("./model/nodesandedges").NodeID>} */
 		this.onlineNodes = new Set()
 		/**
 		 * A lookup table for node objects. Generally "nodes" in the data manager are just IDs
-		 * @type {Map<import("./model/nodeid").NodeID, import("./model/ibasicnode").IBasicNode>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, import("./model/nodesandedges").IBasicNode>} */
 		this.nodeLookupMap = new Map()
 		/**
 		 * A lookup table where the keys are sourceNodes and targets are targetNodes, their full weight and all relevant edge objects.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.sourceToTargetMap = new Map()
 		/**
 		 * A lookup table where the keys are targetNodes and targets are sourceNodes, their full weight and all relevant edge objects.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.targetToSourceMap = new Map()
 		/**
 		 * A lookup table for undirected edges (basically merging sourceToTarget and targetToSource.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.nodeToNeighborsMap = new Map()
 		/**
 		 * Edge indexes mapping an edge to how many other edges share the same sources and targets and what index it has.
@@ -50,7 +50,7 @@ export default class DataManager {
 		 * This is a counter for each node of how many offline edges in the graph connects with it.
 		 * This information is useful to renderers when displaying partial information, and showing meta data about hidden points.
 		 * E.g. a badge on a node in the graph with "42" on it, indicating 42 hidden connections.
-		 * @type {Map<import("./model/nodeid").NodeID, {sourceNode: number, targetNode: number, internal: number}>}
+		 * @type {Map<import("./model/nodesandedges").NodeID, {sourceNode: number, targetNode: number, internal: number}>}
 		 */
 		this.offlineEdgeCounter = new Map()
 		this.updateNodesAndEdges(nodes, edges)
@@ -58,8 +58,8 @@ export default class DataManager {
 
 	/**
 	 * Updates the data in the manager
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes - New nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]} edges - New Edges
+	 * @param {import("./model/nodesandedges").IBasicNode[]} nodes - New nodes
+	 * @param {import("./model/nodesandedges").IBasicEdge[]} edges - New Edges
 	 */
 	updateNodesAndEdges(nodes, edges) {
 		//All added nodes will be seen as online
@@ -144,7 +144,7 @@ export default class DataManager {
 
 	/**
 	 * Computes online nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOnlineNodes() {
 		return this.allNodes.filter(nodeID => this.onlineNodes.has(nodeID)).map(nodeID => this.nodeLookupMap.get(nodeID))
@@ -152,7 +152,7 @@ export default class DataManager {
 
 	/**
 	 * Computes offline nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOfflineNodes() {
 		return this.allNodes.filter(nodeID => !this.onlineNodes.has(nodeID)).map(nodeID => this.nodeLookupMap.get(nodeID))
@@ -160,7 +160,7 @@ export default class DataManager {
 
 	/**
 	 * Computes online edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOnlineEdges() {
 		return this.allEdges.filter(edge => this.isEdgeOnline(edge))
@@ -168,7 +168,7 @@ export default class DataManager {
 
 	/**
 	 * Computes offline edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOfflineEdges() {
 		return this.allEdges.filter(edge => !this.isEdgeOnline(edge))
@@ -176,7 +176,7 @@ export default class DataManager {
 
 	/**
 	 * Checks if an edge is online
-	 * @param {import("./model/ibasicnode").IBasicEdge} edge
+	 * @param {import("./model/nodesandedges").IBasicEdge} edge
 	 * @returns {boolean}
 	 */
 	isEdgeOnline(edge) {
@@ -194,7 +194,7 @@ export default class DataManager {
 
 	/**
 	 * Brings the list of node IDs offline
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOffline(nodeIDs) {
 		nodeIDs.forEach(id => {
@@ -205,7 +205,7 @@ export default class DataManager {
 
 	/**
 	 * Brings the list of node IDs online
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOnline(nodeIDs) {
 		nodeIDs.forEach(id => {
@@ -229,11 +229,11 @@ export default class DataManager {
 
 	/**
 	 * Retrieves all neighbors for a given nodeID
-	 * @param {import("./model/nodeid").NodeID} nodeID - ID od the node neighbors should be retrieved for
+	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
 	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
 	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
 	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
-	 * @returns {import("./model/nodeid").NodeID[]}
+	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
 	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
 		let neighbors
@@ -249,11 +249,11 @@ export default class DataManager {
 	 * This function will not apply any changes, but return an array with affected nodes
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
-	 * @param {import("./model/nodeid").NodeID} nodeID
+	 * @param {import("./model/nodesandedges").NodeID} nodeID
 	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
 	 * @param {boolean} isDirected - If true then operation will be directed
 	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
-	 * @returns {import("./model/nodeid").NodeID[]} - Affected nodes
+	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
 	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
 		if (!this.nodeLookupMap.has(nodeID)) {
@@ -306,11 +306,11 @@ export default class DataManager {
 	 * Accepts an array of node IDs and origin coordinates where the nodes should be animated from.
 	 * Returns an array of vertices with optimal positions based on other neighbors present in the graph, or in the case of leafs a circle around the origin.
 	 * Note(!) that this function expects all nodes and edges to have been initialized into GraphNodes and GraphEdges in order to compute this information.
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs - Array of node IDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs - Array of node IDs
 	 * @param {number} distance - Default distance from origin position to put nodes (for non-average values only!)
 	 * @param {number} originX - Start position for the transition
 	 * @param {number} originY - Start position for the transition
-	 * @returns {{id: import("./model/nodeid").NodeID, x: number, y: numer}[]} - Target coordinates
+	 * @returns {{id: import("./model/nodesandedges").NodeID, x: number, y: numer}[]} - Target coordinates
 	 */
 	stageNodePositions(nodeIDs = [], distance = 300, originX = 0, originY = 0) {
 		if (!nodeIDs.length) return []
@@ -347,11 +347,11 @@ export default class DataManager {
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
 	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
 	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @return {import("./model/nodeid").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
+	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
 	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
@@ -390,12 +390,12 @@ export default class DataManager {
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * This is basically Dijkstra's algorithm:
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
 	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
 	 * @param {boolean} isDirected - If true then operation will be directed
 	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
-	 * @return {{id: import("./model/nodeid").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
+	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
 	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
@@ -468,7 +468,7 @@ export default class DataManager {
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
 	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @return {("./model/nodeid").NodeID[][]} - Strongly connected components.
+	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
 	computeStronglyConnectedComponents(useOnlyOnline = true) {
 		const nodes = useOnlyOnline ? Array.from(this.onlineNodes) : [...this.allNodes]
@@ -524,8 +524,8 @@ export default class DataManager {
 	 * Executes a breadth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
 	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
 	 * @param {boolean} isDirected - If true then traversal will be directed
 	 */
@@ -559,8 +559,8 @@ export default class DataManager {
 	 * Executes a depth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
 	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
 	 * @param {boolean} isDirected - If true then traversal will be directed
 	 */

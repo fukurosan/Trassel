@@ -1,9 +1,9 @@
 /**
  * Takes a leveled hierarchy graph and inserts null values to position nodes close to its targets and sources.
  * If a node has the substring "fake" in its id then it will be converted into a null value in the input
- * @param {import("../../model/ibasicnode").IBasicNode[][]} fullHierarchyIn
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edgesIn
- * @returns {(import("../../model/ibasicnode").IBasicNode | null)[][]|} - Ordered Hierarchy
+ * @param {import("../../model/nodesandedges").IBasicNode[][]} fullHierarchyIn
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edgesIn
+ * @returns {(import("../../model/nodesandedges").IBasicNode | null)[][]|} - Ordered Hierarchy
  */
 export const straightenEdges = (fullHierarchyIn, edgesIn) => {
 	const fullHierarchy = fullHierarchyIn.reduce((acc, group) => {
