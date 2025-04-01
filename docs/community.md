@@ -6,7 +6,7 @@ Trassel supports a number of different ways of finding communities within its da
 
 ## Louvain
 
-The Louvain method is an unsupervised algorithm used to detect communities in graphs. It works by maximizing modularity scores for each community and uses this information to determine optimal assignments for nodes. In other words, it evaluates the denseness of connections within a community and compares that to other potential node assignments. Trassel's implementation is iterative, and computes what is essentially a dendogram of node groups until no further optimization of modularity is possible, or gains are marginal.
+The [Louvain method](https://en.wikipedia.org/wiki/Louvain_method) is an unsupervised algorithm used to detect communities in graphs. It works by maximizing modularity scores for each community and uses this information to determine optimal assignments for nodes. In other words, it evaluates the denseness of connections within a community and compares that to other potential node assignments. Trassel's implementation is iterative, and computes what is essentially a dendogram of node groups until no further optimization of modularity is possible, or gains are marginal.
 
 Check out this example of how to execute louvain:
 ```javascript
@@ -31,7 +31,7 @@ communities /* ->
 
 ## Strongly connected components
 
-Strongly connected components are subsets of a directed graphs where each node is reachable from every other node. Trassel is able to compute stongly connected components using [Kosaraju's algorithm]("https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm")
+Strongly connected components are subsets of a directed graphs where each node is reachable from every other node. Trassel is able to compute stongly connected components using [Kosaraju's algorithm](https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm)
 
 Check out this example:
 

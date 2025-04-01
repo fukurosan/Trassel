@@ -1,3 +1,4 @@
+"use strict"
 /**
  * The data store class is responsible to storing and managing all edges and nodes.
  * The data store can execute computations such as bringing nodes offline from the graph
@@ -230,12 +231,13 @@ export default class DataManager {
 	/**
 	 * Retrieves all neighbors for a given nodeID
 	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
-	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
-	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
-	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.isDirected - Only traverse edges where the input node is the sourceNode
+	 * @param {boolean=} options.useOnlyOnline - Only traverse neighbors that are online
+	 * @param {boolean=} options.ignoreInternalEdges - Ignore self-edges
 	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
-	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
+	getNeighbors(nodeID, { isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true } = {}) {
 		let neighbors
 		if (isDirected) neighbors = this.sourceToTargetMap.get(nodeID).map(neighbor => neighbor.id)
 		else neighbors = this.nodeToNeighborsMap.get(nodeID).map(neighbor => neighbor.id)
@@ -250,12 +252,13 @@ export default class DataManager {
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
 	 * @param {import("./model/nodesandedges").NodeID} nodeID
-	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
+	 * @param {Object} options - Options for function
+	 * @param {boolean=} options.isBringOnline - If true neighbors will be brought online otherwise offline
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {("single"|"recursive"|"leafs")=} options.mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
 	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
-	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
+	computeImplodeOrExplodeNode(nodeID, { isBringOnline = false, isDirected = true, mode = "single" } = {}) {
 		if (!this.nodeLookupMap.has(nodeID)) {
 			throw new Error(`No such node exists: ${nodeID}`)
 		}
@@ -268,7 +271,7 @@ export default class DataManager {
 			if (neighborComputationCache.has(nodeID)) {
 				return neighborComputationCache.get(nodeID)
 			}
-			const neighbors = this.getNeighbors(nodeID, isDirected, isBringOnline ? false : true, true)
+			const neighbors = this.getNeighbors(nodeID, { isDirected, isBringOnline: isBringOnline ? false : true, ignoreInternalEdges: true })
 			neighborComputationCache.set(nodeID, neighbors)
 			return neighbors
 		}
@@ -315,9 +318,11 @@ export default class DataManager {
 	stageNodePositions(nodeIDs = [], distance = 300, originX = 0, originY = 0) {
 		if (!nodeIDs.length) return []
 		const seenOriginNodes = []
-		const numberOfLeafNodes = nodeIDs.filter(nodeID => this.getNeighbors(nodeID, false, true, true).length < 2).length
+		const numberOfLeafNodes = nodeIDs.filter(
+			nodeID => this.getNeighbors(nodeID, { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true }).length < 2
+		).length
 		return nodeIDs.map(nodeID => {
-			const neighbors = this.getNeighbors(nodeID, false, true, true)
+			const neighbors = this.getNeighbors(nodeID, { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true })
 			if (neighbors.length < 2) {
 				seenOriginNodes.push(nodeID)
 				const multiplier = seenOriginNodes.length
@@ -349,11 +354,12 @@ export default class DataManager {
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
 	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
 	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
-	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
+	findShortestPathUnweighted(startNode, endNode, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
 			throw new Error("Start node or end node is not live.")
 		}
@@ -365,7 +371,7 @@ export default class DataManager {
 		let nextNode
 		while ((nextNode = toProcess.pop())) {
 			if (nextNode === endNode) break
-			const candidates = this.getNeighbors(nextNode, isDirected, useOnlyOnline)
+			const candidates = this.getNeighbors(nextNode, { isDirected, useOnlyOnline })
 			let candidate
 			for (let i = 0; i < candidates.length; i++) {
 				candidate = candidates[i]
@@ -392,12 +398,13 @@ export default class DataManager {
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
 	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
 	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {boolean=} options.aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
 	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
-	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
+	findShortestPathWeighted(startNode, endNode, { useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false } = {}) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
 			throw new Error("Start node or end node is not live.")
 		}
@@ -467,10 +474,11 @@ export default class DataManager {
 	 * Computes strongly connected components in the graph.
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
 	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
-	computeStronglyConnectedComponents(useOnlyOnline = true) {
+	computeStronglyConnectedComponents({ useOnlyOnline = true } = {}) {
 		const nodes = useOnlyOnline ? Array.from(this.onlineNodes) : [...this.allNodes]
 		const stack = []
 		const visited = new Set()
@@ -482,7 +490,7 @@ export default class DataManager {
 		const DFS1 = node => {
 			if (visited.has(node)) return
 			visited.add(node)
-			const neighbors = this.getNeighbors(node, true, useOnlyOnline, true)
+			const neighbors = this.getNeighbors(node, { isDirected: true, useOnlyOnline, ignoreInternalEdges: true })
 			for (let j = 0; j < neighbors.length; j++) {
 				const neighbor = neighbors[j]
 				if (!reversedNeighbors.has(neighbor)) reversedNeighbors.set(neighbor, [])
@@ -526,10 +534,11 @@ export default class DataManager {
 	 * If the callback function returns true then that branch will be terminated.
 	 * @param {import("./model/nodesandedges").NodeID} startNode
 	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {Object} options - If true only online nodes will be processed
+	 * @param {boolean=} options.useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} options.isDirected - If true then traversal will be directed
 	 */
-	BFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
+	BFS(startNode, callback, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (!this.nodeLookupMap.has(startNode)) {
 			throw new Error(`No such node exists: ${startNode}`)
 		}
@@ -561,10 +570,11 @@ export default class DataManager {
 	 * If the callback function returns true then that branch will be terminated.
 	 * @param {import("./model/nodesandedges").NodeID} startNode
 	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} isDirected - If true then traversal will be directed
 	 */
-	DFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
+	DFS(startNode, callback, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (!this.nodeLookupMap.has(startNode)) {
 			throw new Error(`No such node exists: ${startNode}`)
 		}

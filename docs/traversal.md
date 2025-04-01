@@ -10,7 +10,7 @@ The traversal functions take a callback as an argument that will receive each no
 
 BFS is a bredth-first search. This means that the graph data is traversed one level at a time.
 
-Example: (N1 -> N1, N2 -> N1, N3 -> N3, N4). The order would be N1, N2, N3, N4.
+Example: (N1 -> N2, N2 -> N3, N1 -> N4, N4 -> N5). The order would be N1, N2, N4, N3, N5.
 
 Here's how to do it:
 ```javascript
@@ -41,7 +41,7 @@ IDs // -> ["n1", "n2", "n3", "n4", "n5"]
 
 DFS is a depth-first search. This means that the graph data is traversed one branch at a time.
 
-Example: (N1 -> N1, N2 -> N1, N3 -> N2, N4). The order would be N1, N2, N3, N4.
+Example: (N1 -> N2, N2 -> N3, N1 -> N4, N4 -> N5). The order would be N1, N2, N3, N4, N5.
 
 Here's how to do it:
 

@@ -290,13 +290,14 @@ export default class Graph {
 	/**
 	 * Retrieves all neighbors for a given nodeID
 	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
-	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
-	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
-	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.isDirected - Only traverse edges where the input node is the sourceNode
+	 * @param {boolean=} options.useOnlyOnline - Only traverse neighbors that are online
+	 * @param {boolean=} options.ignoreInternalEdges - Ignore self-edges
 	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
-	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
-		return this.dataManager.getNeighbors(nodeID, isDirected, useOnlyOnline, ignoreInternalEdges)
+	getNeighbors(nodeID, options) {
+		return this.dataManager.getNeighbors(nodeID, options)
 	}
 
 	/**
@@ -305,13 +306,14 @@ export default class Graph {
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
 	 * @param {import("./model/nodesandedges").NodeID} nodeID
-	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
+	 * @param {Object} options - Options for function
+	 * @param {boolean=} options.isBringOnline - If true neighbors will be brought online otherwise offline
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {("single"|"recursive"|"leafs")=} options.mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
 	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
-	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
-		return this.dataManager.computeImplodeOrExplodeNode(nodeID, isBringOnline, isDirected, mode)
+	computeImplodeOrExplodeNode(nodeID, options) {
+		return this.dataManager.computeImplodeOrExplodeNode(nodeID, options)
 	}
 
 	/**
@@ -333,12 +335,13 @@ export default class Graph {
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
 	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
 	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
-	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
-		return this.dataManager.findShortestPathUnweighted(startNode, endNode, useOnlyOnline, isDirected)
+	findShortestPathUnweighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathUnweighted(startNode, endNode, options)
 	}
 
 	/**
@@ -347,24 +350,26 @@ export default class Graph {
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
 	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
 	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {boolean=} options.aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
 	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
-	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
-		return this.dataManager.findShortestPathWeighted(startNode, endNode, useOnlyOnline, isDirected, aggregateEdgeWeights)
+	findShortestPathWeighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathWeighted(startNode, endNode, options)
 	}
 
 	/**
 	 * Computes strongly connected components in the graph.
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
 	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
-	computeStronglyConnectedComponents(useOnlyOnline = true) {
-		return this.dataManager.computeStronglyConnectedComponents(useOnlyOnline)
+	computeStronglyConnectedComponents(options) {
+		return this.dataManager.computeStronglyConnectedComponents(options)
 	}
 
 	/**
@@ -373,11 +378,12 @@ export default class Graph {
 	 * If the callback function returns true then that branch will be terminated.
 	 * @param {import("./model/nodesandedges").NodeID} startNode
 	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {Object} options - If true only online nodes will be processed
+	 * @param {boolean=} options.useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} options.isDirected - If true then traversal will be directed
 	 */
-	BFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.BFS(startNode, callback, useOnlyOnline, isDirected)
+	BFS(startNode, callback, options) {
+		this.dataManager.BFS(startNode, callback, options)
 	}
 
 	/**
@@ -386,10 +392,11 @@ export default class Graph {
 	 * If the callback function returns true then that branch will be terminated.
 	 * @param {import("./model/nodesandedges").NodeID} startNode
 	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} isDirected - If true then traversal will be directed
 	 */
-	DFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.DFS(startNode, callback, useOnlyOnline, isDirected)
+	DFS(startNode, callback, options) {
+		this.dataManager.DFS(startNode, callback, options)
 	}
 }

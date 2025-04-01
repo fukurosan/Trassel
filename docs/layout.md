@@ -432,6 +432,18 @@ If no width or height is provided to the bounding box function these values will
 
 ---
 
+### D3 Adapter
+***Type: N/A***
+
+The D3 adapter can be used to implement d3 forces in Trassel layouts. Note that several parameters in Trassels computations are differently scaled from d3, and as a result you may need to fiddle with the default values of your forces.
+
+ - **d3force** 
+   - **Description**: *The instantiated d3 force*
+   - **Type**: `N/A`
+   - **Default**: `undefined`
+
+---
+
 ### Animation
 ***Type: Incremental***
 
