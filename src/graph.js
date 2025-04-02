@@ -27,6 +27,22 @@ export default class Graph {
 	}
 
 	/**
+	 * Returns all nodes currently set
+	 * @returns {import("./model/nodesandedges").TrasselNode[]} Nodes
+	 */
+	getNodes() {
+		return this.nodes
+	}
+
+	/**
+	 * Returns all edges currently set
+	 * @returns {import("./model/nodesandedges").TrasselEdge[]} Edges
+	 */
+	getEdges() {
+		return this.edges
+	}
+
+	/**
 	 * Sets the current alpha value in the layout.
 	 * @param {number} alpha - Alpha value
 	 * @returns {Graph}
@@ -104,15 +120,16 @@ export default class Graph {
 
 	/**
 	 * Updates the nodes and edges in the graph
-	 * @param {import("./model/nodesandedges").IBasicNode[]} nodes
-	 * @param {import("./model/nodesandedges").IBasicEdge[]} edges
+	 * @param {import("./model/nodesandedges").DraftNode[]} nodes
+	 * @param {import("./model/nodesandedges").DraftEdge[]} edges
 	 * @returns {Graph}
 	 */
 	updateNodesAndEdges(nodes, edges) {
-		this.nodes = nodes
-		this.edges = edges
-		this.layout.updateNodesAndEdges(nodes, edges)
-		this.dataManager.updateNodesAndEdges(nodes, edges)
+		const initialized = initializeNodesAndEdges(nodes, edges)
+		this.nodes = initialized.nodes
+		this.edges = initialized.edges
+		this.layout.updateNodesAndEdges(this.nodes, this.edges)
+		this.dataManager.updateNodesAndEdges(this.nodes, this.edges)
 		return this
 	}
 

@@ -503,7 +503,7 @@ export class WebGLRenderer {
 					breakWords: true,
 					align: "center",
 					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: this.getHexColor(edge.rendererOptions?.labelColor || 0x000000)
+					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || 0x000000)
 				})
 				const label = edge.rendererOptions?.label
 				const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)

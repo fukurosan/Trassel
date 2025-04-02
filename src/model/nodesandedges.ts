@@ -68,6 +68,8 @@ export interface TrasselNode extends IBasicNode {
 	vy: number
 	/** Renderer options */
 	rendererOptions?: {
+		/** Name of the node */
+		label?: string
 		/** Optional icon URL */
 		icon?: string
 		/** Background color of the node */
@@ -107,6 +109,8 @@ export interface TrasselEdge extends IBasicEdge {
 	weight: number
 	/** Renderer options */
 	rendererOptions?: {
+		/** Label text for the edge */
+		label?: string
 		/** Should the edge be dotted? */
 		dotted?: boolean
 		/** Color of the edge */
@@ -143,7 +147,7 @@ export interface TrasselEdge extends IBasicEdge {
 /** Partial Trassel node for the Layout engine */
 export type LayoutNode = Pick<TrasselNode, "id" | "index" | "shape" | "template" | "mass" | "x" | "y" | "fx" | "fy" | "vx" | "vy">
 /** Partial Trassel node for the renderer */
-export type RendererNode = Pick<TrasselNode, "id" | "shape" | "template" | "x" | "y" | "rendererOptions">
+export type RendererNode = Pick<TrasselNode, "id" | "shape" | "x" | "y" | "rendererOptions">
 /** Partial Trassel node for the renderer internally */
 export type InternalRendererNode = WithRequiredProperty<RendererNode & Pick<TrasselNode, "rendererInternals">, "rendererInternals">
 
@@ -156,10 +160,7 @@ export type LayoutEdge = Pick<
 	target: LayoutNode
 }
 /** Partial Trassel edge for the renderer */
-export type RendererEdge = Pick<
-	TrasselEdge,
-	"distance" | "source" | "sourceNode" | "target" | "targetNode" | "template" | "visibleDistance" | "weight" | "rendererOptions"
-> & {
+export type RendererEdge = Pick<TrasselEdge, "source" | "sourceNode" | "target" | "targetNode" | "rendererOptions"> & {
 	source: RendererNode
 	target: RendererNode
 }

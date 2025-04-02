@@ -1,8 +1,10 @@
 import { GraphObjectTemplates } from "./nodesandedges"
+import { IRendererOptions } from "./rendereroptions"
 
 /** Options for the graph layout engine */
 export interface IOptions {
 	layout?: ILayoutOptions
+	renderer?: IRendererOptions
 	templates?: GraphObjectTemplates[]
 }
 
