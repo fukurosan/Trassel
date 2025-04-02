@@ -54,7 +54,7 @@ for (let i = 0; i < 1000; i++) {
 }
 
 const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
-const renderer = new Trassel.Renderer(document.querySelector(".graph"), nodes, edges)
+const renderer = new Trassel.Renderer(document.querySelector(".graph"), graph.getNodes(), graph.getEdges())
 await renderer.initialize()
 let shiftKey = false
 let ctrlKey = false

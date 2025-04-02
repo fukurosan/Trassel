@@ -8,81 +8,7 @@
  * https://mit-license.org/
  * ----------------------------------------------------------
  */
- const Env = Object.freeze({
-	DEFAULT_EDGE_STRENGTH: 0.7,
-	DEFAULT_NODE_MASS: 2000,
-	DEFAULT_NODE_RADIUS: 50,
-	DEFAULT_VISIBLE_EDGE_DISTANCE: 350
-});
-
-/**
- * Takes simple format nodes and edges and converts them into GraphNodes and Edges
- * @param {import("../model/ibasicnode").IBasicNode[]} nodes
- * @param {import("../model/ibasicedge").IBasicEdge[]} edges
- */
-const initializeNodesAndEdges = (nodes = [], edges = []) => {
-	//Initialize Nodes
-	for (let i = 0; i < nodes.length; i++) {
-		const node = nodes[i];
-		//Add index property
-		node.index = i;
-		//If no radius is set then attempt to set it
-		node.radius = node.radius ? node.radius : node.width ? Math.max(node.width, node.height) / 2 : Env.DEFAULT_NODE_RADIUS;
-		//If no mass is set then attempt to set it
-		node.mass = node.mass ? node.mass : Env.DEFAULT_NODE_MASS;
-		//If fixed coordinates exist, set regular to the same values
-		if (node.fx) {
-			node.x = node.fx;
-		}
-		if (node.fy) {
-			node.y = node.fy;
-		}
-		//If no x or y coordinates exist then set a position based on a circle of nodes
-		if (isNaN(node.x) || isNaN(node.y)) {
-			const radius = node.radius * Math.sqrt(0.5 + i);
-			const angle = i * (Math.PI * (3 - Math.sqrt(5)));
-			node.x = radius * Math.cos(angle);
-			node.y = radius * Math.sin(angle);
-		}
-		//If no velocity is set, initialize it to 0
-		if (isNaN(node.vx) || isNaN(node.vy)) {
-			node.vx = 0;
-			node.vy = 0;
-		}
-	}
-
-	//Initialize Edges
-	for (let i = 0; i < edges.length; i++) {
-		const edge = edges[i];
-		//Add index property
-		edge.index = i;
-		//If no strength has been configured then set it to a default value
-		if (!edge.strength) {
-			edge.strength = Env.DEFAULT_EDGE_STRENGTH;
-		}
-		//Map the nodes to source & target (and evaluate that they exist!)
-		//Note that source and target are necessary for D3 adapters to work
-		edge.source = nodes.find(node => node.id === edge.sourceNode);
-		edge.target = nodes.find(node => node.id === edge.targetNode);
-		if (!edge.source || !edge.target) {
-			throw new Error("Broken Edge " + `${edge}`)
-		}
-		//Initialize the edge's length
-		if (!edge.distance) {
-			const invisibleDistance = edge.target.radius + edge.source.radius;
-			edge.distance = invisibleDistance + (edge.visibleDistance ? edge.visibleDistance : Env.DEFAULT_VISIBLE_EDGE_DISTANCE);
-		}
-		if (!edge.visibleDistance) {
-			edge.visibleDistance = edge.distance - edge.target.radius - edge.source.radius;
-		}
-		//Initialize the edge's weight
-		if (isNaN(edge.weight)) {
-			edge.weight = 1;
-		}
-	}
-};
-
-/**
+ /**
  * Main layout loop class.
  */
 class Loop {
@@ -161,7 +87,7 @@ class Loop {
  */
 class Quadtree {
 	/**
-	 * @param {import("../model/igraphnode").IGraphNode[]=} entities - Graph nodes to base the quadtree on
+	 * @param {import("../model/nodesandedges").LayoutNode[]=} entities - Graph nodes to base the quadtree on
 	 */
 	constructor(entities = []) {
 		this.isMassComputed = false;
@@ -174,7 +100,7 @@ class Quadtree {
 
 	/**
 	 * (Re)Computes the quadtree with new graph nodes
-	 * @param {import("../model/igraphnode").IGraphNode[]} entities
+	 * @param {import("../model/nodesandedges").LayoutNode[]} entities
 	 */
 	initialize(entities = []) {
 		this.isMassComputed = false;
@@ -232,7 +158,7 @@ class Quadtree {
 
 	/**
 	 * The quadtree is recomputed by calling this function sequentially for each graph entity
-	 * @param {import("../model/igraphnode").IGraphNode} entity
+	 * @param {import("../model/nodesandedges").LayoutNode} entity
 	 * @returns
 	 */
 	addEntity(entity) {
@@ -448,7 +374,7 @@ class Quadtree {
 		this.traverseBottomTop(quadNode => {
 			//If it is an entity
 			if (quadNode.entity) {
-				quadNode.radius = quadNode.entity.radius + padding;
+				quadNode.radius = quadNode.entity.shape.radius + padding;
 				return
 			}
 			//If it is a quadrant
@@ -468,8 +394,8 @@ class Quadtree {
  */
 class Layout {
 	/**
-	 * @param {import("./model/ibasicnode").IBasicNode[]=} nodes - Initial nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").LayoutNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").LayoutEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").ILayoutOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
@@ -488,7 +414,7 @@ class Layout {
 			["layoutloopend", new Set()]
 		]);
 		this.loop = new Loop(this.runLoop.bind(this), options.updateCap ? options.updateCap : 60);
-		this.initializeNodesAndEdges();
+		this.updateQuadTree();
 		this.quadtree = new Quadtree(this.nodes);
 		this.isAnimating = false;
 	}
@@ -524,12 +450,11 @@ class Layout {
 	updateNodesAndEdges(nodes, edges) {
 		this.nodes = nodes;
 		this.edges = edges;
-		this.initializeNodesAndEdges();
+		this.updateQuadTree();
 		this.components.forEach(component => this.initializeComponent(component));
 	}
 
-	initializeNodesAndEdges() {
-		initializeNodesAndEdges(this.nodes, this.edges);
+	updateQuadTree() {
 		this.quadtree = new Quadtree(this.nodes);
 	}
 
@@ -716,38 +641,38 @@ class Layout {
 class DataManager {
 	/**
 	 * Constructor
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes
-	 * @param {import("./model/ibasicnode").IBasicEdge[]} edges
+	 * @param {import("./model/nodesandedges").IBasicNode[]} nodes
+	 * @param {import("./model/nodesandedges").IBasicEdge[]} edges
 	 */
 	constructor(nodes = [], edges = []) {
 		/**
 		 * All Nodes in the data manager regardless of online/offline status
-		 * @type {import("./model/nodeid").NodeID[]} */
+		 * @type {import("./model/nodesandedges").NodeID[]} */
 		this.allNodes = [];
 		/**
 		 * All edges in the data manager regardless of online/offline status
-		 * @type {import("./model/ibasicedge").IBasicEdge[]} */
+		 * @type {import("./model/nodesandedges").IBasicEdge[]} */
 		this.allEdges = [];
 		/**
 		 * A set that contains all currently online nodes. Used for example when we want to process a large dataset
 		 * but only want to expose a small subset of data to an application, renderer or other process.
-		 * @type {Set<import("./model/nodeid").NodeID>} */
+		 * @type {Set<import("./model/nodesandedges").NodeID>} */
 		this.onlineNodes = new Set();
 		/**
 		 * A lookup table for node objects. Generally "nodes" in the data manager are just IDs
-		 * @type {Map<import("./model/nodeid").NodeID, import("./model/ibasicnode").IBasicNode>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, import("./model/nodesandedges").IBasicNode>} */
 		this.nodeLookupMap = new Map();
 		/**
 		 * A lookup table where the keys are sourceNodes and targets are targetNodes, their full weight and all relevant edge objects.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.sourceToTargetMap = new Map();
 		/**
 		 * A lookup table where the keys are targetNodes and targets are sourceNodes, their full weight and all relevant edge objects.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.targetToSourceMap = new Map();
 		/**
 		 * A lookup table for undirected edges (basically merging sourceToTarget and targetToSource.
-		 * @type {Map<import("./model/nodeid").NodeID, { id: import("./model/nodeid").NodeID, edges: import("./model/ibasicedge").IBasicEdge[], weight: number }[]>} */
+		 * @type {Map<import("./model/nodesandedges").NodeID, { id: import("./model/nodesandedges").NodeID, edges: import("./model/nodesandedges").IBasicEdge[], weight: number }[]>} */
 		this.nodeToNeighborsMap = new Map();
 		/**
 		 * Edge indexes mapping an edge to how many other edges share the same sources and targets and what index it has.
@@ -760,7 +685,7 @@ class DataManager {
 		 * This is a counter for each node of how many offline edges in the graph connects with it.
 		 * This information is useful to renderers when displaying partial information, and showing meta data about hidden points.
 		 * E.g. a badge on a node in the graph with "42" on it, indicating 42 hidden connections.
-		 * @type {Map<import("./model/nodeid").NodeID, {sourceNode: number, targetNode: number, internal: number}>}
+		 * @type {Map<import("./model/nodesandedges").NodeID, {sourceNode: number, targetNode: number, internal: number}>}
 		 */
 		this.offlineEdgeCounter = new Map();
 		this.updateNodesAndEdges(nodes, edges);
@@ -768,8 +693,8 @@ class DataManager {
 
 	/**
 	 * Updates the data in the manager
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes - New nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]} edges - New Edges
+	 * @param {import("./model/nodesandedges").IBasicNode[]} nodes - New nodes
+	 * @param {import("./model/nodesandedges").IBasicEdge[]} edges - New Edges
 	 */
 	updateNodesAndEdges(nodes, edges) {
 		//All added nodes will be seen as online
@@ -854,7 +779,7 @@ class DataManager {
 
 	/**
 	 * Computes online nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOnlineNodes() {
 		return this.allNodes.filter(nodeID => this.onlineNodes.has(nodeID)).map(nodeID => this.nodeLookupMap.get(nodeID))
@@ -862,7 +787,7 @@ class DataManager {
 
 	/**
 	 * Computes offline nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOfflineNodes() {
 		return this.allNodes.filter(nodeID => !this.onlineNodes.has(nodeID)).map(nodeID => this.nodeLookupMap.get(nodeID))
@@ -870,7 +795,7 @@ class DataManager {
 
 	/**
 	 * Computes online edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOnlineEdges() {
 		return this.allEdges.filter(edge => this.isEdgeOnline(edge))
@@ -878,7 +803,7 @@ class DataManager {
 
 	/**
 	 * Computes offline edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOfflineEdges() {
 		return this.allEdges.filter(edge => !this.isEdgeOnline(edge))
@@ -886,7 +811,7 @@ class DataManager {
 
 	/**
 	 * Checks if an edge is online
-	 * @param {import("./model/ibasicnode").IBasicEdge} edge
+	 * @param {import("./model/nodesandedges").IBasicEdge} edge
 	 * @returns {boolean}
 	 */
 	isEdgeOnline(edge) {
@@ -904,7 +829,7 @@ class DataManager {
 
 	/**
 	 * Brings the list of node IDs offline
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOffline(nodeIDs) {
 		nodeIDs.forEach(id => {
@@ -915,7 +840,7 @@ class DataManager {
 
 	/**
 	 * Brings the list of node IDs online
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOnline(nodeIDs) {
 		nodeIDs.forEach(id => {
@@ -939,13 +864,14 @@ class DataManager {
 
 	/**
 	 * Retrieves all neighbors for a given nodeID
-	 * @param {import("./model/nodeid").NodeID} nodeID - ID od the node neighbors should be retrieved for
-	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
-	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
-	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
-	 * @returns {import("./model/nodeid").NodeID[]}
+	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.isDirected - Only traverse edges where the input node is the sourceNode
+	 * @param {boolean=} options.useOnlyOnline - Only traverse neighbors that are online
+	 * @param {boolean=} options.ignoreInternalEdges - Ignore self-edges
+	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
-	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
+	getNeighbors(nodeID, { isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true } = {}) {
 		let neighbors;
 		if (isDirected) neighbors = this.sourceToTargetMap.get(nodeID).map(neighbor => neighbor.id);
 		else neighbors = this.nodeToNeighborsMap.get(nodeID).map(neighbor => neighbor.id);
@@ -959,13 +885,14 @@ class DataManager {
 	 * This function will not apply any changes, but return an array with affected nodes
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
-	 * @param {import("./model/nodeid").NodeID} nodeID
-	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
-	 * @returns {import("./model/nodeid").NodeID[]} - Affected nodes
+	 * @param {import("./model/nodesandedges").NodeID} nodeID
+	 * @param {Object} options - Options for function
+	 * @param {boolean=} options.isBringOnline - If true neighbors will be brought online otherwise offline
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {("single"|"recursive"|"leafs")=} options.mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
+	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
-	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
+	computeImplodeOrExplodeNode(nodeID, { isBringOnline = false, isDirected = true, mode = "single" } = {}) {
 		if (!this.nodeLookupMap.has(nodeID)) {
 			throw new Error(`No such node exists: ${nodeID}`)
 		}
@@ -978,7 +905,7 @@ class DataManager {
 			if (neighborComputationCache.has(nodeID)) {
 				return neighborComputationCache.get(nodeID)
 			}
-			const neighbors = this.getNeighbors(nodeID, isDirected, isBringOnline ? false : true, true);
+			const neighbors = this.getNeighbors(nodeID, { isDirected, isBringOnline: isBringOnline ? false : true, ignoreInternalEdges: true });
 			neighborComputationCache.set(nodeID, neighbors);
 			return neighbors
 		};
@@ -1016,18 +943,20 @@ class DataManager {
 	 * Accepts an array of node IDs and origin coordinates where the nodes should be animated from.
 	 * Returns an array of vertices with optimal positions based on other neighbors present in the graph, or in the case of leafs a circle around the origin.
 	 * Note(!) that this function expects all nodes and edges to have been initialized into GraphNodes and GraphEdges in order to compute this information.
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs - Array of node IDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs - Array of node IDs
 	 * @param {number} distance - Default distance from origin position to put nodes (for non-average values only!)
 	 * @param {number} originX - Start position for the transition
 	 * @param {number} originY - Start position for the transition
-	 * @returns {{id: import("./model/nodeid").NodeID, x: number, y: numer}[]} - Target coordinates
+	 * @returns {{id: import("./model/nodesandedges").NodeID, x: number, y: numer}[]} - Target coordinates
 	 */
 	stageNodePositions(nodeIDs = [], distance = 300, originX = 0, originY = 0) {
 		if (!nodeIDs.length) return []
 		const seenOriginNodes = [];
-		const numberOfLeafNodes = nodeIDs.filter(nodeID => this.getNeighbors(nodeID, false, true, true).length < 2).length;
+		const numberOfLeafNodes = nodeIDs.filter(
+			nodeID => this.getNeighbors(nodeID, { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true }).length < 2
+		).length;
 		return nodeIDs.map(nodeID => {
-			const neighbors = this.getNeighbors(nodeID, false, true, true);
+			const neighbors = this.getNeighbors(nodeID, { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true });
 			if (neighbors.length < 2) {
 				seenOriginNodes.push(nodeID);
 				const multiplier = seenOriginNodes.length;
@@ -1057,13 +986,14 @@ class DataManager {
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @return {import("./model/nodeid").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
-	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
+	findShortestPathUnweighted(startNode, endNode, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
 			throw new Error("Start node or end node is not live.")
 		}
@@ -1075,7 +1005,7 @@ class DataManager {
 		let nextNode;
 		while ((nextNode = toProcess.pop())) {
 			if (nextNode === endNode) break
-			const candidates = this.getNeighbors(nextNode, isDirected, useOnlyOnline);
+			const candidates = this.getNeighbors(nextNode, { isDirected, useOnlyOnline });
 			let candidate;
 			for (let i = 0; i < candidates.length; i++) {
 				candidate = candidates[i];
@@ -1100,14 +1030,15 @@ class DataManager {
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * This is basically Dijkstra's algorithm:
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
-	 * @return {{id: import("./model/nodeid").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {boolean=} options.aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
+	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
-	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
+	findShortestPathWeighted(startNode, endNode, { useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false } = {}) {
 		if (useOnlyOnline && (!this.onlineNodes.has(startNode) || !this.onlineNodes.has(endNode))) {
 			throw new Error("Start node or end node is not live.")
 		}
@@ -1177,10 +1108,11 @@ class DataManager {
 	 * Computes strongly connected components in the graph.
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @return {("./model/nodeid").NodeID[][]} - Strongly connected components.
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
-	computeStronglyConnectedComponents(useOnlyOnline = true) {
+	computeStronglyConnectedComponents({ useOnlyOnline = true } = {}) {
 		const nodes = useOnlyOnline ? Array.from(this.onlineNodes) : [...this.allNodes];
 		const stack = [];
 		const visited = new Set();
@@ -1192,7 +1124,7 @@ class DataManager {
 		const DFS1 = node => {
 			if (visited.has(node)) return
 			visited.add(node);
-			const neighbors = this.getNeighbors(node, true, useOnlyOnline, true);
+			const neighbors = this.getNeighbors(node, { isDirected: true, useOnlyOnline, ignoreInternalEdges: true });
 			for (let j = 0; j < neighbors.length; j++) {
 				const neighbor = neighbors[j];
 				if (!reversedNeighbors.has(neighbor)) reversedNeighbors.set(neighbor, []);
@@ -1234,12 +1166,13 @@ class DataManager {
 	 * Executes a breadth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - If true only online nodes will be processed
+	 * @param {boolean=} options.useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} options.isDirected - If true then traversal will be directed
 	 */
-	BFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
+	BFS(startNode, callback, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (!this.nodeLookupMap.has(startNode)) {
 			throw new Error(`No such node exists: ${startNode}`)
 		}
@@ -1269,12 +1202,13 @@ class DataManager {
 	 * Executes a depth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} isDirected - If true then traversal will be directed
 	 */
-	DFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
+	DFS(startNode, callback, { useOnlyOnline = true, isDirected = true } = {}) {
 		if (!this.nodeLookupMap.has(startNode)) {
 			throw new Error(`No such node exists: ${startNode}`)
 		}
@@ -1303,9 +1237,9 @@ class DataManager {
  * To read more about the Louvain community detection algorithm:
  * https://arxiv.org/pdf/0803.0476.pdf
  * https://medium.com/walmartglobaltech/demystifying-louvains-algorithm-and-its-implementation-in-gpu-9a07cdd3b010
- * @param {import("../model/igraphnode").IGraphNode[]} nodes
- * @param {import("../model/igraphedge").IGraphEdge[]} edges
- * @returns {{communities: import("../model/nodeid").NodeID[][], communityTable: {[key: string]: any}}}
+ * @param {import("../model/nodesandedges").LayoutNode[]} nodes
+ * @param {import("../model/nodesandedges").LayoutEdge[]} edges
+ * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
  */
 function louvain (nodes, edges) {
 	function removeDuplicates(array) {
@@ -1553,26 +1487,213 @@ function louvain (nodes, edges) {
 	}
 }
 
+const Env = Object.freeze({
+	DEFAULT_EDGE_STRENGTH: 0.7,
+	DEFAULT_NODE_MASS: 2000,
+	DEFAULT_NODE_RADIUS: 50,
+	DEFAULT_VISIBLE_EDGE_DISTANCE: 350
+});
+
+const deepCopyObject = o => {
+	if (o === null) {
+		return o
+	} else if (o instanceof Array) {
+		const out = [];
+		for (const key in o) {
+			const v = o[key];
+			out[key] = typeof v === "object" && v !== null ? deepCopyObject(v) : v;
+		}
+		return out
+	} else if (typeof o === "object" && Object.keys(o).length > 0) {
+		const out = {};
+		for (const key in o) {
+			const v = o[key];
+			out[key] = typeof v === "object" && v !== null ? deepCopyObject(v) : v;
+		}
+		return out
+	} else if (o instanceof Date) {
+		return new Date(o.getTime())
+	} else {
+		return o
+	}
+};
+
+/**
+ * Applies a template object to another object. Any properties in the template that are not set in the object will be set (recursively).
+ * Arrays will be considered as basic values, and no merging or anything like that is done.
+ * NOTE: The input object will be mutated!
+ * @param {{[key: string]: any}} obj
+ * @param {{[key: string]: any}} template
+ * @returns
+ */
+const applyTemplateToObject = (obj, template) => {
+	Object.keys(template).forEach(key => {
+		const objValue = obj[key];
+		const templValue = template[key];
+		//If both are objects then apply them recursively
+		if (
+			typeof objValue === "object" &&
+			typeof templValue === "object" &&
+			objValue !== null &&
+			templValue !== null &&
+			!Array.isArray(objValue) &&
+			!Array.isArray(templValue)
+		) {
+			applyTemplateToObject(objValue, templValue);
+		}
+		//If there is already a value (even null!) then do not change it
+		else if (objValue !== undefined) {
+			return 0
+		}
+		//If the template value is an array then deep-copy it and apply it
+		else if (templValue instanceof Array) {
+			obj[key] = deepCopyObject(templValue);
+		}
+		//If the template value is an object then deep-copy it and apply it
+		else if (typeof templValue === "object" && templValue !== null) {
+			obj[key] = deepCopyObject(templValue);
+		}
+		//Otherwise just set the value
+		else {
+			obj[key] = templValue;
+		}
+	});
+	return obj
+};
+
+/**
+ * Takes simple format nodes and edges and converts them into GraphNodes and Edges
+ * @param {import("../model/nodesandedges").DraftNode[]} nodes
+ * @param {import("../model/nodesandedges").DraftEdge[]} edges
+ * @param {import("../model/nodesandedges").GraphObjectTemplates} templates
+ * @returns { { nodes: import("../model/nodesandedges").TrasselNode[] edges: import("../model/nodesandedges").TrasselEdge[] } }
+ */
+const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
+	const nodeTemplates = Array.isArray(templates.nodes) ? templates.nodes : [];
+	const edgeTemplates = Array.isArray(templates.edges) ? templates.edges : [];
+	//Initialize Nodes
+	for (let i = 0; i < nodes.length; i++) {
+		const node = nodes[i];
+		//Apply template
+		if (node.type) {
+			const template = nodeTemplates.find(template => template.id === node.type);
+			if (template) {
+				applyTemplateToObject(node, template.template);
+			}
+		}
+		//Add index property
+		node.index = i;
+		//If no shape is set then attempt to set it
+		if (!node.shape) {
+			node.shape = {
+				id: "circle",
+				radius: Env.DEFAULT_NODE_RADIUS
+			};
+		} else if (!node.shape.radius) {
+			node.shape.radius = node.shape.width ? Math.max(node.shape.width, node.shape.height) / 2 : Env.DEFAULT_NODE_RADIUS;
+		}
+		//If no mass is set then attempt to set it
+		node.mass = node.mass ? node.mass : Env.DEFAULT_NODE_MASS;
+		//If fixed coordinates exist, set regular to the same values
+		if (node.fx) {
+			node.x = node.fx;
+		}
+		if (node.fy) {
+			node.y = node.fy;
+		}
+		//If no x or y coordinates exist then set a position based on a circle of nodes
+		if (isNaN(node.x) || isNaN(node.y)) {
+			const radius = node.shape.radius * Math.sqrt(0.5 + i);
+			const angle = i * (Math.PI * (3 - Math.sqrt(5)));
+			node.x = radius * Math.cos(angle);
+			node.y = radius * Math.sin(angle);
+		}
+		//If no velocity is set, initialize it to 0
+		if (isNaN(node.vx) || isNaN(node.vy)) {
+			node.vx = 0;
+			node.vy = 0;
+		}
+	}
+
+	//Initialize Edges
+	for (let i = 0; i < edges.length; i++) {
+		const edge = edges[i];
+		//Apply template
+		if (edge.type) {
+			const template = edgeTemplates.find(template => template.id === edge.type);
+			if (template) {
+				applyTemplateToObject(edge, template.template);
+			}
+		}
+		//Add index property
+		edge.index = i;
+		//If no strength has been configured then set it to a default value
+		if (!edge.strength) {
+			edge.strength = Env.DEFAULT_EDGE_STRENGTH;
+		}
+		//Map the nodes to source & target (and evaluate that they exist!)
+		//Note that source and target are necessary for D3 adapters to work
+		edge.source = nodes.find(node => node.id === edge.sourceNode);
+		edge.target = nodes.find(node => node.id === edge.targetNode);
+		if (!edge.source || !edge.target) {
+			throw new Error("Broken Edge " + `${edge.sourceNode} -> ${edge.targetNode}`)
+		}
+		//Initialize the edge's length
+		if (!edge.distance) {
+			const invisibleDistance = edge.target.shape.radius + edge.source.shape.radius;
+			edge.distance = invisibleDistance + (edge.visibleDistance ? edge.visibleDistance : Env.DEFAULT_VISIBLE_EDGE_DISTANCE);
+		}
+		if (!edge.visibleDistance) {
+			edge.visibleDistance = edge.distance - edge.target.shape.radius - edge.source.shape.radius;
+		}
+		//Initialize the edge's weight
+		if (isNaN(edge.weight)) {
+			edge.weight = 1;
+		}
+	}
+	return {
+		nodes,
+		edges
+	}
+};
+
 /**
  * Main API for using the graph engine.
  */
 class Graph {
 	/**
-	 * @param {import("./model/ibasicnode").IBasicNode[]=} nodes - Initial nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").DraftNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").DraftEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").IOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
-		/** @private */
-		this.nodes = nodes;
-		/** @private */
-		this.edges = edges;
-		/** @private */
+		const initialized = initializeNodesAndEdges(nodes, edges, options?.templates);
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
+		this.nodes = initialized.nodes;
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
+		this.edges = initialized.edges;
+		/** @private @type { import("./model/ioptions").IOptions } */
 		this.options = options;
-		/** @private */
+		/** @private @type { Layout } */
 		this.layout = new Layout(nodes, edges, options?.layout);
-		/** @private */
+		/** @private @type { DataManager } */
 		this.dataManager = new DataManager(nodes, edges);
+	}
+
+	/**
+	 * Returns all nodes currently set
+	 * @returns {import("./model/nodesandedges").TrasselNode[]} Nodes
+	 */
+	getNodes() {
+		return this.nodes
+	}
+
+	/**
+	 * Returns all edges currently set
+	 * @returns {import("./model/nodesandedges").TrasselEdge[]} Edges
+	 */
+	getEdges() {
+		return this.edges
 	}
 
 	/**
@@ -1636,7 +1757,7 @@ class Graph {
 	/**
 	 * Computes communities (groups) based on nodes and edges in the graph
 	 * Returns an array of communities, containing nodes grouped by belonging
-	 * @returns {{communities: import("../model/nodeid").NodeID[][], communityTable: {[key: string]: any}}}
+	 * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
 	 */
 	computeCommunities() {
 		return this.louvain()
@@ -1645,7 +1766,7 @@ class Graph {
 	/**
 	 * Computes communities (groups) based on nodes and edges in the graph
 	 * Returns an array of communities, containing nodes grouped by belonging
-	 * @returns {{communities: import("../model/nodeid").NodeID[][], communityTable: {[key: string]: any}}}
+	 * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
 	 */
 	louvain() {
 		return louvain(this.nodes, this.edges)
@@ -1653,15 +1774,16 @@ class Graph {
 
 	/**
 	 * Updates the nodes and edges in the graph
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]} edges
+	 * @param {import("./model/nodesandedges").DraftNode[]} nodes
+	 * @param {import("./model/nodesandedges").DraftEdge[]} edges
 	 * @returns {Graph}
 	 */
 	updateNodesAndEdges(nodes, edges) {
-		this.nodes = nodes;
-		this.edges = edges;
-		this.layout.updateNodesAndEdges(nodes, edges);
-		this.dataManager.updateNodesAndEdges(nodes, edges);
+		const initialized = initializeNodesAndEdges(nodes, edges);
+		this.nodes = initialized.nodes;
+		this.edges = initialized.edges;
+		this.layout.updateNodesAndEdges(this.nodes, this.edges);
+		this.dataManager.updateNodesAndEdges(this.nodes, this.edges);
 		return this
 	}
 
@@ -1721,8 +1843,8 @@ class Graph {
 	 * Adds a component to the layout engine
 	 * @param {string} id - Unique identifier for the component
 	 * @param {import("./model/ilayoutcomponent").ILayoutComponent} component - A layout component compatible class instance
-	 * @param {(node: import("./model/igraphnode").IGraphNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
-	 * @param {(edge: import("./model/igraphedge").IGraphEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
+	 * @param {(node: import("./model/nodesandedges").LayoutNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
+	 * @param {(edge: import("./model/nodesandedges").LayoutEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
 	 * @returns {Graph} - this
 	 */
 	addLayoutComponent(id, component, nodeBindings = null, edgeBindings = null) {
@@ -1744,7 +1866,7 @@ class Graph {
 	 * Finds the node closest to the provided coordinates in the graph
 	 * @param {number} x
 	 * @param {number} y
-	 * @returns {import("./model/igraphnode").IGraphNode} - The node
+	 * @returns {import("/model/nodesandedges").TrasselNode} - The node
 	 */
 	findClosestNodeByCoordinates(x, y) {
 		return this.layout.findClosestNodeByCoordinates(x, y)
@@ -1752,7 +1874,7 @@ class Graph {
 
 	/**
 	 * Computes online nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOnlineNodes() {
 		return this.dataManager.getOnlineNodes()
@@ -1760,7 +1882,7 @@ class Graph {
 
 	/**
 	 * Computes offline nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOfflineNodes() {
 		return this.dataManager.getOfflineNodes()
@@ -1768,7 +1890,7 @@ class Graph {
 
 	/**
 	 * Computes online edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOnlineEdges() {
 		this.dataManager.getOnlineEdges();
@@ -1776,7 +1898,7 @@ class Graph {
 
 	/**
 	 * Computes offline edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOfflineEdges() {
 		this.dataManager.getOfflineEdges();
@@ -1784,7 +1906,7 @@ class Graph {
 
 	/**
 	 * Checks if an edge is online
-	 * @param {import("./model/ibasicnode").IBasicEdge} edge
+	 * @param {import("./model/nodesandedges").IBasicEdge} edge
 	 * @returns {boolean}
 	 */
 	isEdgeOnline(edge) {
@@ -1802,7 +1924,7 @@ class Graph {
 
 	/**
 	 * Brings the list of node IDs offline
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOffline(nodeIDs) {
 		this.dataManager.bringNodesOffline(nodeIDs);
@@ -1813,7 +1935,7 @@ class Graph {
 
 	/**
 	 * Brings the list of node IDs online
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOnline(nodeIDs) {
 		this.dataManager.bringNodesOnline(nodeIDs);
@@ -1838,14 +1960,15 @@ class Graph {
 
 	/**
 	 * Retrieves all neighbors for a given nodeID
-	 * @param {import("./model/nodeid").NodeID} nodeID - ID od the node neighbors should be retrieved for
-	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
-	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
-	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
-	 * @returns {import("./model/nodeid").NodeID[]}
+	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.isDirected - Only traverse edges where the input node is the sourceNode
+	 * @param {boolean=} options.useOnlyOnline - Only traverse neighbors that are online
+	 * @param {boolean=} options.ignoreInternalEdges - Ignore self-edges
+	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
-	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
-		return this.dataManager.getNeighbors(nodeID, isDirected, useOnlyOnline, ignoreInternalEdges)
+	getNeighbors(nodeID, options) {
+		return this.dataManager.getNeighbors(nodeID, options)
 	}
 
 	/**
@@ -1853,14 +1976,15 @@ class Graph {
 	 * This function will not apply any changes, but return an array with affected nodes
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
-	 * @param {import("./model/nodeid").NodeID} nodeID
-	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
-	 * @returns {import("./model/nodeid").NodeID[]} - Affected nodes
+	 * @param {import("./model/nodesandedges").NodeID} nodeID
+	 * @param {Object} options - Options for function
+	 * @param {boolean=} options.isBringOnline - If true neighbors will be brought online otherwise offline
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {("single"|"recursive"|"leafs")=} options.mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
+	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
-	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
-		return this.dataManager.computeImplodeOrExplodeNode(nodeID, isBringOnline, isDirected, mode)
+	computeImplodeOrExplodeNode(nodeID, options) {
+		return this.dataManager.computeImplodeOrExplodeNode(nodeID, options)
 	}
 
 	/**
@@ -1868,11 +1992,11 @@ class Graph {
 	 * Accepts an array of node IDs and origin coordinates where the nodes should be animated from.
 	 * Returns an array of vertices with optimal positions based on other neighbors present in the graph, or in the case of leafs a circle around the origin.
 	 * Note(!) that this function expects all nodes and edges to have been initialized into GraphNodes and GraphEdges in order to compute this information.
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs - Array of node IDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs - Array of node IDs
 	 * @param {number} distance - Default distance from origin position to put nodes (for non-average values only!)
 	 * @param {number} originX - Start position for the transition
 	 * @param {number} originY - Start position for the transition
-	 * @returns {{id: import("./model/nodeid").NodeID, x: number, y: numer}[]} - Target coordinates
+	 * @returns {{id: import("./model/nodesandedges").NodeID, x: number, y: numer}[]} - Target coordinates
 	 */
 	stageNodePositions(nodeIDs = [], distance = 300, originX = 0, originY = 0) {
 		return this.dataManager.stageNodePositions(nodeIDs, distance, originX, originY)
@@ -1880,66 +2004,71 @@ class Graph {
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @return {import("./model/nodeid").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
-	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
-		return this.dataManager.findShortestPathUnweighted(startNode, endNode, useOnlyOnline, isDirected)
+	findShortestPathUnweighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathUnweighted(startNode, endNode, options)
 	}
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * This is basically Dijkstra's algorithm:
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
-	 * @return {{id: import("./model/nodeid").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {boolean=} options.aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
+	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
-	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
-		return this.dataManager.findShortestPathWeighted(startNode, endNode, useOnlyOnline, isDirected, aggregateEdgeWeights)
+	findShortestPathWeighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathWeighted(startNode, endNode, options)
 	}
 
 	/**
 	 * Computes strongly connected components in the graph.
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @return {("./model/nodeid").NodeID[][]} - Strongly connected components.
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
-	computeStronglyConnectedComponents(useOnlyOnline = true) {
-		return this.dataManager.computeStronglyConnectedComponents(useOnlyOnline)
+	computeStronglyConnectedComponents(options) {
+		return this.dataManager.computeStronglyConnectedComponents(options)
 	}
 
 	/**
 	 * Executes a breadth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - If true only online nodes will be processed
+	 * @param {boolean=} options.useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} options.isDirected - If true then traversal will be directed
 	 */
-	BFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.BFS(startNode, callback, useOnlyOnline, isDirected);
+	BFS(startNode, callback, options) {
+		this.dataManager.BFS(startNode, callback, options);
 	}
 
 	/**
 	 * Executes a depth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} isDirected - If true then traversal will be directed
 	 */
-	DFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.DFS(startNode, callback, useOnlyOnline, isDirected);
+	DFS(startNode, callback, options) {
+		this.dataManager.DFS(startNode, callback, options);
 	}
 }
 
@@ -1963,9 +2092,9 @@ function lcg () {
  */
 class LayoutComponent {
 	constructor() {
-		/** @type {import("../model/igraphnode").IGraphNode[]} */
+		/** @type {import("../model/nodesandedges").LayoutNode[]} */
 		this.nodes = [];
-		/** @type {import("../model/igraphedge").IGraphEdge[]} */
+		/** @type {import("../model/nodesandedges").LayoutEdge[]} */
 		this.edges = [];
 		this.random = lcg();
 		this.utils = { quadtree: new Quadtree(), remove: () => {} };
@@ -2110,12 +2239,18 @@ class BoundingBox extends LayoutComponent {
 		this.multiplier = 5;
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -2259,7 +2394,7 @@ class Collision extends LayoutComponent {
 		let computedNodeRadius;
 		for (let i = 0; i < this.nodes.length; i++) {
 			node = this.nodes[i];
-			computedNodeRadius = node.radius + this.radiusPadding;
+			computedNodeRadius = node.shape.radius + this.radiusPadding;
 			this.utils.quadtree.traverseTopBottom((quadNode, xStart, yStart, xEnd, yEnd) => {
 				const data = quadNode.entity;
 				const otherNodeRadius = quadNode.radius + this.radiusPadding;
@@ -2395,7 +2530,7 @@ class Fan extends LayoutComponent {
 			const initialY = this.centerY + this.space * radianSin;
 			let lastPosition = [initialX, initialY];
 			groupsMap.get(key).forEach(node => {
-				const diameter = node.radius * 2;
+				const diameter = node.shape.radius * 2;
 				const x = diameter * radianCos + lastPosition[0];
 				const y = diameter * radianSin + lastPosition[1];
 				this.positionMap.set(node.id, [x, y]);
@@ -2449,12 +2584,18 @@ let Grid$1 = class Grid extends LayoutComponent {
 		this.maxSizeY = 0;
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -2497,9 +2638,9 @@ let Grid$1 = class Grid extends LayoutComponent {
  * Takes an acyclic(!) graph as input and returns nodes sorted by level from first source to last target.
  * Also returns a second array containing "fake" nodes that connect the different layers.
  * E.g. if node A in level 1 connects directly to node B in level 4 then the fake hierarchy will contain intermediary nodes.
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {{hierarchy: import("../../model/ibasicnode").IBasicNode[][], fakeNodesHierarchy: import("../../model/ibasicnode").IBasicNode[][] fakeEdges: import("../../model/ibasicedge").IBasicEdge[]}} - Level array of nodes
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {{hierarchy: import("../../model/nodesandedges").IBasicNode[][], fakeNodesHierarchy: import("../../model/nodesandedges").IBasicNode[][] fakeEdges: import("../../model/nodesandedges").IBasicEdge[]}} - Level array of nodes
  */
 const determineLevels = (nodes, edges) => {
 	const incomingEdges = new Map(nodes.map(node => [node.id, edges.filter(edge => edge.targetNode === node.id)]));
@@ -2569,9 +2710,9 @@ const determineLevels = (nodes, edges) => {
 
 /**
  * Computes groups based on disjointed graphs within the graph.
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes - Nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges - Edges
- * @returns {import("../../model/ibasicnode").IBasicNode[][]} - Disjointed node groups
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes - Nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges - Edges
+ * @returns {import("../../model/nodesandedges").IBasicNode[][]} - Disjointed node groups
  */
 const disjointGroups = (nodes, edges) => {
 	const seenNodes = new Set();
@@ -2611,9 +2752,9 @@ const disjointGroups = (nodes, edges) => {
  * If a fake hierarchy is provided null values will be inserted into the resulting order.
  * Solution is partially inspired by the "Hungarian Method" for maximization
  * Note that this solution is *not* suitable for large graphs
- * @param {import("../../model/ibasicnode").IBasicNode[][]} hierarchyIn
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {import("../../model/ibasicnode").IBasicNode[][]} - Ordered Hierarchy
+ * @param {import("../../model/nodesandedges").IBasicNode[][]} hierarchyIn
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {import("../../model/nodesandedges").IBasicNode[][]} - Ordered Hierarchy
  */
 const crossingMinimizationOrder = (hierarchyIn, edges) => {
 	let hierarchy = hierarchyIn.reduce((acc, group) => {
@@ -2743,9 +2884,9 @@ const crossingMinimizationOrder = (hierarchyIn, edges) => {
 /**
  * Takes a graph as input and returns an acyclic array of edges.
  * Based on Eades, Lin, Smyth, '93
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {import("../../model/ibasicedge").IBasicEdge[]} - Acyclic array of edges
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {import("../../model/nodesandedges").IBasicEdge[]} - Acyclic array of edges
  */
 const makeAcyclic = (nodes, edges) => {
 	const originalNodes = [...nodes];
@@ -2848,9 +2989,9 @@ const makeAcyclic = (nodes, edges) => {
 /**
  * Takes a leveled hierarchy graph and inserts null values to position nodes close to its targets and sources.
  * If a node has the substring "fake" in its id then it will be converted into a null value in the input
- * @param {import("../../model/ibasicnode").IBasicNode[][]} fullHierarchyIn
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edgesIn
- * @returns {(import("../../model/ibasicnode").IBasicNode | null)[][]|} - Ordered Hierarchy
+ * @param {import("../../model/nodesandedges").IBasicNode[][]} fullHierarchyIn
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edgesIn
+ * @returns {(import("../../model/nodesandedges").IBasicNode | null)[][]|} - Ordered Hierarchy
  */
 const straightenEdges = (fullHierarchyIn, edgesIn) => {
 	const fullHierarchy = fullHierarchyIn.reduce((acc, group) => {
@@ -2995,12 +3136,18 @@ class Hierarchy extends LayoutComponent {
 		this.offsetSizeMultiplier = 4;
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -3197,9 +3344,9 @@ class Link extends LayoutComponent {
 /**
  * Orders nodes by barycenter and returns a new array without mutating the original one.
  * Inspired by: http://profs.etsmtl.ca/mmcguffin/research/2012-mcguffin-simpleNetVis/mcguffin-2012-simpleNetVis.pdf
- * @param {import("../../model/ibasicnode.js").IBasicNode[]} nodes - Nodes
- * @param {import("../../model/ibasicedge.js").IBasicEdge[]} edges - Edges
- * @return {import("../../model/ibasicnode.js").IBasicNode[]} - Ordered nodes
+ * @param {import("../../model/nodesandedges.js").IBasicNode[]} nodes - Nodes
+ * @param {import("../../model/nodesandedges.js").IBasicEdge[]} edges - Edges
+ * @return {import("../../model/nodesandedges.js").IBasicNode[]} - Ordered nodes
  */
 const baryCenter = (nodes, edges) => {
 	const edgeMap = new Map();
@@ -3249,12 +3396,18 @@ let Matrix$1 = class Matrix extends LayoutComponent {
 		this.multiplier = 2;
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -3285,8 +3438,8 @@ let Matrix$1 = class Matrix extends LayoutComponent {
 			}
 			currentColumn += 1;
 			const node = this.nodes[i];
-			node.fx = (currentColumn - 1) * this.maxSize - this.halfSize + this.centerX + node.radius;
-			node.fy = currentRow * this.maxSize - this.halfSize + this.centerY + node.radius;
+			node.fx = (currentColumn - 1) * this.maxSize - this.halfSize + this.centerX + node.shape.radius;
+			node.fy = currentRow * this.maxSize - this.halfSize + this.centerY + node.shape.radius;
 			//node.vx -= (node.x - ((currentColumn - 1) * this.maxSize - this.halfSize) + this.centerX) * force
 			//node.vy -= (node.y - (currentRow * this.maxSize - this.halfSize) + this.centerY) * force
 		}
@@ -3425,7 +3578,7 @@ class Radial extends LayoutComponent {
 		super.initialize(...args);
 		this.diameter = this.userProvidedDiameter
 			? this.userProvidedDiameter
-			: (this.nodes.reduce((acc, node) => acc + node.radius * 2, 0) / 3.14) * this.sizeMultiplier;
+			: (this.nodes.reduce((acc, node) => acc + node.shape.radius * 2, 0) / 3.14) * this.sizeMultiplier;
 		//Center will only be determined on the first initialization
 		const averageCoordinates = this.getAverageCoordinates();
 		this.centerX === null && (this.centerX = averageCoordinates[0]);
@@ -3463,12 +3616,18 @@ class Tree extends LayoutComponent {
 		this.nodePositions = new Map();
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -3790,7 +3949,7 @@ class NBody extends LayoutComponent {
 
 /**
  * Creates a rectangular connection graph layout.
- * @param {(import("../model/ibasicnode").IBasicNode) => number} groupBy - Optional function to group nodes
+ * @param {(import("../model/nodesandedges").IBasicNode) => number} groupBy - Optional function to group nodes
  * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
  * @param {number=} padding - Minimum padding between nodes described in pixels
  * @param {number=} centerX - Center X coordinate of the component
@@ -3807,12 +3966,18 @@ class Connections extends LayoutComponent {
 		this.nodePositions = new Map();
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -10061,9 +10226,9 @@ class Sprite extends ViewContainer {
   }
 }
 
-const tempBounds$3 = new Bounds();
+const tempBounds$4 = new Bounds();
 function addMaskBounds(mask, bounds, skipUpdateTransform) {
-  const boundsToMask = tempBounds$3;
+  const boundsToMask = tempBounds$4;
   mask.measurable = true;
   getGlobalBounds(mask, skipUpdateTransform, boundsToMask);
   bounds.addBoundsMask(boundsToMask);
@@ -26120,6 +26285,36 @@ extensions.handle(ExtensionType.Asset, (extension) => {
   Object.keys(assetKeyMap).filter((key) => !!ref[key]).forEach((key) => extensions.remove(ref[key]));
 });
 
+const tempBounds$3 = new Bounds();
+const _Culler = class _Culler {
+  /**
+   * Culls the children of a specific container based on the given view. This will also cull items that are not
+   * being explicitly managed by the culler.
+   * @param container - The container to cull.
+   * @param view - The view rectangle.
+   * @param skipUpdateTransform - Whether to skip updating the transform.
+   */
+  cull(container, view, skipUpdateTransform = true) {
+    this._cullRecursive(container, view, skipUpdateTransform);
+  }
+  _cullRecursive(container, view, skipUpdateTransform = true) {
+    if (container.cullable && container.measurable && container.includeInBuild) {
+      const bounds = container.cullArea ?? getGlobalBounds(container, skipUpdateTransform, tempBounds$3);
+      container.culled = bounds.x >= view.x + view.width || bounds.y >= view.y + view.height || bounds.x + bounds.width <= view.x || bounds.y + bounds.height <= view.y;
+    } else {
+      container.culled = false;
+    }
+    if (!container.cullableChildren || container.culled || !container.renderable || !container.measurable || !container.includeInBuild)
+      return;
+    for (let i = 0; i < container.children.length; i++) {
+      this._cullRecursive(container.children[i], view, skipUpdateTransform);
+    }
+  }
+};
+/** A shared instance of the Culler class. */
+_Culler.shared = new _Culler();
+let Culler = _Culler;
+
 class EventsTickerClass {
   constructor() {
     /** The frequency that fake events will be fired. */
@@ -42136,25 +42331,40 @@ class OrthogonalConnector {
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
- * There are also several performance optimizations that could be made. Most especially with regards to text and culling of edges.
+ * There are also several performance optimizations that could be made.
  * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
  */
 class WebGLRenderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 */
 	constructor(element, nodes, edges, options) {
+		/** @type {HTMLElement} */
 		this.element = element;
 		this.element.style.overflow = "hidden";
+		/** @type {import("../model/nodesandedges").InternalRendererNode[]} */
 		this.nodes = nodes;
+		/** @type {import("../model/nodesandedges").InternalRendererEdge[]} */
 		this.edges = edges;
+		/** @type {import("../model/rendereroptions").IRendererOptions[]} */
 		this.options = options;
+		/** @type {PIXI.Renderer} */
 		this.renderer = null;
+		/** @type {PIXI.Container} */
 		this.stage = null;
+		/** @type {PIXI.Container} */
 		this.backdrop = null;
+		/** @type {ResizeObserver | null} */
 		this.resizeObserver = null;
 		this.lassoEnabled = false;
-		this.lineType = options?.lineType || "line";
+		/** @type {import("../model/rendereroptions").LineTypes} */
+		this.lineType = this.options?.lineType || "line";
 		this.LINE_MARGIN_PX = 10;
 		this.sceneSize = 50000;
-		this.primaryColor = options?.primaryColor ? this.getHexColor(options.primaryColor) : 0x3289e2;
+		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2;
 		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8;
 		this.listeners = new Map([
 			["backdropclick", new Set()],
@@ -42176,6 +42386,7 @@ class WebGLRenderer {
 			["lassoupdate", new Set()],
 			["lassoend", new Set()]
 		]);
+		//Markers are the tips of the edges, the arrow heads
 		this.markers = {
 			none: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'></svg>",
 			arrow: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'><polygon points='0,0 30,15 0,30' /></svg>",
@@ -42232,7 +42443,7 @@ class WebGLRenderer {
 		this.stage = new Container();
 		this.stage.position.set(width / 2, height / 2);
 		this.renderer = await autoDetectRenderer({
-			preference: "webgpu",
+			preference: "webgl",
 			resolution: 2,
 			width,
 			height,
@@ -42269,6 +42480,7 @@ class WebGLRenderer {
 				initialMouseX = event.data.global.x - this.stage.x;
 				initialMouseY = event.data.global.y - this.stage.y;
 				mouseDrag = true;
+				this.backdrop.on("globalpointermove", onStageDragMove);
 				this.triggerEvent("canvasdragstart");
 			}
 		};
@@ -42277,12 +42489,14 @@ class WebGLRenderer {
 				blockCanvasClick = true;
 				this.stage.x = event.data.global.x - initialMouseX;
 				this.stage.y = event.data.global.y - initialMouseY;
+				Culler.shared.cull(this.stage, this.renderer.screen);
 				requestAnimationFrame(() => this.renderer.render(this.stage));
 			}
 		};
 		const onStageDragEnd = () => {
 			if (mouseDrag) {
 				mouseDrag = false;
+				this.backdrop.removeEventListener("globalpointermove", onStageDragMove);
 				this.triggerEvent("canvasdragend");
 				setTimeout(() => {
 					blockCanvasClick = false;
@@ -42301,7 +42515,6 @@ class WebGLRenderer {
 		};
 		this.backdrop
 			.on("pointerdown", onStageDragStart)
-			.on("pointermove", onStageDragMove)
 			.on("pointerup", onStageDragEnd)
 			.on("pointerupoutside", onStageDragEnd)
 			.on("click", onClick)
@@ -42314,6 +42527,7 @@ class WebGLRenderer {
 	initializeZoom() {
 		const maxScale = 4;
 		const minScale = 0.05;
+		let isZooming = false;
 		const handleZoom = event => {
 			event.stopPropagation();
 			event.preventDefault();
@@ -42338,7 +42552,14 @@ class WebGLRenderer {
 				this.stage.y += (localPointAfter.y - localPointBefore.y) * this.stage.scale.y;
 			}
 			if (shouldRender) {
-				this.render();
+				//This prevents us from spamming zoom events that lock the event loop
+				isZooming = true;
+				setTimeout(() => {
+					if (isZooming) {
+						isZooming = false;
+						this.render();
+					}
+				}, 0);
 			}
 		};
 		this.renderer.view.canvas.addEventListener("wheel", handleZoom);
@@ -42363,8 +42584,8 @@ class WebGLRenderer {
 
 	/**
 	 * Initializes all the graphics for provided nodes and edges
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async initializeData(nodes, edges) {
 		const FOCUS_SHAPE_SIZE_HALF = 6;
@@ -42375,15 +42596,7 @@ class WebGLRenderer {
 		//Initializes Nodes
 		for (const node of this.nodes) {
 			nodeLookupMap.set(node.id, node);
-			if (!node.renderer) node.renderer = {};
-			if (node.renderer.shape === "rectangle") {
-				!node.width && (node.width = 50);
-				!node.height && (node.height = 50);
-				!node.radius && (node.radius = Math.max(node.width, node.height) / 2);
-			} else {
-				!node.radius && (node.radius = 50);
-			}
-			node.renderer._private = {
+			node.rendererInternals = {
 				container: new Container(),
 				node: new Graphics(),
 				text: null,
@@ -42393,24 +42606,24 @@ class WebGLRenderer {
 				isSelected: false
 			};
 			//Draw shape
-			const nodeGfx = node.renderer._private.node;
-			const nodeShape = node.renderer.shape;
-			const nodeHeight = node.height || node.radius * 2;
-			const nodeWidth = node.width || node.radius * 2;
+			const nodeGfx = node.rendererInternals.node;
+			const nodeShape = node.shape.id;
+			const nodeHeight = node.shape.height || node.shape.radius * 2;
+			const nodeWidth = node.shape.width || node.shape.radius * 2;
 			if (nodeShape === "rectangle") {
 				nodeGfx.roundRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4);
 			} else {
-				nodeGfx.circle(0, 0, node.radius);
+				nodeGfx.circle(0, 0, node.shape.radius);
 			}
-			nodeGfx.fill(this.getHexColor(node.renderer.backgroundColor || 0xffffff));
+			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || 0xffffff));
 			nodeGfx.stroke({ width: 2, color: 0xffffff });
 			//Draw label
 			const fontSize = Math.max(nodeHeight * 0.1, 12);
-			const icon = node.renderer.icon;
+			const icon = node.rendererOptions?.icon;
 			const iconMaxSize = 50;
 			const iconMinSize = 16;
 			const iconSize = Math.max(Math.min(nodeHeight * 0.2, iconMaxSize), iconMinSize);
-			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.radius * 1.25;
+			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.shape.radius * 1.25;
 			const textStyle = new TextStyle({
 				fontFamily: "Arial",
 				fontSize,
@@ -42418,12 +42631,12 @@ class WebGLRenderer {
 				breakWords: true,
 				wordWrapWidth,
 				align: "center",
-				fill: this.getHexColor(node.renderer.textColor || 0x000000)
+				fill: this.getHexColor(node.rendererOptions?.textColor || 0x000000)
 			});
-			const label = node.renderer.label || node.id;
+			const label = node.rendererOptions?.label || node.id;
 			const measurements = CanvasTextMetrics.measureText(label, textStyle);
 			let processedLabel = measurements.lines.shift();
-			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.radius > 40);
+			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.shape.radius > 40);
 			if (measurements.lines.length && shouldWrapText) {
 				processedLabel = `${processedLabel}\n${measurements.lines.shift()}`;
 			}
@@ -42434,10 +42647,10 @@ class WebGLRenderer {
 			text.resolution = 3;
 			text.anchor.set(0.5);
 			nodeGfx.addChild(text);
-			node.renderer._private.text = text;
+			node.rendererInternals.text = text;
 			//Draw icon
-			if (node.renderer.icon) {
-				const texture = await Assets.load(node.renderer.icon);
+			if (node.rendererOptions?.icon) {
+				const texture = await Assets.load(node.rendererOptions?.icon);
 				const icon = Sprite.from(texture);
 				icon.width = iconSize;
 				icon.height = iconSize;
@@ -42453,24 +42666,24 @@ class WebGLRenderer {
 					icon.anchor.y = 1.2;
 					text.anchor.y = 0;
 				}
-				node.renderer._private.icon = icon;
+				node.rendererInternals.icon = icon;
 			}
 			//Add selection graphics
-			const selectedGfx = node.renderer._private.selected;
-			if (node.renderer.shape === "rectangle") {
+			const selectedGfx = node.rendererInternals.selected;
+			if (node.shape.id === "rectangle") {
 				selectedGfx.roundRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 2,
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
 					12
 				);
 			} else {
-				selectedGfx.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF);
+				selectedGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF);
 			}
 			selectedGfx.fill(this.primaryColor);
 			selectedGfx.alpha = 0;
-			node.renderer._private.container.addChild(selectedGfx);
+			node.rendererInternals.container.addChild(selectedGfx);
 			//Make node dragable
 			nodeGfx.interactive = true;
 			nodeGfx.cursor = "pointer"; //Added in pixi v7 to replace nodegfx.buttonMode = true
@@ -42483,6 +42696,7 @@ class WebGLRenderer {
 				dragEventData = event.data;
 				initialMouse = dragEventData.getLocalPosition(this.stage);
 				dragging = true;
+				nodeGfx.on("globalpointermove", onDragMove);
 				initialNode = { x: node.x, y: node.y };
 				this.triggerEvent("entitydragstart", { node, position: { ...initialNode } });
 			};
@@ -42499,12 +42713,11 @@ class WebGLRenderer {
 					blockClick = false;
 				}, 1);
 				dragging = false;
+				nodeGfx.removeEventListener("globalpointermove", onDragMove);
 				dragEventData = null;
 				this.triggerEvent("entitydragend", { node });
 			};
 			nodeGfx.on("pointerdown", onDragStart);
-			nodeGfx.on("pointermove", onDragMove);
-			this.backdrop.on("pointermove", onDragMove); //Added in pixi v7 since pointermove will no longer fire when quickly moving cursor outside hit box
 			nodeGfx.on("pointerup", onDragEnd);
 			nodeGfx.on("pointerupoutside", onDragEnd);
 			//Give node hover effect
@@ -42512,40 +42725,40 @@ class WebGLRenderer {
 			const focusGfx2 = new Graphics();
 			focusGfx.alpha = 0.2;
 			focusGfx2.alpha = 0.1;
-			if (node.renderer.shape === "rectangle") {
+			if (node.shape.id === "rectangle") {
 				focusGfx.roundRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 2,
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
 					12
 				);
 				focusGfx2.roundRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 4,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 4,
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 4,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 4,
 					16
 				);
 			} else {
-				focusGfx.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF);
-				focusGfx2.circle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF * 2);
+				focusGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF);
+				focusGfx2.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF * 2);
 			}
 			focusGfx.fill(this.primaryColor);
 			focusGfx2.fill(this.primaryColor);
 			const pointerOver = () => {
 				if (!dragging) {
-					node.renderer._private.container.addChildAt(focusGfx, 0);
-					node.renderer._private.container.addChildAt(focusGfx2, 0);
-					node.renderer._private.isFocused = true;
+					node.rendererInternals.container.addChildAt(focusGfx, 0);
+					node.rendererInternals.container.addChildAt(focusGfx2, 0);
+					node.rendererInternals.isFocused = true;
 					this.render();
 				}
 			};
 			const pointerOut = () => {
-				if (node.renderer._private.isFocused) {
-					node.renderer._private.container.removeChild(focusGfx);
-					node.renderer._private.container.removeChild(focusGfx2);
-					node.renderer._private.isFocused = false;
+				if (node.rendererInternals.isFocused) {
+					node.rendererInternals.container.removeChild(focusGfx);
+					node.rendererInternals.container.removeChild(focusGfx2);
+					node.rendererInternals.isFocused = false;
 					this.render();
 				}
 			};
@@ -42565,16 +42778,21 @@ class WebGLRenderer {
 			nodeGfx.on("click", onClick);
 			nodeGfx.on("rightclick", onRightClick);
 			//Add node to stage
-			node.renderer._private.container.addChild(nodeGfx);
-			node.renderer._private.container.cullable = true;
+			node.rendererInternals.container.addChild(nodeGfx);
+			node.rendererInternals.container.cullable = true;
+			node.rendererInternals.container.cullableChildren = false;
 			stageNodes.push(node);
 		}
 		//Initialize Edges
 		for (const edge of this.edges) {
 			//Initialize edge properties
-			if (!edge.renderer) edge.renderer = {};
-			const markerSourceAsset = await Assets.load(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none);
-			const markerTargetAsset = await Assets.load(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow);
+
+			const markerSourceAsset = await Assets.load(
+				edge.rendererOptions?.markerSource ? this.markers[edge.rendererOptions?.markerSource] : this.markers.none
+			);
+			const markerTargetAsset = await Assets.load(
+				edge.rendererOptions?.markerTarget ? this.markers[edge.rendererOptions?.markerTarget] : this.markers.arrow
+			);
 			const markerSource = Sprite.from(markerSourceAsset);
 			const markerTarget = Sprite.from(markerTargetAsset);
 			const markerSize = 16;
@@ -42582,24 +42800,30 @@ class WebGLRenderer {
 			markerSource.height = markerSize;
 			markerTarget.width = markerSize;
 			markerTarget.height = markerSize;
-			edge.renderer._private = {
+			edge.rendererInternals = {
 				source: nodeLookupMap.get(edge.sourceNode),
 				target: nodeLookupMap.get(edge.targetNode),
 				container: new Container(),
 				line: new Graphics(),
 				markerSource,
 				markerTarget,
-				text: null
+				text: null,
+				edgeCounter: {
+					//Placeholder, this is computed in a different function
+					total: -1,
+					index: -1
+				}
 			};
-			edge.renderer._private.container.addChild(edge.renderer._private.line);
-			edge.renderer._private.container.addChild(edge.renderer._private.markerSource);
-			edge.renderer._private.container.addChild(edge.renderer._private.markerTarget);
-			edge.renderer._private.markerSource.anchor.set(0.45, 0.25);
-			edge.renderer._private.markerTarget.anchor.set(0.45, 0.25);
-			edge.renderer._private.container.cullable = true;
-			this.stage.addChild(edge.renderer._private.container);
+			edge.rendererInternals.container.addChild(edge.rendererInternals.line);
+			edge.rendererInternals.container.addChild(edge.rendererInternals.markerSource);
+			edge.rendererInternals.container.addChild(edge.rendererInternals.markerTarget);
+			edge.rendererInternals.markerSource.anchor.set(0.45, 0.25);
+			edge.rendererInternals.markerTarget.anchor.set(0.45, 0.25);
+			edge.rendererInternals.container.cullable = true;
+			edge.rendererInternals.container.cullableChildren = false;
+			this.stage.addChild(edge.rendererInternals.container);
 			//Initialize label
-			if (edge.renderer.label) {
+			if (edge.rendererOptions?.label) {
 				const textStyle = new TextStyle({
 					fontFamily: "Arial",
 					fontSize: 10,
@@ -42607,9 +42831,9 @@ class WebGLRenderer {
 					breakWords: true,
 					align: "center",
 					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: this.getHexColor(edge.renderer.labelColor || 0x000000)
+					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || 0x000000)
 				});
-				const label = edge.renderer.label;
+				const label = edge.rendererOptions?.label;
 				const measurements = CanvasTextMetrics.measureText(label, textStyle);
 				let processedLabel = measurements.lines[0];
 				if (measurements.lines.length > 1) {
@@ -42627,15 +42851,15 @@ class WebGLRenderer {
 				const textContainer = new Container();
 				textContainer.addChild(text);
 				//If the edge is interactive, then update the label
-				if (edge.renderer.isInteractive) {
+				if (edge.rendererOptions?.isInteractive) {
 					text.anchor.y = 0.5;
 					const width = text.width + 10;
 					const height = text.height + 10;
 					const textBackground = new Graphics();
 					textBackground.alpha = 1;
 					textBackground.roundRect(-width / 2, -height / 2, width, height, 4);
-					textBackground.fill(this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff));
-					textBackground.stroke({ width: 2, color: this.getHexColor(edge.renderer.labelBackgroundColor || 0xffffff) });
+					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff));
+					textBackground.stroke({ width: 2, color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff) });
 					textContainer.addChildAt(textBackground, 0);
 					const textFocusBackground = new Graphics();
 					const textFocusBackground2 = new Graphics();
@@ -42661,7 +42885,7 @@ class WebGLRenderer {
 					const pointerOver = event => {
 						textContainer.addChildAt(textFocusBackground, 0);
 						textContainer.addChildAt(textFocusBackground2, 0);
-						edge.renderer._private.isFocused = true;
+						edge.rendererInternals.isFocused = true;
 						this.render();
 						this.triggerEvent("edgelabelhoverstart", {
 							edge,
@@ -42669,10 +42893,10 @@ class WebGLRenderer {
 						});
 					};
 					const pointerOut = event => {
-						if (edge.renderer._private.isFocused) {
+						if (edge.rendererInternals.isFocused) {
 							textContainer.removeChild(textFocusBackground);
 							textContainer.removeChild(textFocusBackground2);
-							edge.renderer._private.isFocused = false;
+							edge.rendererInternals.isFocused = false;
 							this.render();
 							this.triggerEvent("edgelabelhoverend", {
 								edge,
@@ -42691,12 +42915,13 @@ class WebGLRenderer {
 					textContainer.on("click", onClick);
 					textContainer.on("rightclick", onRightClick);
 				}
-				edge.renderer._private.container.addChild(textContainer);
-				edge.renderer._private.text = textContainer;
+				edge.rendererInternals.container.addChild(textContainer);
+				edge.rendererInternals.text = textContainer;
 			}
 		}
+		//The order in which we add things to the stage matters, nodes need to be on top of the edges so they are added last.
 		stageNodes.forEach(node => {
-			this.stage.addChild(node.renderer._private.container);
+			this.stage.addChild(node.rendererInternals.container);
 		});
 	}
 
@@ -42717,7 +42942,7 @@ class WebGLRenderer {
 		for (const [, edgeArray] of edgeMap) {
 			for (let i = 0; i < edgeArray.length; i++) {
 				const edge = edgeArray[i];
-				edge.renderer._private.edgeCounter = { total: edgeArray.length, index: i };
+				edge.rendererInternals.edgeCounter = { total: edgeArray.length, index: i };
 			}
 		}
 	}
@@ -42737,6 +42962,7 @@ class WebGLRenderer {
 				this.stage.addChild(rect);
 				rect.alpha = 0.4;
 				moving = true;
+				this.backdrop.on("globalpointermove", onLassoMove);
 				this.triggerEvent("lassostart");
 			}
 		};
@@ -42760,8 +42986,8 @@ class WebGLRenderer {
 					if (
 						node.x >= Math.min(rectTopLeftX, lassoEndX) &&
 						node.y >= Math.min(rectTopLeftY, lassoEndY) &&
-						node.x + (node.width || node.radius) <= Math.max(lassoEndX, rectTopLeftX) &&
-						node.y + (node.height || node.radius) <= Math.max(lassoEndY, rectTopLeftY)
+						node.x + (node.shape.width || node.shape.radius) <= Math.max(lassoEndX, rectTopLeftX) &&
+						node.y + (node.shape.height || node.shape.radius) <= Math.max(lassoEndY, rectTopLeftY)
 					) {
 						if (!lastLassoCoveredSelection.has(node.id)) {
 							added.push(node);
@@ -42783,16 +43009,13 @@ class WebGLRenderer {
 		};
 		const onStageLassoEnd = () => {
 			moving = false;
+			this.backdrop.removeEventListener("globalpointermove", onLassoMove);
 			this.stage.removeChild(rect);
 			this.triggerEvent("lassoend", { selection: Array.from(lastLassoCoveredSelection) });
 			lastLassoCoveredSelection = new Set();
 			this.render();
 		};
-		this.backdrop
-			.on("pointerdown", onLassoStart)
-			.on("globalpointermove", onLassoMove)
-			.on("pointerup", onStageLassoEnd)
-			.on("pointerupoutside", onStageLassoEnd);
+		this.backdrop.on("pointerdown", onLassoStart).on("pointerup", onStageLassoEnd).on("pointerupoutside", onStageLassoEnd);
 	}
 
 	/**
@@ -42805,42 +43028,45 @@ class WebGLRenderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions} node
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(node, value = null) {
-		if (typeof value !== "boolean") {
-			node.renderer._private.isSelected = !node.renderer._private.isSelected;
-		} else {
-			node.renderer._private.isSelected = value;
-		}
-		if (node.renderer._private.isSelected) {
-			node.renderer._private.selected.alpha = 1;
-		} else {
-			node.renderer._private.selected.alpha = 0;
+	toggleSelectNode(nodes, value = null) {
+		for (const node of nodes) {
+			if (typeof value !== "boolean") {
+				node.rendererInternals.isSelected = !node.rendererInternals.isSelected;
+			} else {
+				node.rendererInternals.isSelected = value;
+			}
+			if (node.rendererInternals.isSelected) {
+				node.rendererInternals.selected.alpha = 1;
+			} else {
+				node.rendererInternals.selected.alpha = 0;
+			}
 		}
 		this.render();
 	}
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async updateNodesAndEdges(nodes, edges) {
 		while (this.stage.children[0]) {
 			this.stage.removeChild(this.stage.children[0]);
 		}
 		this.stage.addChild(this.backdrop);
-		this.nodes.forEach(node => delete node.renderer._private);
-		this.edges.forEach(edge => delete edge.renderer._private);
+		this.nodes.forEach(node => delete node.rendererInternals);
+		this.edges.forEach(edge => delete edge.rendererInternals);
 		await this.initializeData(nodes, edges);
+		this.initializeEdgeCounters();
 		this.render();
 	}
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} - Node to check
+	 * @param {import("../model/nodesandedges").IBasicNode} - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
@@ -42852,8 +43078,8 @@ class WebGLRenderer {
 	 */
 	clearAllNodeSelections() {
 		this.nodes.forEach(node => {
-			node.renderer._private.isSelected = false;
-			node.renderer._private.selected.alpha = 0;
+			node.rendererInternals.isSelected = false;
+			node.rendererInternals.selected.alpha = 0;
 		});
 		this.render();
 	}
@@ -42879,10 +43105,10 @@ class WebGLRenderer {
 		let node;
 		for (let i = 0; i < this.nodes.length; i++) {
 			node = this.nodes[i];
-			if (node.x - node.radius < sizeCoordinates.lowestX) sizeCoordinates.lowestX = node.x - node.radius;
-			if (node.y - node.radius < sizeCoordinates.lowestY) sizeCoordinates.lowestY = node.y - node.radius;
-			if (node.x + node.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.radius;
-			if (node.y + node.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.radius;
+			if (node.x - node.shape.radius < sizeCoordinates.lowestX) sizeCoordinates.lowestX = node.x - node.shape.radius;
+			if (node.y - node.shape.radius < sizeCoordinates.lowestY) sizeCoordinates.lowestY = node.y - node.shape.radius;
+			if (node.x + node.shape.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.shape.radius;
+			if (node.y + node.shape.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.shape.radius;
 		}
 		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + PADDING_PX);
 		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + PADDING_PX);
@@ -42894,7 +43120,7 @@ class WebGLRenderer {
 		const animation = {
 			sourceX: this.stage.x,
 			sourceY: this.stage.y,
-			sourceScale: this.stage.scale.x,
+			sourceScale: this.stage.scale._x,
 			targetX: -midX + parentWidth / 2,
 			targetY: -midY + parentHeight / 2,
 			targetScale: newScale
@@ -42903,7 +43129,7 @@ class WebGLRenderer {
 		const loop = () => {
 			setTimeout(() => {
 				const deltaTime = Date.now() - startTime;
-				const percentOfAnimation = Math.min(deltaTime / duration, 100);
+				const percentOfAnimation = Math.min(deltaTime / duration, 1);
 				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation;
 				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation;
 				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation;
@@ -42951,7 +43177,7 @@ class WebGLRenderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.clearAllFilters();
@@ -42959,12 +43185,12 @@ class WebGLRenderer {
 		this.nodes
 			.filter(node => fn(node))
 			.forEach(node => {
-				node.renderer._private.isDisabled = true;
+				node.rendererInternals.isDisabled = true;
 				includedNodes.add(node.id);
 			});
 		this.edges.forEach(edge => {
 			if (includedNodes.has(edge.sourceNode) || includedNodes.has(edge.targetNode)) {
-				edge.renderer._private.isDisabled = true;
+				edge.rendererInternals.isDisabled = true;
 			}
 		});
 		this.render();
@@ -42975,10 +43201,10 @@ class WebGLRenderer {
 	 */
 	clearAllDisabledStatuses() {
 		this.nodes.forEach(node => {
-			node.renderer._private.isDisabled = false;
+			node.rendererInternals.isDisabled = false;
 		});
 		this.edges.forEach(edge => {
-			edge.renderer._private.isDisabled = false;
+			edge.rendererInternals.isDisabled = false;
 		});
 		this.render();
 	}
@@ -42992,29 +43218,29 @@ class WebGLRenderer {
 
 	/**
 	 * Calculates the point where the edge between the source and target node intersects the border of the target node.
-	 * @param {{shape: string, x: number, y: number}} source - source node of the edge
-	 * @param {{shape: string, x: number, y: number}} target - target node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} source - source node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} target - target node of the edge
 	 * @param {number} additionalDistance - additional distance, or what is essentially a padding.
 	 * @returns {{x: number, y: number}}
 	 */
 	calculateIntersection(source, target, additionalDistance) {
 		const dx = target.x - source.x;
 		const dy = target.y - source.y;
-		let innerDistance = target.radius;
+		let innerDistance = target.shape.radius;
 
 		//Rectangles require some more work...
-		if (target.renderer.shape === "rectangle") {
+		if (target.shape.id === "rectangle") {
 			const mEdge = Math.abs(dy / dx);
-			const mRect = target.height / target.width;
+			const mRect = target.shape.height / target.shape.width;
 
 			if (mEdge <= mRect) {
-				const timesX = dx / (target.width / 2);
+				const timesX = dx / (target.shape.width / 2);
 				const rectY = dy / timesX;
-				innerDistance = Math.sqrt(Math.pow(target.width / 2, 2) + rectY * rectY);
+				innerDistance = Math.sqrt(Math.pow(target.shape.width / 2, 2) + rectY * rectY);
 			} else {
-				const timesY = dy / (target.height / 2);
+				const timesY = dy / (target.shape.height / 2);
 				const rectX = dx / timesY;
-				innerDistance = Math.sqrt(Math.pow(target.height / 2, 2) + rectX * rectX);
+				innerDistance = Math.sqrt(Math.pow(target.shape.height / 2, 2) + rectX * rectX);
 			}
 		}
 
@@ -43048,8 +43274,8 @@ class WebGLRenderer {
 
 	/**
 	 * Calculates a point between two points for creating a curved line.
-	 * @param {object} source - Point where the source node is intersected by the edge
-	 * @param {object} target - Point where the target node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} source - Point where the source node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} target - Point where the target node is intersected by the edge
 	 * @param {{total: number, index: number}} edgeCounter - Edge counter
 	 */
 	computeCurvePoint(source, target, edgeCounter) {
@@ -43110,7 +43336,7 @@ class WebGLRenderer {
 
 	/**
 	 * Calculates edges to its input and stores the point for the labels. Only for circle shaped nodes!
-	 * @param {{radius: number, x: number, y: number}} node - Edge to be processed
+	 * @param {import("../model/nodesandedges").RendererNode} node - Edge to be processed
 	 * @param {{total: number, index: number}} edgeCounter - Edge to be processed
 	 * @param {number} additionalDistance - Additional padding in px
 	 */
@@ -43121,11 +43347,11 @@ class WebGLRenderer {
 		const arcFrom = this.computeRadian(loopShiftAngle * edgeCounter.index);
 		const arcTo = this.computeRadian(loopShiftAngle * edgeCounter.index + loopAngle);
 
-		const x1 = Math.cos(arcFrom) * (node.radius + additionalDistance);
-		const y1 = Math.sin(arcFrom) * (node.radius + additionalDistance);
+		const x1 = Math.cos(arcFrom) * (node.shape.radius + additionalDistance);
+		const y1 = Math.sin(arcFrom) * (node.shape.radius + additionalDistance);
 
-		const x2 = Math.cos(arcTo) * (node.radius + additionalDistance);
-		const y2 = Math.sin(arcTo) * (node.radius + additionalDistance);
+		const x2 = Math.cos(arcTo) * (node.shape.radius + additionalDistance);
+		const y2 = Math.sin(arcTo) * (node.shape.radius + additionalDistance);
 
 		const fixPoint1 = { x: node.x + x1, y: node.y + y1 };
 		const fixPoint2 = { x: node.x + x2, y: node.y + y2 };
@@ -43142,40 +43368,47 @@ class WebGLRenderer {
 	 * Main render function that updates the canvas
 	 */
 	render() {
+		//Process nodes
 		this.nodes.forEach(node => {
+			//Update position
 			const { x, y } = node;
-			node.renderer._private.container.position = new Point(x, y);
+			node.rendererInternals.container.position = new Point(x, y);
+			//Update renderable sections based on scale
 			if (this.stage.scale._x < 0.3) {
-				if (node.renderer._private?.text) node.renderer._private.text.renderable = false;
-				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = false;
+				if (node.rendererInternals?.text) node.rendererInternals.text.renderable = false;
+				if (node.rendererInternals?.icon) node.rendererInternals.icon.renderable = false;
 			} else {
-				if (node.renderer._private?.text) node.renderer._private.text.renderable = true;
-				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = true;
+				if (node.rendererInternals?.text) node.rendererInternals.text.renderable = true;
+				if (node.rendererInternals?.icon) node.rendererInternals.icon.renderable = true;
 			}
-			if (node.renderer._private.isDisabled) {
-				node.renderer._private.node.alpha = 0.2;
-				node.renderer._private.node.interactive = false;
+			//Update disabled state
+			if (node.rendererInternals.isDisabled) {
+				node.rendererInternals.node.alpha = 0.2;
+				node.rendererInternals.node.interactive = false;
 			} else {
-				node.renderer._private.node.alpha = 1;
-				node.renderer._private.node.interactive = true;
+				node.rendererInternals.node.alpha = 1;
+				node.rendererInternals.node.interactive = true;
 			}
 		});
+		//Process edges
 		this.edges.forEach(edge => {
+			//Update renderable based on scale
 			if (this.stage.scale._x < 0.1) {
-				edge.renderer._private.line.renderable = false;
-				edge.renderer._private.markerSource.renderable = false;
-				edge.renderer._private.markerTarget.renderable = false;
-				if (edge.renderer._private.text) edge.renderer._private.text.renderable = false;
+				edge.rendererInternals.line.renderable = false;
+				edge.rendererInternals.markerSource.renderable = false;
+				edge.rendererInternals.markerTarget.renderable = false;
+				if (edge.rendererInternals.text) edge.rendererInternals.text.renderable = false;
 				return
 			} else {
-				edge.renderer._private.line.renderable = true;
-				edge.renderer._private.markerSource.renderable = true;
-				edge.renderer._private.markerTarget.renderable = true;
-				if (edge.renderer._private.text) edge.renderer._private.text.renderable = true;
+				edge.rendererInternals.line.renderable = true;
+				edge.rendererInternals.markerSource.renderable = true;
+				edge.rendererInternals.markerTarget.renderable = true;
+				if (edge.rendererInternals.text) edge.rendererInternals.text.renderable = true;
 			}
-			const source = edge.renderer._private.source;
-			const target = edge.renderer._private.target;
-			const line = edge.renderer._private.line;
+			//Compute and redraw lines
+			const source = edge.rendererInternals.source;
+			const target = edge.rendererInternals.target;
+			const line = edge.rendererInternals.line;
 			line.clear();
 			line.alpha = 1;
 			let pathStart;
@@ -43183,7 +43416,7 @@ class WebGLRenderer {
 			let curvePoint;
 			let labelPoint;
 			if (source === target) {
-				const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, this.LINE_MARGIN_PX);
+				const selfPath = this.computeSelfEdgePath(source, edge.rendererInternals.edgeCounter, this.LINE_MARGIN_PX);
 				curvePoint = selfPath.curvePoint;
 				pathStart = selfPath.start;
 				pathEnd = selfPath.end;
@@ -43191,7 +43424,7 @@ class WebGLRenderer {
 				line.moveTo(pathStart.x, pathStart.y);
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
 			} else if (this.lineType === "taxi") {
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
+				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
@@ -43202,7 +43435,7 @@ class WebGLRenderer {
 				line.lineTo(pathEnd.x, pathEnd.y);
 			} else if (this.lineType === "cubicbezier") {
 				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
+				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
@@ -43210,12 +43443,12 @@ class WebGLRenderer {
 				line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y);
 			} else if (this.lineType === "orthogonal") {
 				//TODO:: Make this go faster
-				const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2;
-				const sourceHeight = edge.source.height ? edge.source.height : edge.source.radius * 2;
-				const targetWidth = edge.target.width ? edge.target.width : edge.target.radius * 2;
-				const targetHeight = edge.target.height ? edge.target.height : edge.target.radius * 2;
-				const sourceSide = edge.renderer.sourceEdgePosition;
-				const targetSide = edge.renderer.targetEdgePosition;
+				const sourceWidth = edge.source.shape.width ? edge.source.shape.width : edge.source.shape.radius * 2;
+				const sourceHeight = edge.source.shape.height ? edge.source.shape.height : edge.source.shape.radius * 2;
+				const targetWidth = edge.target.shape.width ? edge.target.shape.width : edge.target.shape.radius * 2;
+				const targetHeight = edge.target.shape.height ? edge.target.shape.height : edge.target.shape.radius * 2;
+				const sourceSide = edge.rendererOptions?.sourceEdgePosition;
+				const targetSide = edge.rendererOptions?.targetEdgePosition;
 				const routeOptions = {
 					pointA: {
 						shape: {
@@ -43258,63 +43491,80 @@ class WebGLRenderer {
 				line.moveTo(x, y);
 				path.forEach(path => line.lineTo(path.x, path.y));
 			} else {
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter);
+				//Straight lines
+				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
 				line.moveTo(pathStart.x, pathStart.y);
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
 			}
+			//Compute marker positions (arrow heads)
 			if (this.lineType === "taxi" && source !== target) {
-				const markerTarget = edge.renderer._private.markerTarget;
+				const markerTarget = edge.rendererInternals.markerTarget;
 				markerTarget.angle = target.y > source.y ? 90 : 270;
 				markerTarget.position = new Point(pathEnd.x, pathEnd.y);
-				const markerSource = edge.renderer._private.markerSource;
+				const markerSource = edge.rendererInternals.markerSource;
 				markerSource.angle = source.y > target.y ? 90 : 270;
 				markerSource.position = new Point(pathStart.x, pathStart.y);
 			} else if (this.lineType === "orthogonal" && source !== target) {
-				const markerTarget = edge.renderer._private.markerTarget;
+				const markerTarget = edge.rendererInternals.markerTarget;
 				markerTarget.angle = curvePoint.target === "left" ? 0 : curvePoint.target === "top" ? 90 : curvePoint.target === "right" ? 180 : 270;
 				markerTarget.position = new Point(pathEnd.x, pathEnd.y);
-				const markerSource = edge.renderer._private.markerSource;
+				const markerSource = edge.rendererInternals.markerSource;
 				markerSource.angle = curvePoint.source === "left" ? 0 : curvePoint.source === "top" ? 90 : curvePoint.source === "right" ? 180 : 270;
 				markerSource.position = new Point(pathStart.x, pathStart.y);
 			} else {
-				const markerTarget = edge.renderer._private.markerTarget;
+				const markerTarget = edge.rendererInternals.markerTarget;
 				markerTarget.rotation = Math.atan2(target.y - curvePoint.y, target.x - curvePoint.x);
 				markerTarget.position = new Point(pathEnd.x, pathEnd.y);
-				const markerSource = edge.renderer._private.markerSource;
+				const markerSource = edge.rendererInternals.markerSource;
 				markerSource.rotation = Math.atan2(source.y - curvePoint.y, source.x - curvePoint.x);
 				markerSource.position = new Point(pathStart.x, pathStart.y);
 			}
-			line.stroke({ width: 1, color: this.getHexColor(edge.renderer.color || 0x000000) });
-			const text = edge.renderer._private.text;
+			//Complete drawing the line
+			line.stroke({ width: 1, color: this.getHexColor(edge.rendererOptions?.color || 0x000000) });
+			//Compute label position (if applicable)
+			const text = edge.rendererInternals.text;
 			if (text) {
 				text.position = new Point(labelPoint.x, labelPoint.y);
 				if (this.lineType === "line") {
 					text.angle = this.computeLabelAngle(source, target);
 				}
-				text.alpha = this.stage.scale._x < 0.3 ? 0 : 1;
+				text.renderable = this.stage.scale._x < 0.3 ? false : true;
 			}
-			if (edge.renderer._private.isDisabled) {
-				edge.renderer._private.line.alpha = 0.2;
-				edge.renderer._private.markerSource.alpha = 0.2;
-				edge.renderer._private.markerTarget.alpha = 0.2;
-				edge.renderer._private.text && (edge.renderer._private.text.alpha = 0.2);
-				edge.renderer._private.text && (edge.renderer._private.text.interactive = false);
+			//Update disabled state
+			if (edge.rendererInternals.isDisabled) {
+				edge.rendererInternals.line.alpha = 0.2;
+				edge.rendererInternals.markerSource.alpha = 0.2;
+				edge.rendererInternals.markerTarget.alpha = 0.2;
+				edge.rendererInternals.text && (edge.rendererInternals.text.alpha = 0.2);
+				edge.rendererInternals.text && (edge.rendererInternals.text.interactive = false);
 			} else {
-				edge.renderer._private.line.alpha = 1;
-				edge.renderer._private.markerSource.alpha = 1;
-				edge.renderer._private.markerTarget.alpha = 1;
-				edge.renderer._private.text && (edge.renderer._private.text.alpha = 1);
-				edge.renderer._private.text && (edge.renderer._private.text.interactive = true);
+				edge.rendererInternals.line.alpha = 1;
+				edge.rendererInternals.markerSource.alpha = 1;
+				edge.rendererInternals.markerTarget.alpha = 1;
+				edge.rendererInternals.text && (edge.rendererInternals.text.alpha = 1);
+				edge.rendererInternals.text && (edge.rendererInternals.text.interactive = true);
 			}
 		});
+		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
+		Culler.shared.cull(this.stage, this.renderer.screen);
 		requestAnimationFrame(() => this.renderer.render(this.stage));
 	}
 }
 
+/**
+ * Renderer API Class
+ * This class i used to create and interact with visual graphs.
+ */
 class Renderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options);
 	}
@@ -43345,17 +43595,17 @@ class Renderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {{id: string, renderer: { _private: { selected: boolean } }}} node
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(node, value = null) {
-		this.WebGLRenderer.toggleSelectNode(node, value);
+	toggleSelectNodes(nodes, value = null) {
+		this.WebGLRenderer.toggleSelectNode(nodes, value);
 	}
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
 	async updateNodesAndEdges(nodes, edges) {
 		await this.WebGLRenderer.updateNodesAndEdges(nodes, edges);
@@ -43363,7 +43613,7 @@ class Renderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} node - Node to check
+	 * @param {import("../model/nodesandedges").IBasicNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
@@ -43387,9 +43637,9 @@ class Renderer {
 
 	/**
 	 * scales and moves the view so that all nodes are included in the view
-	 * @param {number} duration - Time in milliseconds for the transition
+	 * @param {number=} duration - Time in milliseconds for the transition
 	 */
-	zoomToFit(duration = 200) {
+	zoomToFit(duration) {
 		this.WebGLRenderer.zoomToFit(duration);
 	}
 
@@ -43424,7 +43674,7 @@ class Renderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.WebGLRenderer.disableNodes(fn);

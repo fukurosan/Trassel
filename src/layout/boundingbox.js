@@ -16,14 +16,14 @@ export default class BoundingBox extends LayoutComponent {
 	}
 
 	/**
-	 * @param {import("../model/nodesandedges").LayoutNode} node 
+	 * @param {import("../model/nodesandedges").LayoutNode} node
 	 */
 	getWidth(node) {
 		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
 	/**
-	 * @param {import("../model/nodesandedges").LayoutNode} node 
+	 * @param {import("../model/nodesandedges").LayoutNode} node
 	 */
 	getHeight(node) {
 		return node.shape.height ? node.shape.height : node.shape.radius * 2
