@@ -2,10 +2,13 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * Creates a cluster component that draws a set of nodes together
- * @param {number=} strength - How strong should the pull be? (0-1)
  */
 export default class Cluster extends LayoutComponent {
-	constructor(strength = 0.7) {
+	/**
+	 * @param {Object} options - options for the object
+	 * @param {number=} options.strength - How strong should the pull be? (0-1)
+	 */
+	constructor({ strength = 0.7 } = {}) {
 		super()
 		this.strength = strength
 	}

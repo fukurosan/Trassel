@@ -9,15 +9,18 @@ import LayoutComponent from "./layoutcomponent"
  * Creates an hierarhical component that sorts nodes on an axis (either y or x) based on the Sugiyama Framework
  * To learn more about the sugiyama framework and hierarchical graph layouts check out this great video series by Philipp Kindermann:
  * https://www.youtube.com/watch?v=3_FbSCWLC3A
- * @param {(any => "string")=} computeGroup - A function that will take the node as an argument and return a group ID. If left blank the groups will be computed.
- * @param {boolean=} useY - If true the hierachy will be top to bottom, otherwise it will be left to right
- * @param {number=} distance - How much space should be between nodes. If not set this will be determined by the size of the nodes
- * @param {boolean=} useLine - If set nodes will be set into a fixed order, trying to minimize edge crossings.
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 export default class Hierarchy extends LayoutComponent {
-	constructor(computeGroup = null, useY = true, distance = undefined, useLine = true, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {((any) => "string")=} options.computeGroup - A function that will take the node as an argument and return a group ID. If left blank the groups will be computed.
+	 * @param {boolean=} options.useY - If true the hierachy will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.distance - How much space should be between nodes. If not set this will be determined by the size of the nodes
+	 * @param {boolean=} options.useLine - If set nodes will be set into a fixed order, trying to minimize edge crossings.
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ computeGroup = null, useY = true, distance = undefined, useLine = true, centerX = null, centerY = null } = {}) {
 		super()
 		this.computeGroup = computeGroup
 		this.useY = useY

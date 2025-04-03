@@ -4,14 +4,17 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * Creates a rectangular connection graph layout.
- * @param {(import("../model/nodesandedges").IBasicNode) => number} groupBy - Optional function to group nodes
- * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
- * @param {number=} padding - Minimum padding between nodes described in pixels
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 export default class Connections extends LayoutComponent {
-	constructor(groupBy = null, isVerticalLayout = true, padding = 100, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {(import("../model/nodesandedges").IBasicNode) => number} options.groupBy - Optional function to group nodes
+	 * @param {boolean=} options.isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.padding - Minimum padding between nodes described in pixels
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ groupBy = null, isVerticalLayout = true, padding = 100, centerX = null, centerY = null } = {}) {
 		super()
 		this.groupBy = groupBy
 		this.isVerticalLayout = isVerticalLayout

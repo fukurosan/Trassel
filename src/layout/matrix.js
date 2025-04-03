@@ -3,11 +3,14 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * Creates a matrix of all nodes.
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 export default class Matrix extends LayoutComponent {
-	constructor(centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ centerX = null, centerY = null } = {}) {
 		super()
 		this.centerX = centerX
 		this.centerY = centerY

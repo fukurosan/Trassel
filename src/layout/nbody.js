@@ -5,13 +5,16 @@ import LayoutComponent from "./layoutcomponent"
  * To read more:
  * https://people.eecs.berkeley.edu/~demmel/cs267/lecture26/lecture26.html
  * https://jheer.github.io/barnes-hut/
- * @param {number=} theta - Parameter used to control performance vs accuracy. Should be around 1 +/- 0,3
- * @param {number=} distanceMax - The maximum distance between nodes to consider approximations
- * @param {number=} distanceMin - The minimum distance between nodes to consider approxiamations
- * @param {boolean=} isRepulse - If true nodes push each other away, if false nodes attract each other
  */
 export default class NBody extends LayoutComponent {
-	constructor(theta = 1.1, distanceMax = Infinity, distanceMin = 1, isRepulse = true) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {number=} options.distanceMax - The maximum distance between nodes to consider approximations
+	 * @param {number=} options.theta - Parameter used to control performance vs accuracy. Should be around 1 +/- 0,3
+	 * @param {number=} options.distanceMin - The minimum distance between nodes to consider approxiamations
+	 * @param {boolean=} options.isRepulse - If true nodes push each other away, if false nodes attract each other
+	 */
+	constructor({ theta = 1.1, distanceMax = Infinity, distanceMin = 1, isRepulse = true } = {}) {
 		super()
 		this.theta = theta
 		this.distanceMax = distanceMax

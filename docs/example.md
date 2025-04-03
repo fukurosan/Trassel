@@ -15,8 +15,8 @@ const edges = [{sourceNode: "n1", targetNode: "n2"}]
 const graph = new Trassel(nodes, edges)
 graph.addLayoutComponent("collide", new LayoutComponents.Collision())
 graph.addLayoutComponent("manybody", new LayoutComponents.NBody())
-graph.addLayoutComponent("x", new LayoutComponents.Attraction(true))
-graph.addLayoutComponent("y", new LayoutComponents.Attraction(false))
+graph.addLayoutComponent("x", new LayoutComponents.Attraction({ isHorizontal: true }))
+graph.addLayoutComponent("y", new LayoutComponents.Attraction({ isHorizontal: false }))
 graph.addLayoutComponent("link", new LayoutComponents.Link())
 graph.on("layoutupdate", () => {
 	console.log("Layout was updated!")

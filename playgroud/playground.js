@@ -99,8 +99,8 @@ renderer.on("lassoupdate", event => {
 })
 graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
-graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction(true))
-graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction(false))
+graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
+graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
 graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
 graph.on("layoutupdate", () => {
 	renderer.render()

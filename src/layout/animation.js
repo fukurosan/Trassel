@@ -4,13 +4,16 @@ import LayoutComponent from "./layoutcomponent"
  * Moves a node from its current position to a provided destination
  * Note that this component uses fx and fy, which could create conflicts with things like pinning mechanisms
  * targetX and targetY coordinates can be set on specific nodes, or component global values can be provided.
- * @param {number=} xDestination - Destination X coordinate
- * @param {number=} yDestination - Destination Y coordinate
- * @param {number=} strength - The strength of the pull
- * @param {number=} removeForceOnDestination - If true the component will be removed from the layout when animation is completed
  */
 export default class Animation extends LayoutComponent {
-	constructor(xDestination = 0, yDestination = 0, strength = 1, removeForceOnDestination = true) {
+	/**
+	 * @param {Object} options - class instance options
+	 * @param {number=} options.xDestination - Destination X coordinate
+	 * @param {number=} options.yDestination - Destination Y coordinate
+	 * @param {number=} options.strength - The strength of the pull
+	 * @param {number=} options.removeForceOnDestination - If true the component will be removed from the layout when animation is completed
+	 */
+	constructor({ xDestination = 0, yDestination = 0, strength = 1, removeForceOnDestination = true } = {}) {
 		super()
 		this.xDestination = xDestination
 		this.yDestination = yDestination

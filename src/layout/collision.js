@@ -3,11 +3,14 @@ import LayoutComponent from "./layoutcomponent"
 /**
  * Collision component that stops nodes from colliding (and thus overlapping)
  * Note that this component considers all nodes to be circles. If a node is square then the maximum measurement will be considered the diameter.
- * @param {number=} strength - The strength of the collision repulsion
- * @param {number=} radiusPadding - Padding that will be added to all radiuses
  */
 export default class Collision extends LayoutComponent {
-	constructor(strength = 1, radiusPadding = 5) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {number=} options.strength - The strength of the collision repulsion
+	 * @param {number=} options.radiusPadding - Padding that will be added to all radiuses
+	 */
+	constructor({ strength = 1, radiusPadding = 5 } = {}) {
 		super()
 		this.strength = strength
 		this.radiusPadding = radiusPadding
