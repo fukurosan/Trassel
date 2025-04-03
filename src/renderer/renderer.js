@@ -770,7 +770,7 @@ export class WebGLRenderer {
 	 * @param {number} duration - Time in milliseconds for the transition
 	 */
 	zoomToFit(duration = 200) {
-		const PADDING_PX = 250
+		const PADDING_PX = 350
 		const parentWidth = this.element.clientWidth
 		const parentHeight = this.element.clientHeight
 		const sizeCoordinates = { lowestX: Infinity, lowestY: Infinity, highestX: -Infinity, highestY: -Infinity }
@@ -793,8 +793,8 @@ export class WebGLRenderer {
 			sourceX: this.stage.x,
 			sourceY: this.stage.y,
 			sourceScale: this.stage.scale._x,
-			targetX: -midX + parentWidth / 2,
-			targetY: -midY + parentHeight / 2,
+			targetX: -(midX * newScale) + parentWidth / 2,
+			targetY: -(midY * newScale) + parentHeight / 2,
 			targetScale: newScale
 		}
 		const startTime = Date.now()
