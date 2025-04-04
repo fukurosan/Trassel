@@ -1204,8 +1204,11 @@ export class WebGLRenderer {
 			//Compute label position (if applicable)
 			const text = edge.rendererInternals.text
 			if (text) {
-				//TODO: Position needs to also be set based on edge counter and curvepoint
-				text.position = new PIXI.Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2)
+				if (edge.sourceNode === edge.targetNode) {
+					text.position = new PIXI.Point(labelPoint.x, labelPoint.y)
+				} else {
+					text.position = new PIXI.Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2)
+				}
 				if (this.lineType === "line") {
 					text.angle = this.computeLabelAngle(source, target)
 				}
