@@ -15,8 +15,8 @@ export const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) 
 	for (let i = 0; i < nodes.length; i++) {
 		const node = nodes[i]
 		//Apply template
-		if (node.type) {
-			const template = nodeTemplates.find(template => template.id === node.type)
+		if (node.template) {
+			const template = nodeTemplates.find(template => template.id === node.template)
 			if (template) {
 				applyTemplateToObject(node, template.template)
 			}
@@ -43,7 +43,8 @@ export const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) 
 		}
 		//If no x or y coordinates exist then set a position based on a circle of nodes
 		if (isNaN(node.x) || isNaN(node.y)) {
-			const radius = node.shape.radius * Math.sqrt(0.5 + i)
+			//For smaller graphs a smaller hard set radius seems to render better incremental layouts
+			const radius = (nodes.length > Env.NODE_COUNT_INIT_BREAKPOINT ? node.shape.radius : 10) * Math.sqrt(0.5 + i)
 			const angle = i * (Math.PI * (3 - Math.sqrt(5)))
 			node.x = radius * Math.cos(angle)
 			node.y = radius * Math.sin(angle)
@@ -59,8 +60,8 @@ export const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) 
 	for (let i = 0; i < edges.length; i++) {
 		const edge = edges[i]
 		//Apply template
-		if (edge.type) {
-			const template = edgeTemplates.find(template => template.id === edge.type)
+		if (edge.template) {
+			const template = edgeTemplates.find(template => template.id === edge.template)
 			if (template) {
 				applyTemplateToObject(edge, template.template)
 			}
@@ -88,7 +89,7 @@ export const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) 
 		}
 		//Initialize the edge's weight
 		if (isNaN(edge.weight)) {
-			edge.weight = 1
+			edge.weight = Env.DEFAULT_EDGE_WEIGHT
 		}
 	}
 	return {

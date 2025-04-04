@@ -2,12 +2,18 @@
     "nodes": [
         {
             "id": "n0",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000
         },
         {
             "id": "n1",
-            "radius": 50,
+            "shape": {
+                "id": "circle",
+                "radius": 50
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Helloooooooooooooooooooooooooooooooo World",
@@ -16,7 +22,10 @@
         },
         {
             "id": "n2",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Hello World",
@@ -26,7 +35,10 @@
         },
         {
             "id": "n3",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Hello World",
@@ -35,7 +47,10 @@
         },
         {
             "id": "n4",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Hello World"
@@ -43,7 +58,10 @@
         },
         {
             "id": "n5",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Hello World"
@@ -51,7 +69,10 @@
         },
         {
             "id": "n6",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Hello World"
@@ -59,13 +80,19 @@
         },
         {
             "id": "n7",
-            "radius": 30,
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
             "mass": 1000
         },
         {
             "id": "n8",
-            "width": 200,
-            "height": 70,
+            "shape": {
+                "id": "rectangle",
+                "width": 200,
+                "height": 70
+            },
             "mass": 1000,
             "rendererOptions": {
                 "label": "Helloooooooooooooooooooooooooooooooooooooooooooo",

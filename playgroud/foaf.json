@@ -1,0 +1,215 @@
+{
+    "templates": {
+        "nodes": [
+            {
+                "id": "external",
+                "template": {
+                    "rendererOptions": {
+                        "backgroundColor": "#00594E",
+                        "textColor": "#ffffff"
+                    }
+                }
+            },
+            {
+                "id": "thing",
+                "template": {
+                    "shape": {
+                        "id": "circle",
+                        "radius": 30
+                    },
+                    "rendererOptions": { 
+                        "backgroundColor": "#00AE8D",
+                        "textColor": "#ffffff"
+                    }
+                }
+            },
+            {
+                "id": "class",
+                "template": {
+                    "rendererOptions": { 
+                        "backgroundColor": "#ffffff",
+                        "textColor": "#000000"
+                    }
+                }
+            },
+            {
+                "id": "literal",
+                "template": {
+                    "shape": {
+                        "id": "rectangle",
+                        "width": 60,
+                        "height": 20
+                    },
+                    "rendererOptions": { 
+                        "backgroundColor": "#9DD4CA",
+                        "textColor": "#ffffff"
+                    }
+                }
+            },
+            {
+                "id": "largeliteral",
+                "template": {
+                    "shape": {
+                        "id": "rectangle",
+                        "width": 160,
+                        "height": 40
+                    },
+                    "rendererOptions": { 
+                        "backgroundColor": "#9DD4CA",
+                        "textColor": "#ffffff"
+                    }
+                }
+            },
+            {
+                "id": "equivalent",
+                "template": {
+                    "rendererOptions": { 
+                        "backgroundColor": "#ffffff",
+                        "textColor": "#000000"
+                    }
+                }
+            }
+        ],
+        "edges": [
+            {
+                "id": "relation",
+                "template": {
+                    "rendererOptions": {
+                        "dotted": true,
+                        "labelTextColor": "#000000",
+                        "labelBackgroundColor": "#E6E7E8",
+                        "isInteractive": true
+                    }
+                }
+            },
+            {
+                "id": "attribute",
+                "template": {
+                    "visibleDistance": 120,
+                    "rendererOptions": {
+                        "labelTextColor": "#ffffff",
+                        "labelBackgroundColor": "#7B868C",
+                        "isInteractive": true
+                    }
+                }
+            }
+        ]
+    },
+    "nodes": [
+        {"id": "n0", "rendererOptions": {"label": "panda", "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"}, "template": "external"},
+        {"id": "n1", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n2", "rendererOptions": {"label": "Person"}, "template": "equivalent"},
+        {"id": "n3", "rendererOptions": {"label": "A very very very very very very very very long name", "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"}, "template": "largeliteral"},
+        {"id": "n4", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n5", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n6", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n7", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n8", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n9", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n10", "rendererOptions": {"label": "Spatial Thing"}, "template": "external"},
+        {"id": "n11", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n12", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n13", "rendererOptions": {"label": "Image"}, "template": "equivalent"},
+        {"id": "n14", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n15", "rendererOptions": {"label": "Document"}, "template": "equivalent"},
+        {"id": "n16", "rendererOptions": {"label": "PersonalProfileDocument"}, "template": "class"},
+        {"id": "n17", "rendererOptions": {"label": "Agent"}, "template": "equivalent"},
+        {"id": "n18", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n19", "rendererOptions": {"label": "Online Account"}, "template": "class"},
+        {"id": "n20", "rendererOptions": {"label": "Online Chat Account"}, "template": "class"},
+        {"id": "n21", "rendererOptions": {"label": "Online E-commerce account"}, "template": "class"},
+        {"id": "n22", "rendererOptions": {"label": "Online Gaming Account", "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"}, "template": "class"},
+        {"id": "n23", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n24", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n25", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n26", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n27", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n28", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n29", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n30", "rendererOptions": {"label": "Group"}, "template": "class"},
+        {"id": "n31", "rendererOptions": {"label": "Project"}, "template": "class"},
+        {"id": "n32", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n33", "rendererOptions": {"label": "Organization"}, "template": "class"},
+        {"id": "n34", "rendererOptions": {"label": "Label Property"}, "template": "class"},
+        {"id": "n35", "rendererOptions": {"label": "Thing"}, "template": "thing"},
+        {"id": "n36", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n37", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n38", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n39", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n40", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n41", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+		{"id": "n42", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n43", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n44", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n45", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n46", "rendererOptions": {"label": "Literal"}, "template": "literal"},
+        {"id": "n47", "rendererOptions": {"label": "DEFAULT NODE"}} 
+    ],
+    "edges": [
+        {"sourceNode": "n0", "targetNode": "n1", "rendererOptions": {"label": "focus"}},
+        {"sourceNode": "n2", "targetNode": "n3", "rendererOptions": {"label": "lastName"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n4", "rendererOptions": {"label": "geekcode"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n5", "rendererOptions": {"label": "familyName"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n4", "rendererOptions": {"label": "family_name"}, "template": "attribute"},		
+        {"sourceNode": "n2", "targetNode": "n6", "rendererOptions": {"label": "firstName"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n7", "rendererOptions": {"label": "myersBriggs"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n8", "rendererOptions": {"label": "plan"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n9", "rendererOptions": {"label": "Surname"}, "template": "attribute"},
+        {"sourceNode": "n2", "targetNode": "n10", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n10", "targetNode": "n10", "rendererOptions": {"label": "basedNear"}},
+        {"sourceNode": "n17", "targetNode": "n11", "rendererOptions": {"label": "jabber ID"}, "template": "attribute"},		
+        {"sourceNode": "n2", "targetNode": "n12", "rendererOptions": {"label": "past project"}},
+        {"sourceNode": "n2", "targetNode": "n12", "rendererOptions": {"label": "current project"}},
+        {"sourceNode": "n2", "targetNode": "n13", "rendererOptions": {"label": "image"}},
+        {"sourceNode": "n13", "targetNode": "n13", "rendererOptions": {"label": "thumbnail"}},
+        {"sourceNode": "n13", "targetNode": "n14", "rendererOptions": {"label": "depicts / depiction"}},
+        {"sourceNode": "n2", "targetNode": "n15", "rendererOptions": {"label": "workplace homepage"}},
+        {"sourceNode": "n2", "targetNode": "n15", "rendererOptions": {"label": "work info homepage"}},
+        {"sourceNode": "n2", "targetNode": "n15", "rendererOptions": {"label": "publications"}},
+        {"sourceNode": "n2", "targetNode": "n15", "rendererOptions": {"label": "schoolHomepage"}},
+        {"sourceNode": "n13", "targetNode": "n15", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n16", "targetNode": "n15", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n2", "targetNode": "n2", "rendererOptions": {"label": "knows"}},
+        {"sourceNode": "n2", "targetNode": "n17", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n17", "targetNode": "n15", "rendererOptions": {"label": "interest"}},
+        {"sourceNode": "n17", "targetNode": "n15", "rendererOptions": {"label": "tipjar"}},
+        {"sourceNode": "n17", "targetNode": "n15", "rendererOptions": {"label": "weblog"}},
+        {"sourceNode": "n17", "targetNode": "n15", "rendererOptions": {"label": "openid"}},
+        {"sourceNode": "n18", "targetNode": "n15", "rendererOptions": {"label": "homepage"}},
+        {"sourceNode": "n18", "targetNode": "n15", "rendererOptions": {"label": "page / topic"}},    
+        {"sourceNode": "n18", "targetNode": "n15", "rendererOptions": {"label": "is primary topic of / primary topic"}},
+        {"sourceNode": "n15", "targetNode": "n42", "rendererOptions": {"label": "sha1sum (hex)"}, "template": "attribute"},
+        {"sourceNode": "n19", "targetNode": "n15", "rendererOptions": {"label": "account service homepage"}},
+        {"sourceNode": "n20", "targetNode": "n19", "template": "relation", "rendererOptions": {"label": "Subclass of", "markerSource": "arrow", "markerTarget": "hollowArrow"}},
+        {"sourceNode": "n21", "targetNode": "n19", "template": "relation", "rendererOptions": {"label": "Subclass of", "markerSource": "arrow", "markerTarget": "hollowArrow"}},
+        {"sourceNode": "n22", "targetNode": "n19", "template": "relation", "rendererOptions": {"label": "Subclass of", "markerSource": "arrow", "markerTarget": "hollowArrow"}},
+        {"sourceNode": "n19", "targetNode": "n32", "rendererOptions": {"label": "account name"}, "template": "attribute"},
+        {"sourceNode": "n30", "targetNode": "n17", "rendererOptions": {"label": "member"}},
+        {"sourceNode": "n30", "targetNode": "n17", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n17", "targetNode": "n23", "rendererOptions": {"label": "age"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n24", "rendererOptions": {"label": "birthday"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n25", "rendererOptions": {"label": "gender"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n26", "rendererOptions": {"label": "status"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n27", "rendererOptions": {"label": "sha1sunm of a personal mailbox URI name"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n28", "rendererOptions": {"label": "AIM chat ID"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n43", "rendererOptions": {"label": "ICQ chat ID"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n44", "rendererOptions": {"label": "Yahoo chat ID"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n45", "rendererOptions": {"label": "MSN chat ID"}, "template": "attribute"}, 	
+        {"sourceNode": "n17", "targetNode": "n29", "rendererOptions": {"label": "made / maker"}},
+        {"sourceNode": "n17", "targetNode": "n29", "rendererOptions": {"label": "personal mailbox"}},
+        {"sourceNode": "n17", "targetNode": "n29", "rendererOptions": {"label": "topic_interest"}},
+        {"sourceNode": "n33", "targetNode": "n17", "template": "relation", "rendererOptions": {"label": "Subclass of"}},
+        {"sourceNode": "n17", "targetNode": "n19", "rendererOptions": {"label": "account"}},
+        {"sourceNode": "n35", "targetNode": "n35", "rendererOptions": {"label": "phone"}},
+        {"sourceNode": "n35", "targetNode": "n35", "rendererOptions": {"label": "funded by"}},
+        {"sourceNode": "n35", "targetNode": "n35", "rendererOptions": {"label": "Logo"}},
+        {"sourceNode": "n35", "targetNode": "n35", "rendererOptions": {"label": "theme"}},
+        {"sourceNode": "n35", "targetNode": "n36", "rendererOptions": {"label": "DNA checksum"}, "template": "attribute"},
+        {"sourceNode": "n35", "targetNode": "n37", "rendererOptions": {"label": "Given name"}, "template": "attribute"},
+        {"sourceNode": "n35", "targetNode": "n38", "rendererOptions": {"label": "nickname"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n41", "rendererOptions": {"label": "Skype ID"}, "template": "attribute"},
+        {"sourceNode": "n35", "targetNode": "n39", "rendererOptions": {"label": "title"}, "template": "attribute"},
+        {"sourceNode": "n35", "targetNode": "n40", "rendererOptions": {"label": "name"}, "template": "attribute"},
+        {"sourceNode": "n17", "targetNode": "n19", "rendererOptions": {"label": "account"}}		
+    ]
+}

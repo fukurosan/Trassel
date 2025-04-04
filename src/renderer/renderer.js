@@ -1,5 +1,6 @@
 import * as PIXI from "pixi.js"
 import { OrthogonalConnector } from "./orthogonalRouter"
+import { Env } from "../config/env"
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
@@ -34,10 +35,10 @@ export class WebGLRenderer {
 		this.lassoEnabled = false
 		/** @type {import("../model/rendereroptions").LineTypes} */
 		this.lineType = this.options?.lineType || "line"
-		this.LINE_MARGIN_PX = 10
-		this.sceneSize = 50000
-		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2
-		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8
+		this.LINE_MARGIN_PX = Env.RENDERER_LINE_MARGIN
+		this.sceneSize = Env.RENDERER_SCENE_SIZE
+		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : Env.DEFAULT_RENDERER_PRIMARY_COLOR
+		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : Env.DEFAULT_RENDERER_BACKGROUND_COLOR
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
@@ -116,7 +117,7 @@ export class WebGLRenderer {
 		this.stage.position.set(width / 2, height / 2)
 		this.renderer = await PIXI.autoDetectRenderer({
 			preference: "webgl",
-			resolution: 2,
+			resolution: Env.RENDERER_RESOLUTION,
 			width,
 			height,
 			autoDensity: true,
@@ -197,8 +198,8 @@ export class WebGLRenderer {
 	 * makes the canvas zoomable
 	 */
 	initializeZoom() {
-		const maxScale = 4
-		const minScale = 0.05
+		const maxScale = Env.RENDERER_MAX_SCALE
+		const minScale = Env.RENDERER_MIN_SCALE
 		let isZooming = false
 		const handleZoom = event => {
 			event.stopPropagation()
@@ -206,7 +207,7 @@ export class WebGLRenderer {
 			const mouseX = event.clientX
 			const mouseY = event.clientY
 			const localPointBefore = this.stage.toLocal(new PIXI.Point(mouseX, mouseY))
-			const alpha = 1 + Math.abs(event.wheelDelta) / 2000
+			const alpha = 1 + Math.abs(event.wheelDelta) / Env.RENDERER_ZOOM_SENSITIVITY
 			let shouldRender = false
 			let scale = this.stage.scale._x
 			if (event.wheelDelta < 0) {
@@ -287,28 +288,28 @@ export class WebGLRenderer {
 			} else {
 				nodeGfx.circle(0, 0, node.shape.radius)
 			}
-			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || 0xffffff))
-			nodeGfx.stroke({ width: 2, color: 0xffffff })
+			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || Env.DEFAULT_RENDERER_NODE_FILL))
+			nodeGfx.stroke({ width: Env.DEFAULT_RENDERER_NODE_STROKE_WIDTH, color: Env.DEFAULT_RENDERER_NODE_STROKE })
 			//Draw label
-			const fontSize = Math.max(nodeHeight * 0.1, 12)
+			const fontSize = Math.max(nodeHeight * 0.1, Env.RENDERER_NODE_MIN_FONT_SIZE)
 			const icon = node.rendererOptions?.icon
-			const iconMaxSize = 50
-			const iconMinSize = 16
+			const iconMaxSize = Env.RENDERER_NODE_MAX_ICON_SIZE
+			const iconMinSize = Env.RENDERER_NODE_MIN_ICON_SIZE
 			const iconSize = Math.max(Math.min(nodeHeight * 0.2, iconMaxSize), iconMinSize)
-			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.shape.radius * 1.25
+			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth * 0.625) : node.shape.radius * 1.25
 			const textStyle = new PIXI.TextStyle({
-				fontFamily: "Arial",
+				fontFamily: Env.RENDERER_NODE_FONT_FAMILY,
 				fontSize,
 				wordWrap: true,
 				breakWords: true,
 				wordWrapWidth,
 				align: "center",
-				fill: this.getHexColor(node.rendererOptions?.textColor || 0x000000)
+				fill: this.getHexColor(node.rendererOptions?.textColor || Env.DEFAULT_RENDERER_NODE_TEXT_COLOR)
 			})
 			const label = node.rendererOptions?.label || node.id
 			const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 			let processedLabel = measurements.lines.shift()
-			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.shape.radius > 40)
+			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight >= 40) || (nodeShape !== "rectangle" && node.shape.radius > 40)
 			if (measurements.lines.length && shouldWrapText) {
 				processedLabel = `${processedLabel}\n${measurements.lines.shift()}`
 			}
@@ -316,7 +317,7 @@ export class WebGLRenderer {
 				processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 			}
 			const text = new PIXI.Text({ text: processedLabel, style: textStyle })
-			text.resolution = 3
+			text.resolution = Env.RENDERER_NODE_TEXT_RESOLUTION
 			text.anchor.set(0.5)
 			nodeGfx.addChild(text)
 			node.rendererInternals.text = text
@@ -467,7 +468,7 @@ export class WebGLRenderer {
 			)
 			const markerSource = PIXI.Sprite.from(markerSourceAsset)
 			const markerTarget = PIXI.Sprite.from(markerTargetAsset)
-			const markerSize = 16
+			const markerSize = Env.RENDERER_EDGE_MARKER_SIZE
 			markerSource.width = markerSize
 			markerSource.height = markerSize
 			markerTarget.width = markerSize
@@ -497,13 +498,13 @@ export class WebGLRenderer {
 			//Initialize label
 			if (edge.rendererOptions?.label) {
 				const textStyle = new PIXI.TextStyle({
-					fontFamily: "Arial",
-					fontSize: 10,
+					fontFamily: Env.RENDERER_EDGE_FONT_FAMILY,
+					fontSize: Env.RENDERER_EDGE_FONT_SIZE,
 					wordWrap: true,
 					breakWords: true,
 					align: "center",
-					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || 0x000000)
+					wordWrapWidth: (edge.rendererOptions.isInteractive ? Env.RENDERER_EDGE_LABEL_WIDTH : false) || edge.visibleDistance * 0.5,
+					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || Env.DEFAULT_RENDERER_EDGE_TEXT_COLOR)
 				})
 				const label = edge.rendererOptions?.label
 				const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
@@ -512,7 +513,7 @@ export class WebGLRenderer {
 					processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 				}
 				const text = new PIXI.Text({ text: processedLabel, style: textStyle })
-				text.resolution = 3
+				text.resolution = Env.RENDERER_EDGE_TEXT_RESOLUTION
 				if (edge.sourceNode !== edge.targetNode) {
 					text.anchor.x = 0.5
 					text.anchor.y = 1.2
@@ -525,13 +526,16 @@ export class WebGLRenderer {
 				//If the edge is interactive, then update the label
 				if (edge.rendererOptions?.isInteractive) {
 					text.anchor.y = 0.5
-					const width = text.width + 10
-					const height = text.height + 10
+					const width = (Env.RENDERER_EDGE_LABEL_WIDTH || text.width) + Env.RENDERER_EDGE_LABEL_INLINE_PADDING
+					const height = text.height + Env.RENDERER_EDGE_LABEL_BLOCK_PADDING
 					const textBackground = new PIXI.Graphics()
 					textBackground.alpha = 1
 					textBackground.roundRect(-width / 2, -height / 2, width, height, 4)
-					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff))
-					textBackground.stroke({ width: 2, color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff) })
+					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_FILL))
+					textBackground.stroke({
+						width: Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE_WIDTH,
+						color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE)
+					})
 					textContainer.addChildAt(textBackground, 0)
 					const textFocusBackground = new PIXI.Graphics()
 					const textFocusBackground2 = new PIXI.Graphics()
@@ -770,7 +774,6 @@ export class WebGLRenderer {
 	 * @param {number} duration - Time in milliseconds for the transition
 	 */
 	zoomToFit(duration = 200) {
-		const PADDING_PX = 350
 		const parentWidth = this.element.clientWidth
 		const parentHeight = this.element.clientHeight
 		const sizeCoordinates = { lowestX: Infinity, lowestY: Infinity, highestX: -Infinity, highestY: -Infinity }
@@ -782,8 +785,8 @@ export class WebGLRenderer {
 			if (node.x + node.shape.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.shape.radius
 			if (node.y + node.shape.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.shape.radius
 		}
-		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + PADDING_PX)
-		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + PADDING_PX)
+		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + Env.RENDERER_ZOOM_TO_FIT_PADDING)
+		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + Env.RENDERER_ZOOM_TO_FIT_PADDING)
 		const widthRatio = parentWidth / width
 		const heightRatio = parentHeight / height
 		const newScale = Math.min(widthRatio, heightRatio)
@@ -1197,11 +1200,12 @@ export class WebGLRenderer {
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			}
 			//Complete drawing the line
-			line.stroke({ width: 1, color: this.getHexColor(edge.rendererOptions?.color || 0x000000) })
+			line.stroke({ width: Env.RENDERER_EDGE_WIDTH, color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR) })
 			//Compute label position (if applicable)
 			const text = edge.rendererInternals.text
 			if (text) {
-				text.position = new PIXI.Point(labelPoint.x, labelPoint.y)
+				//TODO: Position needs to also be set based on edge counter and curvepoint
+				text.position = new PIXI.Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2)
 				if (this.lineType === "line") {
 					text.angle = this.computeLabelAngle(source, target)
 				}

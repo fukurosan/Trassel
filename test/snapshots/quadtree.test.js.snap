@@ -4,58 +4,59 @@ exports[`Quadtree > Quadrants are correctly computed 1`] = `
 [
   [
     ,
+    {
+      "entity": {
+        "id": "n8",
+        "index": 7,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
+        },
+        "vx": 0,
+        "vy": 0,
+        "x": -12.62245871740517,
+        "y": -24.303776166007665,
+      },
+      "next": null,
+    },
+    {
+      "entity": {
+        "id": "n5",
+        "index": 4,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
+        },
+        "vx": 0,
+        "vy": 0,
+        "x": -20.88892748977138,
+        "y": -3.694957148205299,
+      },
+      "next": null,
+    },
     ,
-    [
-      {
-        "entity": {
-          "id": "n8",
-          "index": 7,
-          "mass": 2000,
-          "shape": {
-            "id": "circle",
-            "radius": 50,
-          },
-          "vx": 0,
-          "vy": 0,
-          "x": -63.112293587025846,
-          "y": -121.51888083003833,
+  ],
+  [
+    {
+      "entity": {
+        "id": "n3",
+        "index": 2,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
         },
-        "next": null,
+        "vx": 0,
+        "vy": 0,
+        "x": 1.3823220809823638,
+        "y": -15.750847141167634,
       },
-      ,
-      {
-        "entity": {
-          "id": "n5",
-          "index": 4,
-          "mass": 2000,
-          "shape": {
-            "id": "circle",
-            "radius": 50,
-          },
-          "vx": 0,
-          "vy": 0,
-          "x": -104.4446374488569,
-          "y": -18.474785741026498,
-        },
-        "next": null,
-      },
-      {
-        "entity": {
-          "id": "n3",
-          "index": 2,
-          "mass": 2000,
-          "shape": {
-            "id": "circle",
-            "radius": 50,
-          },
-          "vx": 0,
-          "vy": 0,
-          "x": 6.911610404911818,
-          "y": -78.75423570583817,
-        },
-        "next": null,
-      },
-    ],
+      "next": null,
+    },
+    ,
+    ,
     {
       "entity": {
         "id": "n6",
@@ -67,100 +68,80 @@ exports[`Quadtree > Quadrants are correctly computed 1`] = `
         },
         "vx": 0,
         "vy": 0,
-        "x": 98.9390783055633,
-        "y": -62.93694291944608,
+        "x": 19.78781566111266,
+        "y": -12.587388583889217,
       },
       "next": null,
     },
   ],
-  {
-    "entity": {
-      "id": "n1",
-      "index": 0,
-      "mass": 2000,
-      "shape": {
-        "id": "circle",
-        "radius": 1000,
-      },
-      "vx": 0,
-      "vy": 0,
-      "x": 707.1067811865476,
-      "y": 0,
-    },
-    "next": null,
-  },
   [
-    [
-      [
-        ,
-        {
-          "entity": {
-            "id": "n2",
-            "index": 1,
-            "mass": 2000,
-            "shape": {
-              "id": "circle",
-              "radius": 50,
-            },
-            "vx": 0,
-            "vy": 0,
-            "x": -45.1544375875096,
-            "y": 41.36516367857983,
-          },
-          "next": null,
+    {
+      "entity": {
+        "id": "n10",
+        "index": 9,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
         },
-        {
-          "entity": {
-            "id": "n10",
-            "index": 9,
-            "mass": 2000,
-            "shape": {
-              "id": "circle",
-              "radius": 50,
-            },
-            "vx": 0,
-            "vy": 0,
-            "x": -142.45121724595074,
-            "y": 58.801791683136194,
-          },
-          "next": null,
-        },
-        ,
-      ],
-      {
-        "entity": {
-          "id": "n4",
-          "index": 3,
-          "mass": 2000,
-          "shape": {
-            "id": "circle",
-            "radius": 50,
-          },
-          "vx": 0,
-          "vy": 0,
-          "x": 56.914243964547104,
-          "y": 74.23455283049809,
-        },
-        "next": null,
+        "vx": 0,
+        "vy": 0,
+        "x": -28.490243449190146,
+        "y": 11.760358336627238,
       },
-      ,
-      {
-        "entity": {
-          "id": "n7",
-          "index": 6,
-          "mass": 2000,
-          "shape": {
-            "id": "circle",
-            "radius": 50,
-          },
-          "vx": 0,
-          "vy": 0,
-          "x": -33.093185412634526,
-          "y": 123.10500022032001,
+      "next": null,
+    },
+    {
+      "entity": {
+        "id": "n2",
+        "index": 1,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
         },
-        "next": null,
+        "vx": 0,
+        "vy": 0,
+        "x": -9.03088751750192,
+        "y": 8.273032735715967,
       },
-    ],
+      "next": null,
+    },
+    ,
+    {
+      "entity": {
+        "id": "n7",
+        "index": 6,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
+        },
+        "vx": 0,
+        "vy": 0,
+        "x": -6.618637082526906,
+        "y": 24.621000044064004,
+      },
+      "next": null,
+    },
+  ],
+  [
+    {
+      "entity": {
+        "id": "n1",
+        "index": 0,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 1000,
+        },
+        "vx": 0,
+        "vy": 0,
+        "x": 7.0710678118654755,
+        "y": 0,
+      },
+      "next": null,
+    },
     {
       "entity": {
         "id": "n9",
@@ -172,14 +153,28 @@ exports[`Quadtree > Quadrants are correctly computed 1`] = `
         },
         "vx": 0,
         "vy": 0,
-        "x": 136.92843231674152,
-        "y": 50.006043867512076,
+        "x": 27.3856864633483,
+        "y": 10.001208773502414,
+      },
+      "next": null,
+    },
+    {
+      "entity": {
+        "id": "n4",
+        "index": 3,
+        "mass": 2000,
+        "shape": {
+          "id": "circle",
+          "radius": 50,
+        },
+        "vx": 0,
+        "vy": 0,
+        "x": 11.382848792909423,
+        "y": 14.846910566099618,
       },
       "next": null,
     },
     ,
-    ,
   ],
-  ,
 ]
 `;

@@ -150,8 +150,6 @@ export interface ITrasselEdge {
 	rendererOptions?: {
 		/** Label text for the edge */
 		label?: string
-		/** Should the edge be dotted? */
-		dotted?: boolean
 		/** Color of the edge */
 		color?: string
 		/** Background color of the edge label */

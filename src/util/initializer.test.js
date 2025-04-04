@@ -3,7 +3,7 @@ import { initializeNodesAndEdges } from "./initializer"
 
 describe("Initializer", () => {
 	const baseNodes = JSON.stringify([
-		{ id: "n1", type: "node" },
+		{ id: "n1", template: "node" },
 		{ id: "n2" },
 		{ id: "n3" },
 		{ id: "n4" },
@@ -15,7 +15,7 @@ describe("Initializer", () => {
 		{ id: "n10" }
 	])
 	const baseEdges = JSON.stringify([
-		{ sourceNode: "n1", targetNode: "n2", type: "edge" },
+		{ sourceNode: "n1", targetNode: "n2", template: "edge" },
 		{ sourceNode: "n1", targetNode: "n3" },
 		{ sourceNode: "n1", targetNode: "n4" },
 		{ sourceNode: "n2", targetNode: "n5" },

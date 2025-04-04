@@ -13,7 +13,7 @@ export default class Fan extends LayoutComponent {
 	 * @param {number=} options.centerX - Center X coordinate of the component
 	 * @param {number=} options.centerY - Center Y coordinate of the component
 	 */
-	constructor({ computeGroup = node => node.type, strength = 0.9, space = 300, centerX = null, centerY = null } = {}) {
+	constructor({ computeGroup = node => node.template, strength = 0.9, space = 300, centerX = null, centerY = null } = {}) {
 		super()
 		this.computeGroup = computeGroup
 		this.strength = strength

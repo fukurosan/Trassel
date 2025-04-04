@@ -17,7 +17,7 @@ export default class D3Adapter extends LayoutComponent {
 		if (this.d3force.links && typeof this.d3force.links === "function") {
 			this.d3force.links(edges)
 		}
-		if (this.d3force.initialize && typeof this.d3force.links === "function") {
+		if (this.d3force.initialize && typeof this.d3force.initialize === "function") {
 			this.d3force.initialize(nodes, this.random)
 		}
 	}

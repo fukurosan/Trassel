@@ -73,6 +73,6 @@ describe("Quadtree", () => {
 		const quadtree = new Quadtree(nodes)
 		let counter = 0
 		quadtree.traverseTopBottom(() => counter++)
-		expect(counter).toBe(4)
+		expect(counter).toBe(5)
 	})
 })

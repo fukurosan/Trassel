@@ -1,20 +1,20 @@
 import "./playground.css"
 import * as Trassel from "../src/index"
-import data from "./graph.json"
-
+import data from "./foaf.json"
 window.Trassel = Trassel
 
 // Import graph
-// const nodes = data.nodes
-// const edges = data.edges
+let nodes = data.nodes
+let edges = data.edges
+let templates = data.templates ? data.templates : undefined
 
 //Heavy graph
-// const nodes = []
-// const edges = []
+// nodes = []
+// edges = []
+// templates = {}
 // for (let i = 0; i < 2000; i++) {
 // 	nodes.push({
 // 		id: "n" + i,
-// 		radius: 50,
 // 		mass: 1000
 // 	})
 // }
@@ -23,37 +23,37 @@ window.Trassel = Trassel
 // 		sourceNode: "n" + Math.round(Math.abs(i / 5)),
 // 		targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
 // 		visibleDistance: 100,
-// 		renderer: {
+// 		rendererOptions: {
+// 			label: "Hello World!!!!",
+// 			labelTextColor: "#00594E"
+// 		}
+// 	})
+// }
+
+//Heavy graph 2
+// nodes = []
+// edges = []
+// templates = {}
+// for (let i = 0; i < 1000; i++) {
+// 	nodes.push({
+// 		id: "n" + i,
+// 		shape: {
+// 			id: "circle",
+// 			radius: 50
+// 		}
+// 	})
+// 	edges.push({
+// 		sourceNode: "n" + Math.floor(Math.sqrt(i)),
+// 		targetNode: "n" + i,
+// 		visibleDistance: 100,
+// 		rendererOptions: {
 // 			color: "#00594E",
 // 			label: "Hello World!!!!"
 // 		}
 // 	})
 // }
 
-//Heavy graph 2
-const nodes = []
-const edges = []
-for (let i = 0; i < 1000; i++) {
-	nodes.push({
-		id: "n" + i,
-		shape: {
-			id: "circle",
-			radius: 50
-		},
-		mass: 1000
-	})
-	edges.push({
-		sourceNode: "n" + Math.floor(Math.sqrt(i)),
-		targetNode: "n" + i,
-		visibleDistance: 100,
-		rendererOptions: {
-			color: "#00594E",
-			label: "Hello World!!!!"
-		}
-	})
-}
-
-const graph = new Trassel.Trassel(nodes, edges, { layout: { updateCap: Infinity } })
+const graph = new Trassel.Trassel(nodes, edges, { templates, layout: { updateCap: Infinity } })
 const renderer = new Trassel.Renderer(document.querySelector(".graph"), graph.getNodes(), graph.getEdges())
 await renderer.initialize()
 let shiftKey = false
@@ -97,20 +97,21 @@ renderer.on("backdropclick", () => {
 renderer.on("lassoupdate", event => {
 	renderer.toggleSelectNodes([...event.added, ...event.removed])
 })
-graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
+graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
 graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
 graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
 graph.on("layoutupdate", () => {
 	renderer.render()
 })
+renderer.setTransform(0, 0, 0.3)
 graph.startLayoutLoop()
 document.querySelector(".graph").addEventListener("contextmenu", event => event.preventDefault())
 
 setTimeout(() => {
 	renderer.zoomToFit()
-}, 2000)
+}, 1000)
 
 const FPSCounter = document.createElement("div")
 FPSCounter.setAttribute(

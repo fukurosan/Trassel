@@ -137,7 +137,11 @@ The following additional arguments can be passed to the constructor:
 
 The link component is used to attract nodes in the graph that have edges connecting them. The component's strength changes depending on the distance between the two nodes relative to the `.distance` property configured on the edge, `.distance` being the optimal distance between the two nodes.
 
-This component has no constructor arguments.
+The following additional arguments can be passed to the constructor:
+ - **useRelativeStrength** 
+   - **Description**: *Should edge strength be computed based on total edge counts for connected nodes rather than a fixed value?*
+   - **Type**: `boolean`
+   - **Default**: `false`
 
 ---
 
