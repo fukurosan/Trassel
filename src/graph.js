@@ -122,10 +122,11 @@ export default class Graph {
 	 * Updates the nodes and edges in the graph
 	 * @param {import("./model/nodesandedges").DraftNode[]} nodes
 	 * @param {import("./model/nodesandedges").DraftEdge[]} edges
+	 * @param {import("./model/nodesandedges").GraphObjectTemplates=} templates
 	 * @returns {Graph}
 	 */
-	updateNodesAndEdges(nodes, edges) {
-		const initialized = initializeNodesAndEdges(nodes, edges)
+	updateNodesAndEdges(nodes, edges, templates) {
+		const initialized = initializeNodesAndEdges(nodes, edges, templates)
 		this.nodes = initialized.nodes
 		this.edges = initialized.edges
 		this.layout.updateNodesAndEdges(this.nodes, this.edges)

@@ -35,6 +35,7 @@ export class WebGLRenderer {
 		this.lassoEnabled = false
 		/** @type {import("../model/rendereroptions").LineTypes} */
 		this.lineType = this.options?.lineType || "line"
+		this.rotateEdgeLabels = typeof this.options?.rotateEdgeLabels === "boolean" ? this.options?.rotateEdgeLabels : Env.DEFAULT_RENDERER_ROTATE_EDGE_LABELS
 		this.LINE_MARGIN_PX = Env.RENDERER_LINE_MARGIN
 		this.sceneSize = Env.RENDERER_SCENE_SIZE
 		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : Env.DEFAULT_RENDERER_PRIMARY_COLOR
@@ -265,7 +266,9 @@ export class WebGLRenderer {
 		this.nodes = nodes
 		this.edges = edges
 		const nodeLookupMap = new Map()
-		const stageNodes = []
+		const nodesContainer = new PIXI.Container()
+		const edgesContainer = new PIXI.Container()
+		const edgeLabelContainer = new PIXI.Container()
 		//Initializes Nodes
 		for (const node of this.nodes) {
 			nodeLookupMap.set(node.id, node)
@@ -280,6 +283,7 @@ export class WebGLRenderer {
 			}
 			//Draw shape
 			const nodeGfx = node.rendererInternals.node
+			node.rendererInternals.container.addChild(nodeGfx)
 			const nodeShape = node.shape.id
 			const nodeHeight = node.shape.height || node.shape.radius * 2
 			const nodeWidth = node.shape.width || node.shape.radius * 2
@@ -319,7 +323,7 @@ export class WebGLRenderer {
 			const text = new PIXI.Text({ text: processedLabel, style: textStyle })
 			text.resolution = Env.RENDERER_NODE_TEXT_RESOLUTION
 			text.anchor.set(0.5)
-			nodeGfx.addChild(text)
+			node.rendererInternals.container.addChild(text)
 			node.rendererInternals.text = text
 			//Draw icon
 			if (node.rendererOptions?.icon) {
@@ -331,7 +335,7 @@ export class WebGLRenderer {
 				icon.anchor.y = 0.5
 				text.anchor.y = 0.5
 				text.anchor.x = 0.5
-				nodeGfx.addChild(icon)
+				node.rendererInternals.container.addChild(icon)
 				if (nodeShape === "rectangle") {
 					icon.x = -measurements.maxLineWidth / 2 - icon.width / 2
 					text.x = iconSize / 2
@@ -356,7 +360,7 @@ export class WebGLRenderer {
 			}
 			selectedGfx.fill(this.primaryColor)
 			selectedGfx.alpha = 0
-			node.rendererInternals.container.addChild(selectedGfx)
+			node.rendererInternals.container.addChildAt(selectedGfx, 0)
 			//Make node dragable
 			nodeGfx.interactive = true
 			nodeGfx.cursor = "pointer" //Added in pixi v7 to replace nodegfx.buttonMode = true
@@ -451,15 +455,13 @@ export class WebGLRenderer {
 			nodeGfx.on("click", onClick)
 			nodeGfx.on("rightclick", onRightClick)
 			//Add node to stage
-			node.rendererInternals.container.addChild(nodeGfx)
 			node.rendererInternals.container.cullable = true
 			node.rendererInternals.container.cullableChildren = false
-			stageNodes.push(node)
+			nodesContainer.addChild(node.rendererInternals.container)
 		}
 		//Initialize Edges
 		for (const edge of this.edges) {
 			//Initialize edge properties
-
 			const markerSourceAsset = await PIXI.Assets.load(
 				edge.rendererOptions?.markerSource ? this.markers[edge.rendererOptions?.markerSource] : this.markers.none
 			)
@@ -494,7 +496,7 @@ export class WebGLRenderer {
 			edge.rendererInternals.markerTarget.anchor.set(0.45, 0.25)
 			edge.rendererInternals.container.cullable = true
 			edge.rendererInternals.container.cullableChildren = false
-			this.stage.addChild(edge.rendererInternals.container)
+			edgesContainer.addChild(edge.rendererInternals.container)
 			//Initialize label
 			if (edge.rendererOptions?.label) {
 				const textStyle = new PIXI.TextStyle({
@@ -591,14 +593,14 @@ export class WebGLRenderer {
 					textContainer.on("click", onClick)
 					textContainer.on("rightclick", onRightClick)
 				}
-				edge.rendererInternals.container.addChild(textContainer)
+				edgeLabelContainer.addChild(textContainer)
 				edge.rendererInternals.text = textContainer
 			}
 		}
 		//The order in which we add things to the stage matters, nodes need to be on top of the edges so they are added last.
-		stageNodes.forEach(node => {
-			this.stage.addChild(node.rendererInternals.container)
-		})
+		this.stage.addChild(edgesContainer)
+		this.stage.addChild(edgeLabelContainer)
+		this.stage.addChild(nodesContainer)
 	}
 
 	/**
@@ -1209,8 +1211,10 @@ export class WebGLRenderer {
 				} else {
 					text.position = new PIXI.Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2)
 				}
-				if (this.lineType === "line") {
+				if (this.lineType === "line" && this.rotateEdgeLabels) {
 					text.angle = this.computeLabelAngle(source, target)
+				} else {
+					text.angle = 0
 				}
 				text.renderable = this.stage.scale._x < 0.3 ? false : true
 			}

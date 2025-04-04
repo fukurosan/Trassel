@@ -7,4 +7,6 @@ export interface IRendererOptions {
 	primaryColor?: number | string
 	/** Color of the graph backdrop */
 	backdropColor?: number | string
+	/** Should interactive edge labels be rotated? */
+	rotateEdgeLabels?: boolean
 }
