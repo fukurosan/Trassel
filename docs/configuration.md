@@ -40,7 +40,10 @@ All options can be changed after Trassel has been instantiated using functions o
 ```javascript
 /** Options for Trassel */
 interface IOptions {
+	/** Options for the layout engine */
 	layout?: ILayoutOptions
+	/** Templates to apply to nodes and edges */
+	templates?: GraphObjectTemplates
 }
 
 /** Options for the layout engine */
@@ -58,4 +61,20 @@ interface ILayoutOptions {
 	/** Velocity decay determines how quickly velocity decreases. I.e. the friction of nodes in the graph. */
 	velocityDecay?: number
 }
+
+export interface GraphObjectTemplates {
+	nodes: {
+		/** Should match the "template" property on nodes to apply the template to */
+		id: string
+		/** A node object */
+		template: TrasselNode
+	}[]
+	edges: {
+		/** Should match the "template" property on edges to apply the template to */
+		id: string
+		/** An edge object */
+		template: TrasselEdge
+	}[]
+}
+
 ```

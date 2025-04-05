@@ -1,7 +1,6 @@
 import { Container } from "../../node_modules/pixi.js/lib/scene/container/Container"
 import { Graphics } from "../../node_modules/pixi.js/lib/scene/graphics/shared/Graphics"
 import { Sprite } from "../../node_modules/pixi.js/lib/scene/sprite/Sprite"
-import { Text } from "../../node_modules/pixi.js/lib/scene/text/Text"
 
 /** Makes a set of properties on a type required */
 type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
@@ -185,10 +184,12 @@ export type EdgeTemplate = Partial<Pick<TrasselEdge, "strength" | "weight" | "di
 /** A collection of node and edge templates */
 export interface GraphObjectTemplates {
 	nodes: {
+		/** Should match the "template" property on nodes to apply the template to */
 		id: string
 		template: NodeTemplate
 	}[]
 	edges: {
+		/** Should match the "template" property on edges to apply the template to */
 		id: string
 		template: EdgeTemplate
 	}[]
