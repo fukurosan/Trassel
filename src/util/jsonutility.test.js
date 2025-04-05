@@ -31,14 +31,14 @@ describe("JSON utilities", () => {
 	})
 
 	it("Applying template to objects works", () => {
-		const baseObject = {
+		const baseObject = JSON.stringify({
 			id: 1,
 			name: "Gerald",
 			settings: {
 				a: 1,
 				c: 2
 			}
-		}
+		})
 		const template = {
 			name: "N/A",
 			icon: "icon-url",
@@ -48,7 +48,17 @@ describe("JSON utilities", () => {
 				c: 5
 			}
 		}
-		const expectedResult = {
+		const expectedResultOverwriteOriginal = {
+			id: 1,
+			name: "N/A",
+			settings: {
+				a: 3,
+				c: 5,
+				b: 4
+			},
+			icon: "icon-url"
+		}
+		const expectedResultRespectOriginal = {
 			id: 1,
 			name: "Gerald",
 			settings: {
@@ -58,7 +68,7 @@ describe("JSON utilities", () => {
 			},
 			icon: "icon-url"
 		}
-		applyTemplateToObject(baseObject, template)
-		expect(JSON.stringify(baseObject)).toStrictEqual(JSON.stringify(expectedResult))
+		expect(JSON.stringify(applyTemplateToObject(JSON.parse(baseObject), template))).toStrictEqual(JSON.stringify(expectedResultOverwriteOriginal))
+		expect(JSON.stringify(applyTemplateToObject(JSON.parse(baseObject), template, false))).toStrictEqual(JSON.stringify(expectedResultRespectOriginal))
 	})
 })
