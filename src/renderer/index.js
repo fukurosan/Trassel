@@ -24,8 +24,9 @@ export class Renderer {
 
 	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {() => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		this.WebGLRenderer.on(name, fn)

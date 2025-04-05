@@ -95,10 +95,13 @@ Selecting a node is super simple:
 const node = { id: "n1" }
 //The second argument sets the selection status.
 //If no second argument is passed the current status will be toggled to its opposite.
+//Use toggleSelectEdges for edges
 renderer.toggleSelectNodes([someNode], true)
 //To clear all selections:
+//Use clearAllEdgeSelections for edges (or clearAllSelections for all)
 renderer.clearAllNodeSelections()
 //You can also combine it with events like so:
+//Use edgelabelclick for edge labels
 renderer.on("entityclick", event => {
 	renderer.clearAllNodeSelections()
 	renderer.toggleSelectNode(event.node)
@@ -125,7 +128,8 @@ window.addEventListener("keydown", keyListener)
 window.addEventListener("keyup", keyListener)
 renderer.on("lassoupdate", event => {
 	//The lasso update event comes with a list of added and removed nodes from inside the lasso.
-	renderer.toggleSelectNodes([...event.added, ...event.removed])
+	renderer.toggleSelectNodes([...event.addedNodes, ...event.removedNodes])
+	renderer.toggleSelectEdges([...event.addedEdges, ...event.removedEdges])
 })
 ```
 

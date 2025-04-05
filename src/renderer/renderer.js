@@ -46,11 +46,13 @@ export class WebGLRenderer {
 			["entityclick", new Set()],
 			["entityrightclick", new Set()],
 			["entityhoverstart", new Set()],
+			["entityhovermove", new Set()],
 			["entityhoverend", new Set()],
 			["entitydragstart", new Set()],
 			["entitydragmove", new Set()],
 			["entitydragend", new Set()],
 			["edgelabelhoverstart", new Set()],
+			["edgelabelhovermove", new Set()],
 			["edgelabelhoverend", new Set()],
 			["edgelabelclick", new Set()],
 			["edgelabelrightclick", new Set()],
@@ -82,8 +84,9 @@ export class WebGLRenderer {
 
 	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {(...any) => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		if (!this.listeners.has(name)) {
@@ -92,6 +95,12 @@ export class WebGLRenderer {
 		this.listeners.get(name).add(fn)
 	}
 
+	/**
+	 * Triggers an event to all listeners
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEvents[T]} payload
+	 */
 	triggerEvent(name, payload) {
 		this.listeners.get(name).forEach(fn => fn(payload))
 	}
@@ -423,13 +432,17 @@ export class WebGLRenderer {
 			}
 			focusGfx.fill(this.primaryColor)
 			focusGfx2.fill(this.primaryColor)
-			const pointerOver = () => {
+			const pointerOver = event => {
 				if (!dragging) {
 					node.rendererInternals.container.addChildAt(focusGfx, 0)
 					node.rendererInternals.container.addChildAt(focusGfx2, 0)
 					node.rendererInternals.isFocused = true
 					this.render()
+					this.triggerEvent("entityhoverstart", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
 				}
+			}
+			const pointerMove = event => {
+				this.triggerEvent("entityhovermove", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
 			}
 			const pointerOut = () => {
 				if (node.rendererInternals.isFocused) {
@@ -437,9 +450,11 @@ export class WebGLRenderer {
 					node.rendererInternals.container.removeChild(focusGfx2)
 					node.rendererInternals.isFocused = false
 					this.render()
+					this.triggerEvent("entityhoverend", { node })
 				}
 			}
 			nodeGfx.on("pointerover", pointerOver)
+			nodeGfx.on("pointermove", pointerMove)
 			nodeGfx.on("pointerout", pointerOut)
 			//Make node clickable
 			const onClick = event => {
@@ -449,7 +464,7 @@ export class WebGLRenderer {
 			}
 			const onRightClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityrightclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
 				}
 			}
 			nodeGfx.on("click", onClick)
@@ -586,31 +601,36 @@ export class WebGLRenderer {
 							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
 						})
 					}
-					const pointerOut = event => {
+					const pointerMove = event => {
+						this.triggerEvent("edgelabelhovermove", {
+							edge,
+							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+						})
+					}
+					const pointerOut = () => {
 						if (edge.rendererInternals.isFocused) {
 							textContainer.removeChild(textFocusBackground)
 							textContainer.removeChild(textFocusBackground2)
 							edge.rendererInternals.isFocused = false
 							this.render()
-							this.triggerEvent("edgelabelhoverend", {
-								edge,
-								position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
-							})
+							this.triggerEvent("edgelabelhoverend", { edge })
 						}
 					}
+					textContainer.on("pointerover", pointerOver)
+					textContainer.on("pointermove", pointerMove)
+					textContainer.on("pointerout", pointerOut)
 					//Make it clickable
 					const onClick = event => {
 						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
 					}
 					const onRightClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+						this.triggerEvent("edgelabelrightclick", {
+							edge,
+							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+						})
 					}
-					textContainer.on("pointerover", pointerOver)
-					textContainer.on("pointerout", pointerOut)
-					if (edge.rendererOptions.isInteractive) {
-						textContainer.on("click", onClick)
-						textContainer.on("rightclick", onRightClick)
-					}
+					textContainer.on("click", onClick)
+					textContainer.on("rightclick", onRightClick)
 				}
 				edgeLabelContainer.addChild(textContainer)
 				edge.rendererInternals.text = textContainer
