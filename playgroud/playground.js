@@ -53,9 +53,26 @@ let templates = data.templates ? data.templates : undefined
 // 	})
 // }
 
+//Lattice
+// const n = 20
+// nodes = []
+// edges = []
+// for (let i = 0; i < n * n; i++) {
+// 	nodes.push({ id: i, shape: { id: "circle", radius: 20 }, mass: 500 })
+// }
+// for (let y = 0; y < n; y++) {
+// 	for (let x = 0; x < n; x++) {
+// 		if (y > 0) edges.push({ sourceNode: (y - 1) * n + x, targetNode: y * n + x, visibleDistance: 1, strength: 2 })
+// 		if (x > 0) edges.push({ sourceNode: y * n + (x - 1), targetNode: y * n + x, visibleDistance: 1, strength: 2 })
+// 	}
+// }
+
+//Initialize graph
 const graph = new Trassel.Trassel(nodes, edges, { templates, layout: { updateCap: Infinity } })
 const renderer = new Trassel.Renderer(document.querySelector(".graph"), graph.getNodes(), graph.getEdges())
 await renderer.initialize()
+
+//Register key listeners and effects
 let shiftKey = false
 let ctrlKey = false
 let altKey = false
@@ -71,14 +88,16 @@ const keyListener = event => {
 }
 window.addEventListener("keydown", keyListener)
 window.addEventListener("keyup", keyListener)
+
+//Register renderer events
 renderer.on("entitydragstart", event => {
 	event.node.fx = event.node.x
 	event.node.fy = event.node.y
+})
+renderer.on("entitydragmove", event => {
 	graph.setLayoutAlphaTarget(0.1)
 	graph.setLayoutAlpha(0.1)
 	graph.startLayoutLoop()
-})
-renderer.on("entitydragmove", event => {
 	event.node.fx = event.position.x
 	event.node.fy = event.position.y
 })
@@ -88,31 +107,46 @@ renderer.on("entitydragend", event => {
 	graph.setLayoutAlphaTarget(0)
 })
 renderer.on("entityclick", event => {
-	if (!shiftKey) renderer.clearAllNodeSelections()
+	if (!shiftKey) renderer.clearAllSelections()
 	renderer.toggleSelectNodes([event.node])
 })
+renderer.on("edgelabelclick", event => {
+	if (!shiftKey) renderer.clearAllSelections()
+	renderer.toggleSelectEdges([event.edge])
+})
 renderer.on("backdropclick", () => {
-	renderer.clearAllNodeSelections()
+	renderer.clearAllSelections()
 })
 renderer.on("lassoupdate", event => {
-	renderer.toggleSelectNodes([...event.added, ...event.removed])
+	renderer.toggleSelectNodes([...event.addedNodes, ...event.removedNodes])
+	renderer.toggleSelectEdges([...event.addedEdges, ...event.removedEdges])
 })
+
+//Configure layout
 graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
 graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
 graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
 graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
+
+//Register graph events
 graph.on("layoutupdate", () => {
 	renderer.render()
 })
-renderer.setTransform(0, 0, 0.3)
-graph.startLayoutLoop()
-document.querySelector(".graph").addEventListener("contextmenu", event => event.preventDefault())
 
+//Start layout loop
+graph.startLayoutLoop()
+
+
+//Zoom to fit after 1 second
 setTimeout(() => {
 	renderer.zoomToFit()
 }, 1000)
 
+//Stop context menus on the canvas
+document.querySelector(".graph").addEventListener("contextmenu", event => event.preventDefault())
+
+//Create FPS counter
 const FPSCounter = document.createElement("div")
 FPSCounter.setAttribute(
 	"style",

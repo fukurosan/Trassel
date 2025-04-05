@@ -310,7 +310,7 @@ export class WebGLRenderer {
 				align: "center",
 				fill: this.getHexColor(node.rendererOptions?.textColor || Env.DEFAULT_RENDERER_NODE_TEXT_COLOR)
 			})
-			const label = node.rendererOptions?.label || node.id
+			const label = node.rendererOptions?.label || `${node.id}`
 			const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 			let processedLabel = measurements.lines.shift()
 			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight >= 40) || (nodeShape !== "rectangle" && node.shape.radius > 40)
@@ -483,6 +483,8 @@ export class WebGLRenderer {
 				markerSource,
 				markerTarget,
 				text: null,
+				isSelected: false,
+				selected: null,
 				edgeCounter: {
 					//Placeholder, this is computed in a different function
 					total: -1,
@@ -539,6 +541,20 @@ export class WebGLRenderer {
 						color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE)
 					})
 					textContainer.addChildAt(textBackground, 0)
+					//Make it selectable
+					const selectedGfx = new PIXI.Graphics()
+					edge.rendererInternals.selected = selectedGfx
+					selectedGfx.roundRect(
+						-(width / 2 + FOCUS_SHAPE_SIZE_HALF),
+						-(height / 2 + FOCUS_SHAPE_SIZE_HALF),
+						width + FOCUS_SHAPE_SIZE_HALF * 2,
+						height + FOCUS_SHAPE_SIZE_HALF * 2,
+						12
+					)
+					selectedGfx.fill(this.primaryColor)
+					selectedGfx.alpha = 0
+					textContainer.addChildAt(selectedGfx, 0)
+					//Make it focusable
 					const textFocusBackground = new PIXI.Graphics()
 					const textFocusBackground2 = new PIXI.Graphics()
 					textFocusBackground.roundRect(
@@ -582,6 +598,7 @@ export class WebGLRenderer {
 							})
 						}
 					}
+					//Make it clickable
 					const onClick = event => {
 						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
 					}
@@ -590,8 +607,10 @@ export class WebGLRenderer {
 					}
 					textContainer.on("pointerover", pointerOver)
 					textContainer.on("pointerout", pointerOut)
-					textContainer.on("click", onClick)
-					textContainer.on("rightclick", onRightClick)
+					if (edge.rendererOptions.isInteractive) {
+						textContainer.on("click", onClick)
+						textContainer.on("rightclick", onRightClick)
+					}
 				}
 				edgeLabelContainer.addChild(textContainer)
 				edge.rendererInternals.text = textContainer
@@ -658,28 +677,36 @@ export class WebGLRenderer {
 				const lassoEndY = rectTopLeftY + height
 				const coveredSelection = new Set(Array.from(lastLassoCoveredSelection))
 				let selectionChanged = false
-				const removed = []
-				const added = []
-				this.nodes.forEach(node => {
+				const removedNodes = []
+				const addedNodes = []
+				const removedEdges = []
+				const addedEdges = []
+				;[...this.nodes, ...this.edges.filter(edge => edge.rendererOptions?.isInteractive)].forEach(nodeOrEdge => {
+					const isNode = !!nodeOrEdge.shape
+					const width = isNode ? nodeOrEdge.shape.width / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.width / 2
+					const height = isNode ? nodeOrEdge.shape.height / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.height / 2
+					const x = isNode ? nodeOrEdge.x : nodeOrEdge.rendererInternals.text.x
+					const y = isNode ? nodeOrEdge.y : nodeOrEdge.rendererInternals.text.y
+					const id = isNode ? nodeOrEdge.id : `${nodeOrEdge.sourceNode}-${nodeOrEdge.targetNode}`
 					if (
-						node.x >= Math.min(rectTopLeftX, lassoEndX) &&
-						node.y >= Math.min(rectTopLeftY, lassoEndY) &&
-						node.x + (node.shape.width || node.shape.radius) <= Math.max(lassoEndX, rectTopLeftX) &&
-						node.y + (node.shape.height || node.shape.radius) <= Math.max(lassoEndY, rectTopLeftY)
+						x >= Math.min(rectTopLeftX, lassoEndX) &&
+						y >= Math.min(rectTopLeftY, lassoEndY) &&
+						x + width <= Math.max(lassoEndX, rectTopLeftX) &&
+						y + height <= Math.max(lassoEndY, rectTopLeftY)
 					) {
-						if (!lastLassoCoveredSelection.has(node.id)) {
-							added.push(node)
-							coveredSelection.add(node.id)
+						if (!lastLassoCoveredSelection.has(id)) {
+							isNode ? addedNodes.push(nodeOrEdge) : addedEdges.push(nodeOrEdge)
+							coveredSelection.add(id)
 							selectionChanged = true
 						}
-					} else if (lastLassoCoveredSelection.has(node.id)) {
-						removed.push(node)
-						coveredSelection.delete(node.id)
+					} else if (lastLassoCoveredSelection.has(id)) {
+						isNode ? removedNodes.push(nodeOrEdge) : removedEdges.push(nodeOrEdge)
+						coveredSelection.delete(id)
 						selectionChanged = true
 					}
 				})
 				if (selectionChanged) {
-					this.triggerEvent("lassoupdate", { added, removed, selection: Array.from(coveredSelection) })
+					this.triggerEvent("lassoupdate", { addedNodes, removedNodes, addedEdges, removedEdges, selection: Array.from(coveredSelection) })
 					lastLassoCoveredSelection = coveredSelection
 				}
 				this.render()
@@ -709,7 +736,7 @@ export class WebGLRenderer {
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(nodes, value = null) {
+	toggleSelectNodes(nodes, value = null) {
 		for (const node of nodes) {
 			if (typeof value !== "boolean") {
 				node.rendererInternals.isSelected = !node.rendererInternals.isSelected
@@ -720,6 +747,29 @@ export class WebGLRenderer {
 				node.rendererInternals.selected.alpha = 1
 			} else {
 				node.rendererInternals.selected.alpha = 0
+			}
+		}
+		this.render()
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		for (const edge of edges) {
+			if (edge.rendererOptions.isInteractive) {
+				if (typeof value !== "boolean") {
+					edge.rendererInternals.isSelected = !edge.rendererInternals.isSelected
+				} else {
+					edge.rendererInternals.isSelected = value
+				}
+				if (edge.rendererInternals.isSelected) {
+					edge.rendererInternals.selected.alpha = 1
+				} else {
+					edge.rendererInternals.selected.alpha = 0
+				}
 			}
 		}
 		this.render()
@@ -744,21 +794,56 @@ export class WebGLRenderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/nodesandedges").IBasicNode} - Node to check
+	 * @param {import("../model/nodesandedges").RendererNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
-		return !!node?.renderer?._private?.isSelected
+		return !!node?.rendererInternals?.isSelected
+	}
+
+	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return !!edge?.rendererInternals?.isSelected
 	}
 
 	/**
 	 * Clears all node selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
 	 */
-	clearAllNodeSelections() {
+	clearAllNodeSelections(shouldRender = true) {
 		this.nodes.forEach(node => {
 			node.rendererInternals.isSelected = false
 			node.rendererInternals.selected.alpha = 0
 		})
+		if (shouldRender) this.render()
+	}
+
+	/**
+	 * Clears all edge selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
+	 */
+	clearAllEdgeSelections(shouldRender = true) {
+		this.edges.forEach(edge => {
+			if (edge.rendererOptions?.isInteractive) {
+				edge.rendererInternals.isSelected = false
+				if (edge.rendererInternals.selected) {
+					edge.rendererInternals.selected.alpha = 0
+				}
+			}
+		})
+		if (shouldRender) this.render()
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.clearAllNodeSelections(false)
+		this.clearAllEdgeSelections(false)
 		this.render()
 	}
 
@@ -1176,7 +1261,11 @@ export class WebGLRenderer {
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				line.moveTo(pathStart.x, pathStart.y)
-				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
+				if (edge.rendererInternals.edgeCounter.total > 1) {
+					line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
+				} else {
+					line.lineTo(pathEnd.x, pathEnd.y)
+				}
 			}
 			//Compute marker positions (arrow heads)
 			if (this.lineType === "taxi" && source !== target) {

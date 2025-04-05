@@ -134,7 +134,8 @@ export interface TrasselEdge extends IBasicEdge {
 		line: Graphics
 		markerSource: Sprite
 		markerTarget: Sprite
-		text: null | Text
+		text: null | Container
+		isFocused: boolean
 		edgeCounter: {
 			total: number
 			index: number

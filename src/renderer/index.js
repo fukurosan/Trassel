@@ -45,7 +45,16 @@ export class Renderer {
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
 	toggleSelectNodes(nodes, value = null) {
-		this.WebGLRenderer.toggleSelectNode(nodes, value)
+		this.WebGLRenderer.toggleSelectNodes(nodes, value)
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		this.WebGLRenderer.toggleSelectEdges(edges, value)
 	}
 
 	/**
@@ -67,10 +76,33 @@ export class Renderer {
 	}
 
 	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return this.WebGLRenderer.isEdgeSelected(edge)
+	}
+
+	/**
 	 * Clears all node selections
 	 */
 	clearAllNodeSelections() {
 		this.WebGLRenderer.clearAllNodeSelections()
+	}
+
+	/**
+	 * Clears all edge selections
+	 */
+	clearAllEdgeSelections() {
+		this.WebGLRenderer.clearAllEdgeSelections()
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.WebGLRenderer.clearAllSelections()
 	}
 
 	/**
