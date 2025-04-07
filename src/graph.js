@@ -200,6 +200,21 @@ export default class Graph {
 	}
 
 	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.layout.clearAllLayoutComponents()
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.layout.hasLayoutComponent(id)
+	}
+
+	/**
 	 * Removes a component with the specified ID
 	 * @param {string} id
 	 * @returns {Graph}

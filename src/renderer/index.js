@@ -123,6 +123,14 @@ export class Renderer {
 	}
 
 	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		this.WebGLRenderer.zoomToNode(nodeID)
+	}
+
+	/**
 	 * Sets new coordinates and scale for the renderer's stage
 	 * @param {number} x
 	 * @param {number} y

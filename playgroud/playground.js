@@ -1,73 +1,15 @@
 import "./playground.css"
 import * as Trassel from "../src/index"
-import data from "./foaf.json"
+import patents from "./circle.json"
+import foaf from "./foaf.json"
+import smallgraph from "./graph.json"
+import lesmiserables from "./lemiserables.json"
 window.Trassel = Trassel
 
-// Import graph
-let nodes = data.nodes
-let edges = data.edges
-let templates = data.templates ? data.templates : undefined
-
-//Heavy graph
-// nodes = []
-// edges = []
-// templates = {}
-// for (let i = 0; i < 2000; i++) {
-// 	nodes.push({
-// 		id: "n" + i,
-// 		mass: 1000
-// 	})
-// }
-// for (let i = 0; i < 5000; i++) {
-// 	edges.push({
-// 		sourceNode: "n" + Math.round(Math.abs(i / 5)),
-// 		targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
-// 		visibleDistance: 100,
-// 		rendererOptions: {
-// 			label: "Hello World!!!!",
-// 			labelTextColor: "#00594E"
-// 		}
-// 	})
-// }
-
-//Heavy graph 2
-// nodes = []
-// edges = []
-// templates = {}
-// for (let i = 0; i < 1000; i++) {
-// 	nodes.push({
-// 		id: "n" + i,
-// 		shape: {
-// 			id: "circle",
-// 			radius: 50
-// 		}
-// 	})
-// 	edges.push({
-// 		sourceNode: "n" + Math.floor(Math.sqrt(i)),
-// 		targetNode: "n" + i,
-// 		visibleDistance: 100,
-// 		rendererOptions: {
-// 			color: "#00594E",
-// 			label: "Hello World!!!!"
-// 		}
-// 	})
-// }
-
-//Lattice
-// const n = 20
-// nodes = []
-// edges = []
-// for (let i = 0; i < n * n; i++) {
-// 	nodes.push({ id: i, shape: { id: "circle", radius: 20 }, mass: 500 })
-// }
-// for (let y = 0; y < n; y++) {
-// 	for (let x = 0; x < n; x++) {
-// 		if (y > 0) edges.push({ sourceNode: (y - 1) * n + x, targetNode: y * n + x, visibleDistance: 1, strength: 2 })
-// 		if (x > 0) edges.push({ sourceNode: y * n + (x - 1), targetNode: y * n + x, visibleDistance: 1, strength: 2 })
-// 	}
-// }
-
 //Initialize graph
+let nodes = []
+let edges = []
+let templates = undefined
 const graph = new Trassel.Trassel(nodes, edges, { templates, layout: { updateCap: Infinity } })
 const renderer = new Trassel.Renderer(document.querySelector(".graph"), graph.getNodes(), graph.getEdges())
 await renderer.initialize()
@@ -122,7 +64,7 @@ renderer.on("lassoupdate", event => {
 	renderer.toggleSelectEdges([...event.addedEdges, ...event.removedEdges])
 })
 
-//Configure layout
+//Configure default layout
 graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
 graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
 graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
@@ -136,7 +78,6 @@ graph.on("layoutupdate", () => {
 
 //Start layout loop
 graph.startLayoutLoop()
-
 
 //Zoom to fit after 1 second
 setTimeout(() => {
@@ -165,3 +106,186 @@ setInterval(() => {
 		lastDate = now
 	}
 }, 0)
+
+//Define data collections and set initial data
+window.updateGraphData = async name => {
+	graph.getNodes().forEach(node => ((node.fx = null), (node.fy = null)))
+	if (name === "patents") {
+		nodes = patents.nodes
+		edges = patents.edges
+		templates = patents.templates
+	} else if (name === "foaf") {
+		nodes = foaf.nodes
+		edges = foaf.edges
+		templates = foaf.templates
+	} else if (name === "smallgraph") {
+		nodes = smallgraph.nodes
+		edges = smallgraph.edges
+		templates = smallgraph.templates
+	} else if (name === "lesmiserables") {
+		nodes = lesmiserables.nodes
+		edges = lesmiserables.edges
+		templates = lesmiserables.templates
+	} else if (name === "snake") {
+		nodes = []
+		edges = []
+		templates = {}
+		for (let i = 0; i < 2000; i++) {
+			nodes.push({
+				id: "n" + i,
+				mass: 1000
+			})
+		}
+		for (let i = 0; i < 5000; i++) {
+			edges.push({
+				sourceNode: "n" + Math.round(Math.abs(i / 5)),
+				targetNode: "n" + Math.round(Math.abs(i / 5 - 1)),
+				visibleDistance: 100,
+				rendererOptions: {
+					label: "Hello World!!!!",
+					labelTextColor: "#00594E"
+				}
+			})
+		}
+	} else if (name === "clusters") {
+		nodes = []
+		edges = []
+		templates = {}
+		for (let i = 0; i < 1000; i++) {
+			nodes.push({
+				id: "n" + i,
+				shape: {
+					id: "circle",
+					radius: 50
+				}
+			})
+			edges.push({
+				sourceNode: "n" + Math.floor(Math.sqrt(i)),
+				targetNode: "n" + i,
+				visibleDistance: 100,
+				rendererOptions: {
+					color: "#00594E",
+					label: "Hello World!!!!"
+				}
+			})
+		}
+	} else if (name === "lattice") {
+		const n = 20
+		nodes = []
+		edges = []
+		for (let i = 0; i < n * n; i++) {
+			nodes.push({ id: `n${i}`, shape: { id: "circle", radius: 20 }, mass: 500 })
+		}
+		for (let y = 0; y < n; y++) {
+			for (let x = 0; x < n; x++) {
+				if (y > 0) edges.push({ sourceNode: `n${(y - 1) * n + x}`, targetNode: `n${y * n + x}`, visibleDistance: 1, strength: 2 })
+				if (x > 0) edges.push({ sourceNode: `n${y * n + (x - 1)}`, targetNode: `n${y * n + x}`, visibleDistance: 1, strength: 2 })
+			}
+		}
+	}
+	graph.stopLayoutLoop()
+	graph.updateNodesAndEdges(nodes, edges, templates)
+	await renderer.updateNodesAndEdges(nodes, edges)
+	graph.setLayoutAlpha(1)
+	graph.startLayoutLoop()
+}
+//Set the initial data
+window.updateGraphData("foaf")
+
+//Functions for the UI
+//Execute a graph search
+window.searchGraph = criteria => {
+	renderer.clearAllDisabledStatuses()
+	renderer.disableNodes(node => !node.id.includes(criteria))
+}
+//Clear the search
+window.clearSearch = () => {
+	renderer.clearAllDisabledStatuses()
+}
+
+//Execute a node zoom
+window.zoomToNode = id => {
+	renderer.zoomToNode(id)
+}
+
+//Execute zoom to fit
+window.zoomToFitGraph = () => {
+	renderer.zoomToFit()
+}
+
+//Update layout
+window.updateLayoutGraph = name => {
+	graph.stopLayoutLoop()
+	graph.getNodes().forEach(node => ((node.fx = null), (node.fy = null)))
+	graph.clearAllLayoutComponents()
+	if (name === "force") {
+		graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
+		graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
+		graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
+		graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
+		graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
+	} else if (name === "force2") {
+		graph.addLayoutComponent("force", new Trassel.LayoutComponents.Force())
+	} else if (name === "hierarchy") {
+		graph.addLayoutComponent("hierarchy", new Trassel.LayoutComponents.Hierarchy())
+	} else if (name === "connection") {
+		graph.addLayoutComponent("connections", new Trassel.LayoutComponents.Connections())
+	} else if (name === "tree") {
+		graph.addLayoutComponent("tree", new Trassel.LayoutComponents.Tree())
+	} else if (name === "cluster") {
+		graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
+		graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
+		graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
+		graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
+		graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
+		graph.addLayoutComponent("cluster", new Trassel.LayoutComponents.Cluster())
+	} else if (name === "fan") {
+		graph.addLayoutComponent("fan", new Trassel.LayoutComponents.Fan())
+	} else if (name === "grid") {
+		graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
+		graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
+		graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
+		graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
+		graph.addLayoutComponent("link", new Trassel.LayoutComponents.Link())
+		graph.addLayoutComponent("grid", new Trassel.LayoutComponents.Grid())
+	} else if (name === "matrix") {
+		graph.addLayoutComponent("matrix", new Trassel.LayoutComponents.Matrix())
+	} else if (name === "radial") {
+		graph.addLayoutComponent("nbody", new Trassel.LayoutComponents.NBody())
+		graph.addLayoutComponent("collide", new Trassel.LayoutComponents.Collision())
+		graph.addLayoutComponent("x", new Trassel.LayoutComponents.Attraction({ isHorizontal: true }))
+		graph.addLayoutComponent("y", new Trassel.LayoutComponents.Attraction({ isHorizontal: false }))
+		graph.addLayoutComponent("radial", new Trassel.LayoutComponents.Radial())
+	}
+	graph.setLayoutAlpha(1)
+	graph.startLayoutLoop()
+}
+
+//Update line type
+window.updateLineTypeGraph = name => {
+	renderer.setLineType(name)
+}
+
+//Toggle bounding force
+window.toggleBoundingForce = () => {
+	graph.stopLayoutLoop()
+	if (graph.hasLayoutComponent("bounding")) {
+		graph.removeLayoutComponent("bounding")
+	} else {
+		graph.addLayoutComponent("bounding", new Trassel.LayoutComponents.BoundingBox({ width: 1500, height: 1500 }))
+	}
+	graph.setLayoutAlpha(1)
+	graph.startLayoutLoop()
+}
+
+//Toggle center force
+window.toggleCenterForce = () => {
+	graph.stopLayoutLoop()
+	if (graph.hasLayoutComponent("Center")) {
+		graph.removeLayoutComponent("Center")
+	} else {
+		graph.addLayoutComponent("Center", new Trassel.LayoutComponents.Center())
+	}
+	graph.setLayoutAlpha(1)
+	graph.startLayoutLoop()
+}

@@ -85,6 +85,7 @@ export interface TrasselNode extends IBasicNode {
 		selected: Graphics
 		isFocused: false
 		isSelected: false
+		isDisabled: false
 	}
 }
 
@@ -135,6 +136,8 @@ export interface TrasselEdge extends IBasicEdge {
 		markerTarget: Sprite
 		text: null | Container
 		isFocused: boolean
+		isSelected: boolean
+		isDisabled: boolean
 		edgeCounter: {
 			total: number
 			index: number

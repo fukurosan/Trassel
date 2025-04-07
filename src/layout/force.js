@@ -10,7 +10,7 @@ export default class Force extends LayoutComponent {
 	 * @param {number=} options.gravity - Strength of the gravity in the layout
 	 * @param {number=} options.speed - The speed at which things move in the graph.
 	 */
-	constructor({ size = null, speed = 0.1, gravity = 0.75 } = {}) {
+	constructor({ size = null, speed = 0.2, gravity = 0.75 } = {}) {
 		super()
 		this.size = size
 		this.gravity = gravity

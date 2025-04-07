@@ -13,7 +13,7 @@
           {"id": 10, "template": { "rendererOptions": { "textColor": "#ffffff", "backgroundColor": "#0fa2e7" } }}
         ],
         "edges": [
-          {"id": 1, "template": { "visibleDistance": 500 }}
+          {"id": 1, "template": { "visibleDistance": 400 }}
         ]
     },
     "nodes": [

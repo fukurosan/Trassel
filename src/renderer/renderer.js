@@ -288,7 +288,8 @@ export class WebGLRenderer {
 				icon: null,
 				selected: new PIXI.Graphics(),
 				isFocused: false,
-				isSelected: false
+				isSelected: false,
+				isDisabled: false
 			}
 			//Draw shape
 			const nodeGfx = node.rendererInternals.node
@@ -362,7 +363,7 @@ export class WebGLRenderer {
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
-					12
+					8
 				)
 			} else {
 				selectedGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF)
@@ -417,14 +418,14 @@ export class WebGLRenderer {
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
-					12
+					8
 				)
 				focusGfx2.roundRect(
 					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 4,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 4,
-					16
+					12
 				)
 			} else {
 				focusGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF)
@@ -499,6 +500,8 @@ export class WebGLRenderer {
 				markerTarget,
 				text: null,
 				isSelected: false,
+				isFocused: false,
+				isDisabled: false,
 				selected: null,
 				edgeCounter: {
 					//Placeholder, this is computed in a different function
@@ -564,7 +567,7 @@ export class WebGLRenderer {
 						-(height / 2 + FOCUS_SHAPE_SIZE_HALF),
 						width + FOCUS_SHAPE_SIZE_HALF * 2,
 						height + FOCUS_SHAPE_SIZE_HALF * 2,
-						12
+						8
 					)
 					selectedGfx.fill(this.primaryColor)
 					selectedGfx.alpha = 0
@@ -701,30 +704,32 @@ export class WebGLRenderer {
 				const addedNodes = []
 				const removedEdges = []
 				const addedEdges = []
-				;[...this.nodes, ...this.edges.filter(edge => edge.rendererOptions?.isInteractive)].forEach(nodeOrEdge => {
-					const isNode = !!nodeOrEdge.shape
-					const width = isNode ? nodeOrEdge.shape.width / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.width / 2
-					const height = isNode ? nodeOrEdge.shape.height / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.height / 2
-					const x = isNode ? nodeOrEdge.x : nodeOrEdge.rendererInternals.text.x
-					const y = isNode ? nodeOrEdge.y : nodeOrEdge.rendererInternals.text.y
-					const id = isNode ? nodeOrEdge.id : `${nodeOrEdge.sourceNode}-${nodeOrEdge.targetNode}`
-					if (
-						x >= Math.min(rectTopLeftX, lassoEndX) &&
-						y >= Math.min(rectTopLeftY, lassoEndY) &&
-						x + width <= Math.max(lassoEndX, rectTopLeftX) &&
-						y + height <= Math.max(lassoEndY, rectTopLeftY)
-					) {
-						if (!lastLassoCoveredSelection.has(id)) {
-							isNode ? addedNodes.push(nodeOrEdge) : addedEdges.push(nodeOrEdge)
-							coveredSelection.add(id)
+				;[...this.nodes, ...this.edges.filter(edge => edge.rendererOptions?.isInteractive && !edge.rendererInternals.isDisabled)]
+					.filter(nodeOrEdge => !nodeOrEdge.rendererInternals.isDisabled)
+					.forEach(nodeOrEdge => {
+						const isNode = !!nodeOrEdge.shape
+						const width = isNode ? nodeOrEdge.shape.width / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.width / 2
+						const height = isNode ? nodeOrEdge.shape.height / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.height / 2
+						const x = isNode ? nodeOrEdge.x : nodeOrEdge.rendererInternals.text.x
+						const y = isNode ? nodeOrEdge.y : nodeOrEdge.rendererInternals.text.y
+						const id = isNode ? nodeOrEdge.id : `${nodeOrEdge.sourceNode}-${nodeOrEdge.targetNode}`
+						if (
+							x >= Math.min(rectTopLeftX, lassoEndX) &&
+							y >= Math.min(rectTopLeftY, lassoEndY) &&
+							x + width <= Math.max(lassoEndX, rectTopLeftX) &&
+							y + height <= Math.max(lassoEndY, rectTopLeftY)
+						) {
+							if (!lastLassoCoveredSelection.has(id)) {
+								isNode ? addedNodes.push(nodeOrEdge) : addedEdges.push(nodeOrEdge)
+								coveredSelection.add(id)
+								selectionChanged = true
+							}
+						} else if (lastLassoCoveredSelection.has(id)) {
+							isNode ? removedNodes.push(nodeOrEdge) : removedEdges.push(nodeOrEdge)
+							coveredSelection.delete(id)
 							selectionChanged = true
 						}
-					} else if (lastLassoCoveredSelection.has(id)) {
-						isNode ? removedNodes.push(nodeOrEdge) : removedEdges.push(nodeOrEdge)
-						coveredSelection.delete(id)
-						selectionChanged = true
-					}
-				})
+					})
 				if (selectionChanged) {
 					this.triggerEvent("lassoupdate", { addedNodes, removedNodes, addedEdges, removedEdges, selection: Array.from(coveredSelection) })
 					lastLassoCoveredSelection = coveredSelection
@@ -899,22 +904,40 @@ export class WebGLRenderer {
 		const newScale = Math.min(widthRatio, heightRatio)
 		const midX = (sizeCoordinates.highestX + sizeCoordinates.lowestX) / 2
 		const midY = (sizeCoordinates.highestY + sizeCoordinates.lowestY) / 2
-		const animation = {
-			sourceX: this.stage.x,
-			sourceY: this.stage.y,
-			sourceScale: this.stage.scale._x,
-			targetX: -(midX * newScale) + parentWidth / 2,
-			targetY: -(midY * newScale) + parentHeight / 2,
-			targetScale: newScale
+		const targetX = -(midX * newScale) + parentWidth / 2
+		const targetY = -(midY * newScale) + parentHeight / 2
+		const targetScale = newScale
+		this.zoomTo(targetX, targetY, targetScale, duration)
+	}
+
+	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		const node = this.nodes.find(node => node.id === nodeID)
+		if (node) {
+			const width = this.element.offsetWidth / 2
+			const height = this.element.offsetHeight / 2
+			const scale = 1.5
+			const x = -node.x * scale + width
+			const y = -node.y * scale + height
+			this.zoomTo(x, y, scale)
 		}
+	}
+
+	zoomTo(x, y, scale, duration = 200) {
 		const startTime = Date.now()
+		const sourceX = this.stage.x
+		const sourceY = this.stage.y
+		const sourceScale = this.stage.scale._x
 		const loop = () => {
 			setTimeout(() => {
 				const deltaTime = Date.now() - startTime
 				const percentOfAnimation = Math.min(deltaTime / duration, 1)
-				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation
-				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation
-				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation
+				const nextX = sourceX + (x - sourceX) * percentOfAnimation
+				const nextY = sourceY + (y - sourceY) * percentOfAnimation
+				const nextScale = sourceScale + (scale - sourceScale) * percentOfAnimation
 				this.stage.updateTransform({ x: nextX, y: nextY, scaleX: nextScale, scaleY: nextScale })
 				this.render()
 				if (deltaTime < duration) {
@@ -962,7 +985,6 @@ export class WebGLRenderer {
 	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
-		this.clearAllFilters()
 		const includedNodes = new Set()
 		this.nodes
 			.filter(node => fn(node))

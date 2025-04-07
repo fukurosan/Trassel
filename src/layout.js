@@ -143,6 +143,21 @@ export default class Layout {
 	}
 
 	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.components.clear()
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.components.has(id)
+	}
+
+	/**
 	 * Finds the node closest to the provided coordinates
 	 * @param {number} x
 	 * @param {number} y
