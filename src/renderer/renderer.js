@@ -1230,11 +1230,23 @@ export class WebGLRenderer {
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
 			} else if (this.lineType === "taxi") {
-				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
-				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
-				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
-				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
-				const midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
+				let midPointY
+				if (edge.rendererInternals.edgeCounter.total > 1) {
+					pathStart = this.calculateIntersection(target, source, this.LINE_MARGIN_PX)
+					pathEnd = this.calculateIntersection(source, target, this.LINE_MARGIN_PX)
+					const dividedDistance = (pathEnd.y - pathStart.y) / edge.rendererInternals.edgeCounter.total
+					midPointY = pathStart.y + dividedDistance * edge.rendererInternals.edgeCounter.index + dividedDistance / 2
+					curvePoint = {
+						x: pathStart.x + (pathEnd.x - pathStart.x) / 2,
+						y: midPointY
+					}
+				} else {
+					curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
+					midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
+				}
+				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: midPointY }
 				line.moveTo(pathStart.x, pathStart.y)
 				line.lineTo(pathStart.x, midPointY)
 				line.lineTo(pathEnd.x, midPointY)
