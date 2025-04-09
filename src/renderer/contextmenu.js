@@ -4,7 +4,7 @@ export class ContextMenu {
 		this.shadowRoot = this.rootElement.attachShadow({ mode: "open" })
 		this.menu = document.createElement("div")
 		this.shadowRoot.appendChild(this.menu)
-		this.menu.setAttribute("style", "position:fixed;top:0;left:0;display:none;z-index:999999;")
+		this.menu.setAttribute("style", "position:fixed;top:0;left:0;display:none;z-index:9999999;")
 		document.body.appendChild(this.rootElement)
 		this.menu.addEventListener("click", () => this.hideMenu())
 	}

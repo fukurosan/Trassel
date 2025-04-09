@@ -5,7 +5,7 @@ export class Tooltip {
 		this.tooltip.style.top = "0"
 		this.tooltip.style.left = "0"
 		this.tooltip.style.display = "none"
-		this.tooltip.style.zIndex = "9999999"
+		this.tooltip.style.zIndex = "999999"
 		this.tooltip.style.background = "#0f172a"
 		this.tooltip.style.color = "#f1f5f9"
 		this.tooltip.style.fontFamily = "sans-serif"
