@@ -84,6 +84,8 @@ const { x, y } = renderer.viewportToLocalCoordinates(0, 0)
 const { x, y } = renderer.localToViewportCoordinates(0, 0)
 ```
 
+You can also add zoom buttons to the canvas by providing the "zoomControls" options parameter in the Renderer's constructor. 
+
 ### Selection
 
 Selecting nodes is a common type of interaction in network visualization tools. You can instruct Trassel's renderer to select (highlight) nodes in the graph with an outline. This can be combined with event listeners to create powerful interactions with minimal code.
@@ -171,7 +173,7 @@ const renderer = new Renderer(element, nodes, edges, { lineType: "taxi" })
 renderer.setLineType("line")
 ```
 
-## markers
+## Markers
 
 By default the Trassel renderer will draw an arrow head marker on the target side of each edge, and nothing on the source side. This can be configured in the edge data by providing a sourceMarker and targetMarker property inside the renderer property object.
 
@@ -179,6 +181,41 @@ By default the Trassel renderer will draw an arrow head marker on the target sid
 //Possible options are "arrow", "hollowArrow", or "none"
 const edgeWithNoMarkers = { sourceNode: "n0", targetNode: "n0", rendererOptions: { markerSource: "none", markerTarget: "none" } }
 ```
+
+## Context Menus
+
+You can easily add context menus by providing a contextMenuBuilder parameter to the renderer's options in the constructor.
+
+The provided should be a function that return a valid context menu strucutre, given an object as input.
+
+When executed your function will receive either a node, edge, or null (in the case of the canvas) and from this information you build the menu you want to see. The menu structure is an array of items, where each item has a label property, optional icon property, and an action. The action can either be a function (in which case it will be executed when the button is clicked) or a new menu (in which case it will become a sub-menu when the parent one is hovered). It is also possible to provide a string value of "divider" as an item in the array, which will create a line separating previous and following items.
+
+For example:
+```javascript
+const contextMenuBuilder = (entity) => {
+	return [
+		{
+			label: "Button 1"
+			icon: "icon-url",
+			action: () => console.log("hello world")
+		},
+		"divider",
+		{
+			label: "Button 2"
+			icon: "icon-url",
+			action: [
+				{
+					label: "Button 2.1"
+					icon: "icon-url",
+					action: () => console.log("hello world")
+				}
+			]
+		},
+	]
+}
+new Trassel(element, nodes, edges, { contextMenuBuilder })
+```
+
 
 ## Events
 
@@ -219,7 +256,19 @@ interface IRendererOptions {
 	primaryColor?: number
 	/** Color of the graph backdrop */
 	backdropColor?: number
+	/** Should interactive edge labels be rotated? */
+	rotateEdgeLabels?: boolean
+	/** Should the zoom controls be activated? */
+	zoomControls?: boolean
+	/** Context Menu Builder */
+	contextMenuBuilder?: ContextMenu
 }
+
+type ContextMenu = (data: INodeWithRendererOptions | IEdgeWithRendererOptions | null) => ("divider" | {
+	label: string
+	icon?: string
+	action: ((...args: any) => any) | ContextMenu[]
+})[]
 
 /** Can be set on node objects using "rendererOptions" */
 interface INodeRendererOptions {
@@ -261,6 +310,10 @@ interface IEdgeRendererOptions {
 interface INodeWithRendererOptions {
 	/** Unique identifier for the node */
     id: string | number
+	/** X coordinate */
+	x: number
+	/** Y coordinate */
+	y: number
     /** Options for the renderer */
 	rendererOptions?: INodeRendererOptions
 	/** Shape of the node */

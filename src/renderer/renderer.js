@@ -1,6 +1,9 @@
 import * as PIXI from "pixi.js"
 import { OrthogonalConnector } from "./orthogonalRouter"
 import { Env } from "../config/env"
+import { Tooltip } from "./tooltip"
+import { ZoomControls } from "./zoombuttons"
+import { ContextMenu } from "./contextmenu"
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
@@ -12,7 +15,7 @@ export class WebGLRenderer {
 	 * @param {HTMLElement} element
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
-	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
 	 */
 	constructor(element, nodes, edges, options) {
 		/** @type {HTMLElement} */
@@ -22,7 +25,7 @@ export class WebGLRenderer {
 		this.nodes = nodes
 		/** @type {import("../model/nodesandedges").InternalRendererEdge[]} */
 		this.edges = edges
-		/** @type {import("../model/rendereroptions").IRendererOptions[]} */
+		/** @type {import("../model/rendereroptions").IRendererOptions} */
 		this.options = options
 		/** @type {PIXI.Renderer} */
 		this.renderer = null
@@ -40,6 +43,12 @@ export class WebGLRenderer {
 		this.sceneSize = Env.RENDERER_SCENE_SIZE
 		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : Env.DEFAULT_RENDERER_PRIMARY_COLOR
 		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : Env.DEFAULT_RENDERER_BACKGROUND_COLOR
+		this.tooltip = new Tooltip()
+		this.contextMenu = new ContextMenu()
+		this.contextMenuBuilder = options?.contextMenuBuilder || null
+		if (options?.zoomControls) {
+			this.zoomControls = new ZoomControls(this.element, this)
+		}
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
@@ -188,12 +197,15 @@ export class WebGLRenderer {
 		}
 		const onClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdropclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+				this.triggerEvent("backdropclick", { position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
 			}
 		}
 		const onRightClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdroprightclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+				this.triggerEvent("backdroprightclick", { position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+				if (this.contextMenuBuilder) {
+					this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(null))
+				}
 			}
 		}
 		this.backdrop
@@ -439,11 +451,13 @@ export class WebGLRenderer {
 					node.rendererInternals.container.addChildAt(focusGfx2, 0)
 					node.rendererInternals.isFocused = true
 					this.render()
-					this.triggerEvent("entityhoverstart", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityhoverstart", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+					this.tooltip.showTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY, label)
 				}
 			}
 			const pointerMove = event => {
-				this.triggerEvent("entityhovermove", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+				this.triggerEvent("entityhovermove", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+				this.tooltip.moveTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY)
 			}
 			const pointerOut = () => {
 				if (node.rendererInternals.isFocused) {
@@ -452,6 +466,7 @@ export class WebGLRenderer {
 					node.rendererInternals.isFocused = false
 					this.render()
 					this.triggerEvent("entityhoverend", { node })
+					this.tooltip.hideTooltip()
 				}
 			}
 			nodeGfx.on("pointerover", pointerOver)
@@ -460,12 +475,15 @@ export class WebGLRenderer {
 			//Make node clickable
 			const onClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
 				}
 			}
 			const onRightClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityrightclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityrightclick", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+					if (this.contextMenuBuilder) {
+						this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(node))
+					}
 				}
 			}
 			nodeGfx.on("click", onClick)
@@ -601,14 +619,16 @@ export class WebGLRenderer {
 						this.render()
 						this.triggerEvent("edgelabelhoverstart", {
 							edge,
-							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
 						})
+						this.tooltip.showTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY, label)
 					}
 					const pointerMove = event => {
 						this.triggerEvent("edgelabelhovermove", {
 							edge,
-							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
 						})
+						this.tooltip.moveTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY)
 					}
 					const pointerOut = () => {
 						if (edge.rendererInternals.isFocused) {
@@ -617,6 +637,7 @@ export class WebGLRenderer {
 							edge.rendererInternals.isFocused = false
 							this.render()
 							this.triggerEvent("edgelabelhoverend", { edge })
+							this.tooltip.hideTooltip()
 						}
 					}
 					textContainer.on("pointerover", pointerOver)
@@ -624,13 +645,16 @@ export class WebGLRenderer {
 					textContainer.on("pointerout", pointerOut)
 					//Make it clickable
 					const onClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
 					}
 					const onRightClick = event => {
 						this.triggerEvent("edgelabelrightclick", {
 							edge,
-							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
 						})
+						if (this.contextMenuBuilder) {
+							this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(edge))
+						}
 					}
 					textContainer.on("click", onClick)
 					textContainer.on("rightclick", onRightClick)

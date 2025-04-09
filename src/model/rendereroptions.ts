@@ -1,3 +1,4 @@
+import { contextMenuBuilder } from "./contextmenu"
 import { NodeID, RendererEdge, RendererNode } from "./nodesandedges"
 
 export type LineTypes = "line" | "taxi" | "orthogonal" | "cubicbezier"
@@ -14,6 +15,10 @@ export interface IRendererOptions {
 	backdropColor?: number | string
 	/** Should interactive edge labels be rotated? */
 	rotateEdgeLabels?: boolean
+	/** Should the zoom controls be activated? */
+	zoomControls?: boolean
+	/** Context Menu Builder */
+	contextMenuBuilder?: contextMenuBuilder
 }
 
 //Event types fired by the renderer

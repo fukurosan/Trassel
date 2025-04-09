@@ -9,7 +9,7 @@ export class Renderer {
 	 * @param {HTMLElement} element
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
-	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
 	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options)
