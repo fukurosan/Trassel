@@ -341,3 +341,8 @@ window.toggleCenterForce = () => {
 	graph.setLayoutAlpha(1)
 	graph.startLayoutLoop()
 }
+
+//Download as image
+window.exportToPng = () => {
+	renderer.exportToPng()
+}

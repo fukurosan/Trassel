@@ -175,6 +175,13 @@ export class Renderer {
 	}
 
 	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		return await this.WebGLRenderer.exportToPng()
+	}
+
+	/**
 	 * Cleanup function when dismounting.
 	 */
 	dismount() {

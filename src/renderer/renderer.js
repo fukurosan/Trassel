@@ -1038,6 +1038,26 @@ export class WebGLRenderer {
 	}
 
 	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		const oldIndex = this.stage.getChildIndex(this.backdrop)
+		this.stage.removeChild(this.backdrop)
+		PIXI.Culler.shared.cull(this.stage, { x: -25000, y: -25000, width: 50000, height: 50000 })
+		try {
+			const url = await this.renderer.extract.base64(this.stage)
+			const screenshot = document.createElement("a")
+			screenshot.download = "graph"
+			screenshot.href = url
+			screenshot.click()
+		} catch {
+			console.error("Graph is too large")
+		}
+		PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
+		this.stage.addChildAt(this.backdrop, oldIndex)
+	}
+
+	/**
 	 * Cleanup function when dismounting.
 	 */
 	dismount() {
