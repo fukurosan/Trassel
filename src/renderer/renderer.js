@@ -1358,7 +1358,7 @@ export class WebGLRenderer {
 				pathEnd = { x: finalStep.x, y: finalStep.y }
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				//We hijack the curvepoint parameter to use later for positioning the markers
-				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side }
+				curvePoint = { ...labelPoint, source: routeOptions.pointA.side, target: routeOptions.pointB.side }
 				if (edge.rendererOptions?.dotted) {
 					const dlb = new DashedLineBuilder(line)
 					dlb.moveTo(x, y)
