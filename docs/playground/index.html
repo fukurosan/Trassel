@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<!-- Development Playground for Trassel -->
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graph Playground</title>
+  <script type="module" crossorigin src="./assets/index-BLs83Ig5.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-B1Tt-A3n.css">
+</head>
+
+<body>
+  <div class="graph"></div>
+  <div class="sidebar">
+    <div class="sidebar-inner">
+      <svg id="close-button" onclick="toggleControlPanel()">
+        <line x1="1" y1="25" x2="25" y2="1" stroke-width="4" />
+        <line x1="1" y1="1" x2="25" y2="25" stroke-width="4" />
+      </svg>
+      <div class="control-panel-button" onclick="toggleControlPanel()">
+        <p>Control Panel</p>
+      </div>
+      <h1 style="text-align:center;">Trassel Graph</h1>
+      <hr />
+      <div>
+        <h2>Data</h2>
+        <select onchange="updateGraphData(event.target.value)">
+          <option>foaf</option>
+          <option>lesmiserables</option>
+          <option>patents</option>
+          <option>clusters</option>
+          <option>lattice</option>
+          <option>smallgraph</option>
+          <option>snake</option>
+        </select>
+      </div>
+      <hr />
+      <div>
+        <h2>Node Search</h2>
+        <input type="text" id="search-input" class="text-input" placeholder="Node ID..." />
+        <button onclick="searchGraph(document.getElementById('search-input').value)">Search</button>
+        <button onclick="clearSearch()">Clear</button>
+      </div>
+      <hr />
+      <div>
+        <h2>Zoom</h2>
+        <input type="text" id="zoom-nodeid" class="text-input" placeholder="Node ID..." />
+        <button onclick="zoomToNode(document.getElementById('zoom-nodeid').value)">Zoom To Node</button>
+        <button onclick="zoomToFitGraph()">Zoom To Fit</button>
+      </div>
+      <hr />
+      <div>
+        <h2>Layouts</h2>
+        <select onchange="updateLayoutGraph(event.target.value)">
+          <option>force</option>
+          <option>force2</option>
+          <option>hierarchy</option>
+          <option>connection</option>
+          <option>tree</option>
+          <option>cluster</option>
+          <option>fan</option>
+          <option>grid</option>
+          <option>matrix</option>
+          <option>radial</option>
+        </select>
+      </div>
+      <hr />
+      <div>
+        <h2>Line Types</h2>
+        <select onchange="updateLineTypeGraph(event.target.value)">
+          <option>line</option>
+          <option>cubicbezier</option>
+          <option>taxi</option>
+          <option>orthogonal</option>
+        </select>
+      </div>
+      <hr />
+      <div>
+        <h2>Other</h2>
+        <button onclick="toggleBoundingForce()">Bounding Box</button>
+        <button onclick="toggleCenterForce()">Center Force</button>
+        <button onclick="exportToPng()">Export to PNG</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    function toggleControlPanel() {
+      const panel = document.getElementsByClassName("sidebar")[0]
+      if (panel.style.transform) {
+        panel.style.transform = null
+      }
+      else {
+        panel.style.transform = "translateX(0)"
+      }
+    }
+  </script>
+</body>
+
+</html>

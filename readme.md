@@ -9,6 +9,8 @@
   Graph computing in JavaScript
   <br />
   Check out the <a target="_blank" href="https://fukurosan.github.io/Trassel/">Documentation</a> to learn more!
+  <br />
+  Check out the <a target="_blank" href="https://fukurosan.github.io/Trassel/playground">Demo Playground</a> as well!
 </div>
 
 ## What is this?

@@ -24,7 +24,7 @@ const BANNER = `/** @preserve @license @cc_on
 `
 export default defineConfig({
 	build: {
-		target: "esnext",
+		target: "modules",
 		outDir: `./${DIST_FOLDER}`,
 		emptyOutDir: false,
 		minify: "terser",

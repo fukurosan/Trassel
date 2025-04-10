@@ -1,5 +1,30 @@
 # Changelog
 
+### 0.2.0
+- Added hover tooltips
+- Added support for context menus
+- Added support for zoom control buttons
+- Added support for saving a graph to png
+- Added support for dashed lines for edges
+- Added ability to select edge labels
+- Added node and edge templates to make configuration easier
+- Fixed bug where zoom to fit would not center properly
+- Fixed bug where labels would not be positioned correctly for multi-edges
+- Fixed bug in Tree layout that would sometimes create strange trees in complex graphs.
+- Fixed issue where coordinates would be incorrect in events fired by the renderer.
+- Fixed issue where lasso selections would cause freezing lag
+- Updated data structures for edges and nodes
+- Updated several functions and classes to accept a single options argument with named properties instead of many arguments in arbitrary order
+- Improved renderer performance and structure
+- Centralized more configuration in the env file
+- Created a development playground for feature testing
+- Switched from Rollup to Vite
+- Switched from Jest to Vitest
+- Updated Eslint to latest version
+- Updated Prettier to latest version
+- Updated Pixi to latest version
+- Improved type safety
+
 ### 0.1.9
 - Fixed broken image links
 

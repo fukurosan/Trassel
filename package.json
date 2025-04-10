@@ -1,6 +1,6 @@
 {
   "name": "trassel",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Graph computing in JavaScript",
   "main": "./dist/umd-bundle.js",
   "module": "./dist/esm-bundle.js",
@@ -25,7 +25,8 @@
     "types": "tsc --declaration --emitDeclarationOnly --allowJs --outDir ./dist/types/ ",
     "start": "vite",
     "build:vite": "vite build",
-    "build": "npm run lint:fix && npm run clear && npm run test && npm run build:vite && npm run types"
+    "build:playground": "vite build --config ./vite.config.playground.mjs",
+    "build": "npm run lint:fix && npm run clear && npm run test && npm run build:vite && npm run types && npm run build:playground"
   },
   "keywords": [
     "network",
