@@ -1356,6 +1356,7 @@ export class WebGLRenderer {
 				const finalStep = path[path.length - 1]
 				pathStart = { x, y }
 				pathEnd = { x: finalStep.x, y: finalStep.y }
+				//The positioning labels needs to work for orthogonal layouts...
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				//We hijack the curvepoint parameter to use later for positioning the markers
 				curvePoint = { ...labelPoint, source: routeOptions.pointA.side, target: routeOptions.pointB.side }

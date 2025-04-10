@@ -389,6 +389,56 @@ class Quadtree {
 	}
 }
 
+const Env = Object.freeze({
+	//Nodes & Edges
+	DEFAULT_EDGE_STRENGTH: 0.7,
+	DEFAULT_NODE_MASS: 2000,
+	DEFAULT_NODE_RADIUS: 50,
+	DEFAULT_VISIBLE_EDGE_DISTANCE: 350,
+	DEFAULT_EDGE_WEIGHT: 1,
+	NODE_COUNT_INIT_BREAKPOINT: 500,
+	//Layout
+	DEFAULT_START_ALPHA: 1,
+	DEFAULT_ALPHA_MIN: 0.001, //See also DEFAULT_ALPHA_DECAY
+	DEFAULT_ALPHA_DECAY: 1 - Math.pow(0.001, 1 / 300),
+	DEFAULT_ALPHA_TARGET: 0,
+	DEFAULT_VELOCITY_DECAY: 0.6,
+	//Renderer General
+	RENDERER_LINE_MARGIN: 10,
+	RENDERER_SCENE_SIZE: 50000,
+	RENDERER_RESOLUTION: 2,
+	RENDERER_MAX_SCALE: 4,
+	RENDERER_MIN_SCALE: 0.03,
+	RENDERER_ZOOM_SENSITIVITY: 2000,
+	RENDERER_ZOOM_TO_FIT_PADDING: 350,
+	DEFAULT_RENDERER_PRIMARY_COLOR: 0x3289e2,
+	DEFAULT_RENDERER_BACKGROUND_COLOR: 0xe6e7e8,
+	DEFAULT_RENDERER_ROTATE_EDGE_LABELS: true,
+	//Renderer Nodes and Edges
+	DEFAULT_RENDERER_NODE_FILL: 0xffffff,
+	DEFAULT_RENDERER_NODE_STROKE: 0xffffff,
+	DEFAULT_RENDERER_NODE_TEXT_COLOR: 0x000000,
+	DEFAULT_RENDERER_NODE_STROKE_WIDTH: 1,
+	RENDERER_NODE_MIN_FONT_SIZE: 12,
+	RENDERER_EDGE_TEXT_RESOLUTION: 3,
+	RENDERER_NODE_MIN_ICON_SIZE: 16,
+	RENDERER_NODE_MAX_ICON_SIZE: 50,
+	RENDERER_NODE_FONT_FAMILY: "Arial",
+	RENDERER_NODE_TEXT_RESOLUTION: 3,
+	RENDERER_EDGE_MARKER_SIZE: 16,
+	RENDERER_EDGE_FONT_FAMILY: "Arial",
+	RENDERER_EDGE_FONT_SIZE: 12,
+	RENDERER_EDGE_LABEL_WIDTH: 60,
+	RENDERER_EDGE_LABEL_BLOCK_PADDING: 10,
+	RENDERER_EDGE_LABEL_INLINE_PADDING: 16,
+	RENDERER_EDGE_WIDTH: 1,
+	DEFAULT_RENDERER_EDGE_COLOR: 0x000000,
+	DEFAULT_RENDERER_EDGE_TEXT_COLOR: 0x000000,
+	DEFAULT_RENDERER_EDGE_LABEL_FILL: 0xffffff,
+	DEFAULT_RENDERER_EDGE_LABEL_STROKE: 0xffffff,
+	DEFAULT_RENDERER_EDGE_LABEL_STROKE_WIDTH: 2
+});
+
 /**
  * Main layout class
  */
@@ -401,11 +451,11 @@ class Layout {
 	constructor(nodes = [], edges = [], options = {}) {
 		this.nodes = nodes;
 		this.edges = edges;
-		this.alpha = options.alpha || 1;
-		this.alphaMin = options.alphaMin || 0.001;
-		this.alphaDecay = options.alphaDecay || 1 - Math.pow(this.alphaMin, 1 / 300);
-		this.alphaTarget = options.alphaTarget || 0;
-		this.velocityDecay = options.velocityDecay || 0.6;
+		this.alpha = options.alpha || Env.DEFAULT_START_ALPHA;
+		this.alphaMin = options.alphaMin || Env.DEFAULT_ALPHA_MIN;
+		this.alphaDecay = options.alphaDecay || Env.DEFAULT_ALPHA_DECAY;
+		this.alphaTarget = options.alphaTarget || Env.DEFAULT_ALPHA_TARGET;
+		this.velocityDecay = options.velocityDecay || Env.DEFAULT_VELOCITY_DECAY;
 		/** @type {Map<string, import("./model/ilayoutcomponentobject").ILayoutComponentObject>} */
 		this.components = new Map();
 		this.listeners = new Map([
@@ -527,6 +577,21 @@ class Layout {
 			this.components.get(id).instance.dismount();
 			this.components.delete(id);
 		}
+	}
+
+	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.components.clear();
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.components.has(id)
 	}
 
 	/**
@@ -1487,13 +1552,6 @@ function louvain (nodes, edges) {
 	}
 }
 
-const Env = Object.freeze({
-	DEFAULT_EDGE_STRENGTH: 0.7,
-	DEFAULT_NODE_MASS: 2000,
-	DEFAULT_NODE_RADIUS: 50,
-	DEFAULT_VISIBLE_EDGE_DISTANCE: 350
-});
-
 const deepCopyObject = o => {
 	if (o === null) {
 		return o
@@ -1519,14 +1577,15 @@ const deepCopyObject = o => {
 };
 
 /**
- * Applies a template object to another object. Any properties in the template that are not set in the object will be set (recursively).
+ * Applies a template object to another object. Properties in the template will be set recursively in the object.
  * Arrays will be considered as basic values, and no merging or anything like that is done.
  * NOTE: The input object will be mutated!
- * @param {{[key: string]: any}} obj
- * @param {{[key: string]: any}} template
+ * @param {{[key: string]: any}} obj - Object for template to be applied to
+ * @param {{[key: string]: any}} template - template to apply
+ * @param {boolean=} overwriteOriginal - If there is already a value in the original, should it be overwritten by the template?
  * @returns
  */
-const applyTemplateToObject = (obj, template) => {
+const applyTemplateToObject = (obj, template, overwriteOriginal = true) => {
 	Object.keys(template).forEach(key => {
 		const objValue = obj[key];
 		const templValue = template[key];
@@ -1539,10 +1598,10 @@ const applyTemplateToObject = (obj, template) => {
 			!Array.isArray(objValue) &&
 			!Array.isArray(templValue)
 		) {
-			applyTemplateToObject(objValue, templValue);
+			applyTemplateToObject(objValue, templValue, overwriteOriginal);
 		}
 		//If there is already a value (even null!) then do not change it
-		else if (objValue !== undefined) {
+		else if (objValue !== undefined && !overwriteOriginal) {
 			return 0
 		}
 		//If the template value is an array then deep-copy it and apply it
@@ -1575,8 +1634,8 @@ const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
 	for (let i = 0; i < nodes.length; i++) {
 		const node = nodes[i];
 		//Apply template
-		if (node.type) {
-			const template = nodeTemplates.find(template => template.id === node.type);
+		if (node.template) {
+			const template = nodeTemplates.find(template => template.id === node.template);
 			if (template) {
 				applyTemplateToObject(node, template.template);
 			}
@@ -1603,7 +1662,8 @@ const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
 		}
 		//If no x or y coordinates exist then set a position based on a circle of nodes
 		if (isNaN(node.x) || isNaN(node.y)) {
-			const radius = node.shape.radius * Math.sqrt(0.5 + i);
+			//For smaller graphs a smaller hard set radius seems to render better incremental layouts
+			const radius = (nodes.length > Env.NODE_COUNT_INIT_BREAKPOINT ? node.shape.radius : 10) * Math.sqrt(0.5 + i);
 			const angle = i * (Math.PI * (3 - Math.sqrt(5)));
 			node.x = radius * Math.cos(angle);
 			node.y = radius * Math.sin(angle);
@@ -1619,8 +1679,8 @@ const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
 	for (let i = 0; i < edges.length; i++) {
 		const edge = edges[i];
 		//Apply template
-		if (edge.type) {
-			const template = edgeTemplates.find(template => template.id === edge.type);
+		if (edge.template) {
+			const template = edgeTemplates.find(template => template.id === edge.template);
 			if (template) {
 				applyTemplateToObject(edge, template.template);
 			}
@@ -1648,7 +1708,7 @@ const initializeNodesAndEdges = (nodes = [], edges = [], templates = {}) => {
 		}
 		//Initialize the edge's weight
 		if (isNaN(edge.weight)) {
-			edge.weight = 1;
+			edge.weight = Env.DEFAULT_EDGE_WEIGHT;
 		}
 	}
 	return {
@@ -1776,10 +1836,11 @@ class Graph {
 	 * Updates the nodes and edges in the graph
 	 * @param {import("./model/nodesandedges").DraftNode[]} nodes
 	 * @param {import("./model/nodesandedges").DraftEdge[]} edges
+	 * @param {import("./model/nodesandedges").GraphObjectTemplates=} templates
 	 * @returns {Graph}
 	 */
-	updateNodesAndEdges(nodes, edges) {
-		const initialized = initializeNodesAndEdges(nodes, edges);
+	updateNodesAndEdges(nodes, edges, templates) {
+		const initialized = initializeNodesAndEdges(nodes, edges, templates);
 		this.nodes = initialized.nodes;
 		this.edges = initialized.edges;
 		this.layout.updateNodesAndEdges(this.nodes, this.edges);
@@ -1850,6 +1911,21 @@ class Graph {
 	addLayoutComponent(id, component, nodeBindings = null, edgeBindings = null) {
 		this.layout.addLayoutComponent(id, component, nodeBindings, edgeBindings);
 		return this
+	}
+
+	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.layout.clearAllLayoutComponents();
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.layout.hasLayoutComponent(id)
 	}
 
 	/**
@@ -2145,13 +2221,16 @@ class LayoutComponent {
  * Moves a node from its current position to a provided destination
  * Note that this component uses fx and fy, which could create conflicts with things like pinning mechanisms
  * targetX and targetY coordinates can be set on specific nodes, or component global values can be provided.
- * @param {number=} xDestination - Destination X coordinate
- * @param {number=} yDestination - Destination Y coordinate
- * @param {number=} strength - The strength of the pull
- * @param {number=} removeForceOnDestination - If true the component will be removed from the layout when animation is completed
  */
 class Animation extends LayoutComponent {
-	constructor(xDestination = 0, yDestination = 0, strength = 1, removeForceOnDestination = true) {
+	/**
+	 * @param {Object} options - class instance options
+	 * @param {number=} options.xDestination - Destination X coordinate
+	 * @param {number=} options.yDestination - Destination Y coordinate
+	 * @param {number=} options.strength - The strength of the pull
+	 * @param {number=} options.removeForceOnDestination - If true the component will be removed from the layout when animation is completed
+	 */
+	constructor({ xDestination = 0, yDestination = 0, strength = 1, removeForceOnDestination = true } = {}) {
 		super();
 		this.xDestination = xDestination;
 		this.yDestination = yDestination;
@@ -2199,12 +2278,15 @@ class Animation extends LayoutComponent {
  * Creates a gravitational force that pulls the x or y axis of nodes towards a given coordinate
  * Two sets of attraction components can commonly be used to create a gravitational force towards a center area
  * This can also be use to draw nodes away from a given point, if a negative strength is provided.
- * @param {number=} isHorizontal - true = x, false = y
- * @param {number=} coordinate - the center coordinate of the component
- * @param {number=} strength - The strength of the pull
  */
 class Attraction extends LayoutComponent {
-	constructor(isHorizontal = true, coordinate = 0, strength = 0.05) {
+	/**
+	 * @param {Object} options - Options for the component
+	 * @param {number=} options.isHorizontal - true = x, false = y
+	 * @param {number=} options.coordinate - the center coordinate of the component
+	 * @param {number=} options.strength - The strength of the pull
+	 */
+	constructor({ isHorizontal = true, coordinate = 0, strength = 0.05 } = {}) {
 		super();
 		this.isHorizontal = isHorizontal;
 		this.coordinate = coordinate;
@@ -2226,11 +2308,14 @@ class Attraction extends LayoutComponent {
 
 /**
  * Creates a rectangular bounding box that stops nodes from leaving it
- * @param {number=} width - Width of the box. If not set will be determined by the sizes and amounts of the nodes
- * @param {number=} height - Height of the box. If not set will be determined by the sizes and amounts of the nodes
  */
 class BoundingBox extends LayoutComponent {
-	constructor(width = null, height = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.width - Width of the box. If not set will be determined by the sizes and amounts of the nodes
+	 * @param {number=} options.height - Height of the box. If not set will be determined by the sizes and amounts of the nodes
+	 */
+	constructor({ width = null, height = null } = {}) {
 		super();
 		this.width = width;
 		this.height = height;
@@ -2298,12 +2383,15 @@ class BoundingBox extends LayoutComponent {
 
 /**
  * Uses the average of all node positions to create a center force that stops nodes from floating away
- * @param {number=} x - x coordinate for the component
- * @param {number=} y - y coordinate for the component
- * @param {number=} strength - Strength of the force
  */
 class Center extends LayoutComponent {
-	constructor(x = 0, y = 0, strength = 1) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {number=} options.x - x coordinate for the component
+	 * @param {number=} options.y - y coordinate for the component
+	 * @param {number=} options.strength - Strength of the force
+	 */
+	constructor({ x = 0, y = 0, strength = 1 } = {}) {
 		super();
 		this.x = x;
 		this.y = y;
@@ -2334,10 +2422,13 @@ class Center extends LayoutComponent {
 
 /**
  * Creates a cluster component that draws a set of nodes together
- * @param {number=} strength - How strong should the pull be? (0-1)
  */
 class Cluster extends LayoutComponent {
-	constructor(strength = 0.7) {
+	/**
+	 * @param {Object} options - options for the object
+	 * @param {number=} options.strength - How strong should the pull be? (0-1)
+	 */
+	constructor({ strength = 0.7 } = {}) {
 		super();
 		this.strength = strength;
 	}
@@ -2372,11 +2463,14 @@ class Cluster extends LayoutComponent {
 /**
  * Collision component that stops nodes from colliding (and thus overlapping)
  * Note that this component considers all nodes to be circles. If a node is square then the maximum measurement will be considered the diameter.
- * @param {number=} strength - The strength of the collision repulsion
- * @param {number=} radiusPadding - Padding that will be added to all radiuses
  */
 class Collision extends LayoutComponent {
-	constructor(strength = 1, radiusPadding = 5) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {number=} options.strength - The strength of the collision repulsion
+	 * @param {number=} options.radiusPadding - Padding that will be added to all radiuses
+	 */
+	constructor({ strength = 1, radiusPadding = 5 } = {}) {
 		super();
 		this.strength = strength;
 		this.radiusPadding = radiusPadding;
@@ -2446,9 +2540,11 @@ class Collision extends LayoutComponent {
 
 /**
  * An adapter that is compatible with D3-forces used in D3's force simulation library.
- * @param {any} d3force - A D3 force simulation compatible force
  */
 class D3Adapter extends LayoutComponent {
+	/**
+	 * @param {(...args) => any} d3force - A D3 force simulation compatible force
+	 */
 	constructor(d3force) {
 		super();
 		this.d3force = d3force;
@@ -2459,7 +2555,7 @@ class D3Adapter extends LayoutComponent {
 		if (this.d3force.links && typeof this.d3force.links === "function") {
 			this.d3force.links(edges);
 		}
-		if (this.d3force.initialize) {
+		if (this.d3force.initialize && typeof this.d3force.initialize === "function") {
 			this.d3force.initialize(nodes, this.random);
 		}
 	}
@@ -2487,14 +2583,17 @@ const computeRadian = angle => {
 
 /**
  * Creates a fan component that pushes groups of nodes into a fan formation
- * @param {(any => "string")} computeGroup - A function that will take the node as an argument and return a group ID.
- * @param {number=} strength - How strong should the pull be? (0-1)
- * @param {number=} space - How many pixels from the center should the first node be drawn?
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 class Fan extends LayoutComponent {
-	constructor(computeGroup = node => node.type, strength = 0.9, space = 300, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {((any) => "string")=} options.computeGroup - A function that will take the node as an argument and return a group ID.
+	 * @param {number=} options.strength - How strong should the pull be? (0-1)
+	 * @param {number=} options.space - How many pixels from the center should the first node be drawn?
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ computeGroup = node => node.template, strength = 0.9, space = 300, centerX = null, centerY = null } = {}) {
 		super();
 		this.computeGroup = computeGroup;
 		this.strength = strength;
@@ -2542,7 +2641,7 @@ class Fan extends LayoutComponent {
 	}
 
 	execute() {
-		//		const force = alpha * this.strength
+		//const force = alpha * this.strength
 		let node;
 		for (let i = 0; i < this.nodes.length; i++) {
 			node = this.nodes[i];
@@ -2566,14 +2665,17 @@ class Fan extends LayoutComponent {
  * Grid layout creates a grid on either the Y-axis, X-axis or both.
  * The grid draws nodes towards these sets of axises, creating a matrix of small gravitational spaces resulting in a more square looking graph.
  * This layout can help make some graphs look much more tidy.
- * @param {boolean=} useY - If true the Y axis force will be activated
- * @param {boolean=} useX - If true the X axis force will be activated
- * @param {number=} strength - How strong should the force that pulls node into the axis be?
- * @param {number=} size - How large should each axis space be?
- * @param {number=} offsetMultiplier - If no size is provided the size of nodes will be used. This multiplier can be used to multiply the measurements by a given number.
  */
 let Grid$1 = class Grid extends LayoutComponent {
-	constructor(useX = true, useY = true, strength = 0.6, size = undefined, offsetMultiplier = 3) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {boolean=} options.useY - If true the Y axis force will be activated
+	 * @param {boolean=} options.useX - If true the X axis force will be activated
+	 * @param {number=} options.strength - How strong should the force that pulls node into the axis be?
+	 * @param {number=} options.size - How large should each axis space be?
+	 * @param {number=} options.offsetMultiplier - If no size is provided the size of nodes will be used. This multiplier can be used to multiply the measurements by a given number.
+	 */
+	constructor({ useX = true, useY = true, strength = 0.6, size = undefined, offsetMultiplier = 3 } = {}) {
 		super();
 		this.useX = useX;
 		this.useY = useY;
@@ -3111,15 +3213,18 @@ const straightenEdges = (fullHierarchyIn, edgesIn) => {
  * Creates an hierarhical component that sorts nodes on an axis (either y or x) based on the Sugiyama Framework
  * To learn more about the sugiyama framework and hierarchical graph layouts check out this great video series by Philipp Kindermann:
  * https://www.youtube.com/watch?v=3_FbSCWLC3A
- * @param {(any => "string")=} computeGroup - A function that will take the node as an argument and return a group ID. If left blank the groups will be computed.
- * @param {boolean=} useY - If true the hierachy will be top to bottom, otherwise it will be left to right
- * @param {number=} distance - How much space should be between nodes. If not set this will be determined by the size of the nodes
- * @param {boolean=} useLine - If set nodes will be set into a fixed order, trying to minimize edge crossings.
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 class Hierarchy extends LayoutComponent {
-	constructor(computeGroup = null, useY = true, distance = undefined, useLine = true, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {((any) => "string")=} options.computeGroup - A function that will take the node as an argument and return a group ID. If left blank the groups will be computed.
+	 * @param {boolean=} options.useY - If true the hierachy will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.distance - How much space should be between nodes. If not set this will be determined by the size of the nodes
+	 * @param {boolean=} options.useLine - If set nodes will be set into a fixed order, trying to minimize edge crossings.
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ computeGroup = null, useY = true, distance = undefined, useLine = true, centerX = null, centerY = null } = {}) {
 		super();
 		this.computeGroup = computeGroup;
 		this.useY = useY;
@@ -3293,8 +3398,14 @@ class Hierarchy extends LayoutComponent {
  * I.e. nodes that have edges between them.
  */
 class Link extends LayoutComponent {
-	constructor() {
+	/**
+	 * @param {Object} options - options for the object
+	 * @param {boolean} options.useRelativeStrength - Should edge strength be computed based on total edge counts for connected nodes rather than a fixed value?
+	 */
+	constructor({ useRelativeStrength = false } = {}) {
 		super();
+		this.useRelativeStrength = useRelativeStrength;
+		this.strengths = [];
 		this.count = [];
 		this.bias = [];
 	}
@@ -3311,6 +3422,7 @@ class Link extends LayoutComponent {
 		for (let i = 0; i < this.edges.length; i++) {
 			const edge = this.edges[i];
 			this.bias[i] = this.count[edge.source.index] / (this.count[edge.source.index] + this.count[edge.target.index]);
+			this.strengths[i] = 1 / Math.min(this.count[edge.source.index], this.count[edge.target.index]);
 		}
 	}
 
@@ -3328,7 +3440,7 @@ class Link extends LayoutComponent {
 			xDistance = edge.target.x + edge.target.vx - edge.source.x - edge.source.vx || this.randomize();
 			yDistance = edge.target.y + edge.target.vy - edge.source.y - edge.source.vy || this.randomize();
 			distanceSquared = Math.sqrt(xDistance * xDistance + yDistance * yDistance);
-			force = ((distanceSquared - edge.distance) / distanceSquared) * alpha * edge.strength;
+			force = ((distanceSquared - edge.distance) / distanceSquared) * alpha * (this.useRelativeStrength ? this.strengths[i] : edge.strength);
 			xAdjustment = xDistance * force;
 			yAdjustment = yDistance * force;
 			bias = this.bias[i];
@@ -3382,11 +3494,14 @@ const baryCenter = (nodes, edges) => {
 
 /**
  * Creates a matrix of all nodes.
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 let Matrix$1 = class Matrix extends LayoutComponent {
-	constructor(centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ centerX = null, centerY = null } = {}) {
 		super();
 		this.centerX = centerX;
 		this.centerY = centerY;
@@ -3458,13 +3573,16 @@ let Matrix$1 = class Matrix extends LayoutComponent {
  * To read more:
  * https://people.eecs.berkeley.edu/~demmel/cs267/lecture26/lecture26.html
  * https://jheer.github.io/barnes-hut/
- * @param {number=} theta - Parameter used to control performance vs accuracy. Should be around 1 +/- 0,3
- * @param {number=} distanceMax - The maximum distance between nodes to consider approximations
- * @param {number=} distanceMin - The minimum distance between nodes to consider approxiamations
- * @param {boolean=} isRepulse - If true nodes push each other away, if false nodes attract each other
  */
-let NBody$1 = class NBody extends LayoutComponent {
-	constructor(theta = 1.1, distanceMax = Infinity, distanceMin = 1, isRepulse = true) {
+class NBody extends LayoutComponent {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {number=} options.distanceMax - The maximum distance between nodes to consider approximations
+	 * @param {number=} options.theta - Parameter used to control performance vs accuracy. Should be around 1 +/- 0,3
+	 * @param {number=} options.distanceMin - The minimum distance between nodes to consider approxiamations
+	 * @param {boolean=} options.isRepulse - If true nodes push each other away, if false nodes attract each other
+	 */
+	constructor({ theta = 1.1, distanceMax = Infinity, distanceMin = 1, isRepulse = true } = {}) {
 		super();
 		this.theta = theta;
 		this.distanceMax = distanceMax;
@@ -3553,18 +3671,21 @@ let NBody$1 = class NBody extends LayoutComponent {
 			});
 		}
 	}
-};
+}
 
 /**
  * Creates a radial component that pulls nodes into a circular pattern
- * @param {number=} strength - How strong should it be? (0-1)
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
- * @param {number=} diameter - Diameter of the circle
- * @param {number=} sizeMultiplier - If diameter is automatically computed based on nodes, how much extra space should be added? (Multiplier)
  */
 class Radial extends LayoutComponent {
-	constructor(strength = 0.9, centerX = null, centerY = null, sizeMultiplier = 1.2, diameter = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.strength - How strong should it be? (0-1)
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 * @param {number=} options.diameter - Diameter of the circle
+	 * @param {number=} options.sizeMultiplier - If diameter is automatically computed based on nodes, how much extra space should be added? (Multiplier)
+	 */
+	constructor({ strength = 0.9, centerX = null, centerY = null, sizeMultiplier = 1.2, diameter = null } = {}) {
 		super();
 		this.strength = strength;
 		this.centerX = centerX;
@@ -3601,13 +3722,16 @@ class Radial extends LayoutComponent {
 /**
  * Creates an tree component that sorts nodes on an axis (either y or x) based on the Reingold-Tilford algorithm
  * The algorithm has been modified slightly to allow for things like multiple root nodes, centering in a coordinate system, and varying node sizes.
- * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
- * @param {number=} padding - Minimum padding between nodes described in pixels
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 class Tree extends LayoutComponent {
-	constructor(isVerticalLayout = true, padding = 100, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {boolean=} options.isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.padding - Minimum padding between nodes described in pixels
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ isVerticalLayout = true, padding = 100, centerX = null, centerY = null } = {}) {
 		super();
 		this.isVerticalLayout = isVerticalLayout;
 		this.PADDING_PX = padding;
@@ -3737,18 +3861,11 @@ class Tree extends LayoutComponent {
 				nextLevel = [];
 				levels[levels.length - 1].forEach(node => (nextLevel = nextLevel.concat(node.children)));
 			} while (nextLevel.length)
-			levels.shift();
 			return levels.map(level => {
 				const result = { left: Infinity, right: -Infinity };
 				level.forEach(node => {
-					result.left = Math.min(
-						result.left,
-						node.orderOffset - (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
-					);
-					result.right = Math.max(
-						result.right,
-						node.orderOffset + (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
-					);
+					result.left = Math.min(result.left, node.orderOffset - (this.isVerticalLayout ? this.getWidth(node.node) : this.getHeight(node.node)));
+					result.right = Math.max(result.right, node.orderOffset + (this.isVerticalLayout ? this.getWidth(node.node) : this.getHeight(node.node)));
 				});
 				return result
 			})
@@ -3767,9 +3884,7 @@ class Tree extends LayoutComponent {
 			for (let i = 0; i < treeNode.children.length; i++) {
 				fixNodeConflicts(treeNode.children[i]);
 			}
-			//If there is less than two children then we don't need to do anything
-			if (treeNode.children.length < 2) return
-			//For each child, compare it to everything to the right of it.
+			//For each child, compare it to everything that should be to the right of it.
 			for (let i = 0; i < treeNode.children.length - 1; i++) {
 				const leftNode = treeNode.children[i];
 				const leftContour = getContour(leftNode);
@@ -3777,31 +3892,24 @@ class Tree extends LayoutComponent {
 					const rightNode = treeNode.children[j];
 					const rightContour = getContour(rightNode);
 					//There may be a different amount of levels. We will compare all possible levels
+					let adjustedAmount = 0;
 					for (let n = 0; n < Math.min(leftContour.length, rightContour.length); n++) {
-						const left = Math.max(leftContour[n].right);
-						const right = Math.min(rightContour[n].left);
-						//If the right side branch overlaps the left side branch we need to make an adjustment
-						if (left > right) {
+						//left = the right most side of node i's branch (must be to the left of j)
+						const left = leftContour[n].right;
+						//right = the left most side of node j's branch (must be to the right of i)
+						const right = rightContour[n].left + adjustedAmount;
+						//If j's branch's left side overlaps i's branch's right side we need to make an adjustment
+						if (left >= right) {
 							const adjustment = left - right + this.PADDING_PX;
 							//Adjust the entire right branch
 							applyBranchAdjustment(rightNode, adjustment);
-							//All nodes (and branches) between (i) and (j) need to also be adjusted now to fill the newly created space
-							const middleSiblings = [];
-							for (let m = i + 1; m < j; m++) {
-								middleSiblings.push(treeNode.children[m]);
-							}
-							if (middleSiblings.length) {
-								const middleAdjustment = adjustment / middleSiblings.length / 2;
-								for (let m = 0; m < middleSiblings.length; m++) {
-									applyBranchAdjustment(middleSiblings[m], middleAdjustment);
-								}
-							}
+							adjustedAmount += adjustment;
 						}
 					}
 				}
 			}
-			//Finally, we center the root nodes around their children
-			if (!treeNode.parent && treeNode.children.length) {
+			//Finally, we center the parent nodes around their children
+			if (treeNode.children.length) {
 				let offset = 0;
 				treeNode.children.forEach(child => {
 					offset += child.orderOffset;
@@ -3809,6 +3917,7 @@ class Tree extends LayoutComponent {
 				treeNode.orderOffset = offset / treeNode.children.length;
 			}
 		};
+
 		//There can be multiple root nodes, so we create a "fake" root node to handle this.
 		fixNodeConflicts({ children: tree});
 		//Write positions to member state
@@ -3861,12 +3970,15 @@ class Tree extends LayoutComponent {
 
 /**
  * A force directed layout component using Fruchterman's & Reingold's algorithm.
- * @param {number=} size - Parameter used to control the size of the graph. Generally a fairly high number.
- * @param {number=} gravity - Strength of the gravity in the layout
- * @param {number=} speed - The speed at which things move in the graph.
  */
-class NBody extends LayoutComponent {
-	constructor(size = null, speed = 0.1, gravity = 0.75) {
+class Force extends LayoutComponent {
+	/**
+	 * @param {Object} options
+	 * @param {number=} options.size - Parameter used to control the size of the graph. Generally a fairly high number.
+	 * @param {number=} options.gravity - Strength of the gravity in the layout
+	 * @param {number=} options.speed - The speed at which things move in the graph.
+	 */
+	constructor({ size = null, speed = 0.2, gravity = 0.75 } = {}) {
 		super();
 		this.size = size;
 		this.gravity = gravity;
@@ -3949,14 +4061,17 @@ class NBody extends LayoutComponent {
 
 /**
  * Creates a rectangular connection graph layout.
- * @param {(import("../model/nodesandedges").IBasicNode) => number} groupBy - Optional function to group nodes
- * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
- * @param {number=} padding - Minimum padding between nodes described in pixels
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 class Connections extends LayoutComponent {
-	constructor(groupBy = null, isVerticalLayout = true, padding = 100, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options for the object
+	 * @param {(import("../model/nodesandedges").IBasicNode) => number} options.groupBy - Optional function to group nodes
+	 * @param {boolean=} options.isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.padding - Minimum padding between nodes described in pixels
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ groupBy = null, isVerticalLayout = true, padding = 100, centerX = null, centerY = null } = {}) {
 		super();
 		this.groupBy = groupBy;
 		this.isVerticalLayout = isVerticalLayout;
@@ -4143,13 +4258,13 @@ const layoutcomponents = /*#__PURE__*/Object.freeze(/*#__PURE__*/Object.definePr
 	Connections,
 	D3Adapter,
 	Fan,
-	Force: NBody,
+	Force,
 	Grid: Grid$1,
 	Hierarchy,
 	LayoutComponent,
 	Link,
 	Matrix: Matrix$1,
-	NBody: NBody$1,
+	NBody,
 	Radial,
 	Tree
 }, Symbol.toStringTag, { value: 'Module' }));
@@ -42329,6 +42444,562 @@ class OrthogonalConnector {
 	}
 }
 
+class Tooltip {
+	constructor() {
+		this.tooltip = document.createElement("div");
+		this.tooltip.style.position = "fixed";
+		this.tooltip.style.top = "0";
+		this.tooltip.style.left = "0";
+		this.tooltip.style.display = "none";
+		this.tooltip.style.zIndex = "999999";
+		this.tooltip.style.background = "#0f172a";
+		this.tooltip.style.color = "#f1f5f9";
+		this.tooltip.style.fontFamily = "sans-serif";
+		this.tooltip.style.fontSize = "0.875rem";
+		this.tooltip.style.lineHeight = "1.2";
+		this.tooltip.style.paddingInline = "1rem";
+		this.tooltip.style.paddingBlock = "0.625rem";
+		this.tooltip.style.borderRadius = "0.5rem";
+		this.tooltip.style.maxWidth = "200px";
+		this.tooltip.style.pointerEvents = "none";
+
+		document.body.appendChild(this.tooltip);
+	}
+
+	hideTooltip() {
+		this.tooltip.style.display = "none";
+	}
+
+	/**
+	 * Show the tooltip at given coordinates
+	 * @param {number} x - X coordinate in the viewport where the left most side will be positioned
+	 * @param {number} y - Y coordinate in the viewport where the top most side will be positioned
+	 * @param {string} text - Text to show in tooltip
+	 */
+	showTooltip(x, y, label) {
+		this.tooltip.innerHTML = "";
+		this.tooltip.appendChild(document.createTextNode(label));
+		this.moveTooltip(x, y);
+		this.tooltip.style.display = "block";
+	}
+
+	/**
+	 * Move the tooltip to given coordinates
+	 * @param {number} x - X coordinate in the viewport where the left most side will be positioned
+	 * @param {number} y - Y coordinate in the viewport where the top most side will be positioned
+	 * @param {string} text - Text to show in tooltip
+	 */
+	moveTooltip(x, y) {
+		this.tooltip.style.left = `${x + 5}px`;
+		this.tooltip.style.top = `${y + 5}px`;
+	}
+
+	/**
+	 * Unmounts the tooltip
+	 */
+	unmount() {
+		this.tooltip.remove();
+	}
+}
+
+class ZoomControls {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {WebGLRenderer} renderer
+	 * @param {{ zoomTo: (x: number, y: number: scale: number) => any, zoomToFit: () => any }} renderer
+	 */
+	constructor(element, renderer) {
+		this.element = element;
+		this.element.style.position = "relative";
+		this.renderer = renderer;
+		this.buttonContainer = document.createElement("div");
+		this.buttonContainer.style.display = "flex";
+		this.buttonContainer.style.flexDirection = "column";
+		this.buttonContainer.style.gap = "0.5rem";
+		this.buttonContainer.style.position = "absolute";
+		this.buttonContainer.style.bottom = "2rem";
+		this.buttonContainer.style.right = "2rem";
+
+		const zoomInButton = this.createButton();
+		const zoomOutButton = this.createButton();
+		const zoomToFitButton = this.createButton();
+
+		zoomInButton.innerHTML =
+			"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'></circle><line x1='21' y1='21' x2='16.65' y2='16.65'></line><line x1='11' y1='8' x2='11' y2='14'></line><line x1='8' y1='11' x2='14' y2='11'></line></svg>";
+		zoomOutButton.innerHTML =
+			"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'></circle><line x1='21' y1='21' x2='16.65' y2='16.65'></line><line x1='8' y1='11' x2='14' y2='11'></line></svg>";
+		zoomToFitButton.innerHTML =
+			"<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3'></path></svg>";
+
+		zoomInButton.addEventListener("click", () => this.zoomToMultiplier(2));
+		zoomOutButton.addEventListener("click", () => this.zoomToMultiplier(0.5));
+		zoomToFitButton.addEventListener("click", () => renderer.zoomToFit());
+
+		this.buttonContainer.appendChild(zoomInButton);
+		this.buttonContainer.appendChild(zoomOutButton);
+		this.buttonContainer.appendChild(zoomToFitButton);
+
+		element.appendChild(this.buttonContainer);
+	}
+
+	/**
+	 * Creates a zoom button element
+	 * @returns {HTMLButtonElement}
+	 */
+	createButton() {
+		const button = document.createElement("button");
+		button.style.background = "#ffffff";
+		button.style.color = "#000000";
+		button.style.border = "none";
+		button.style.borderRadius = "0.375rem";
+		button.style.padding = "0.5rem";
+		button.style.height = "2.25rem";
+		button.style.width = "2.25rem";
+		button.style.display = "flex";
+		button.style.alignItems = "center";
+		button.style.justifyContent = "center";
+		button.style.boxShadow =
+			"rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px";
+		return button
+	}
+
+	/**
+	 * Scales the current scale with a given multiplier from the center of the viewed section of the stage
+	 * @private
+	 * @param {number} multiplier
+	 */
+	zoomToMultiplier(multiplier) {
+		const centerX = this.element.clientWidth / 2;
+		const centerY = this.element.clientHeight / 2;
+		const stageX = this.renderer.stage.x;
+		const stageY = this.renderer.stage.y;
+		const localPointBefore = this.renderer.viewportToLocalCoordinates(centerX, centerY);
+		const originalScale = this.renderer.stage.scale.x;
+		this.renderer.stage.updateTransform({
+			x: stageX,
+			y: stageY,
+			scaleX: originalScale * multiplier,
+			scaleY: originalScale * multiplier
+		});
+		const localPointAfter = this.renderer.viewportToLocalCoordinates(centerX, centerY);
+		const newX = stageX + (localPointAfter.x - localPointBefore.x) * this.renderer.stage.scale.x;
+		const newY = stageY + (localPointAfter.y - localPointBefore.y) * this.renderer.stage.scale.y;
+		this.renderer.stage.updateTransform({ x: stageX, y: stageY, scaleX: originalScale, scaleY: originalScale });
+		this.renderer.zoomTo(newX, newY, this.renderer.stage.scale.x * multiplier);
+	}
+
+	/**
+	 * Unmounts the tooltip
+	 */
+	unmount() {
+		this.buttonContainer.remove();
+	}
+}
+
+// Testing
+// new ZoomControls(document.body, {})
+// document.body.style.background = "lightgray"
+
+class ContextMenu {
+	constructor() {
+		this.rootElement = document.createElement("div");
+		this.shadowRoot = this.rootElement.attachShadow({ mode: "open" });
+		this.menu = document.createElement("div");
+		this.shadowRoot.appendChild(this.menu);
+		this.menu.setAttribute("style", "position:fixed;top:0;left:0;display:none;z-index:9999999;");
+		document.body.appendChild(this.rootElement);
+		this.menu.addEventListener("click", () => this.hideMenu());
+	}
+
+	/**
+	 * Hides the menu
+	 */
+	hideMenu() {
+		this.menu.style.display = "none";
+	}
+
+	/**
+	 * Show the context menu at given coordinates
+	 * @param {number} x - X coordinate in the viewport where the left most side will be positioned
+	 * @param {number} y - Y coordinate in the viewport where the top most side will be positioned
+	 * @param {import("../model/contextmenu").contextMenu[]} contextMenu - Menu sections
+	 */
+	showMenu(x, y, contextMenu) {
+		this.menu.innerHTML = "";
+		this.menu.style.left = `${x}px`;
+		this.menu.style.top = `${y}px`;
+		this.menu.style.display = "block";
+
+		this.createMenuFromSections(contextMenu, this.menu);
+		const closeMenu = () => {
+			this.hideMenu();
+			document.removeEventListener("click", closeMenu);
+		};
+		document.addEventListener("click", closeMenu);
+
+		//Adjust coordinates so that we are inside the viewport
+		const adjustments = this.computeAdjustIntoViewport(this.menu);
+		this.menu.style.left = `${x + adjustments.leftAdjustment}px`;
+		this.menu.style.top = `${y + adjustments.topAdjustment}px`;
+	}
+
+	/**
+	 * Computes how many pixels the element must be adjusted to the left and top (x and y) axis to not overflow the right and bottom part of the viewport
+	 * @param {HTMLElement} element
+	 */
+	computeAdjustIntoViewport(element) {
+		const bcr = element.getBoundingClientRect();
+		let leftAdjustment = 0;
+		let topAdjustment = 0;
+		if (bcr.x + bcr.width > window.innerWidth) {
+			leftAdjustment = -bcr.width;
+		}
+		if (bcr.y + bcr.height > window.innerHeight) {
+			topAdjustment = -bcr.height;
+		}
+		return { leftAdjustment, topAdjustment }
+	}
+
+	/**
+	 * Creates a menu from a given number of sections and appends everything to the provided parent element
+	 * @private
+	 * @param {import("../model/contextmenu").contextMenu[]} sections - Menu sections
+	 * @param {HTMLElement} parent
+	 */
+	createMenuFromSections(sections, parent) {
+		//Parent and sub menu are the same, but for the root element only these top styles will be applied
+		//Apply basic styles
+		const BASE_SPACING = 0.5;
+		parent.style.boxShadow =
+			"rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.1) 0px 2px 4px -2px";
+		parent.style.borderRadius = `${BASE_SPACING}rem`;
+		parent.style.padding = `${BASE_SPACING}rem`;
+		parent.style.background = "#ffffff";
+		parent.style.width = "max-content";
+		parent.style.minWidth = "200px";
+		sections.forEach(section => {
+			//If this is a divider just add it and proceed to the next section
+			if (section === "divider") {
+				const divider = document.createElement("hr");
+				divider.style.border = "1px solid #f2f3f5";
+				parent.appendChild(divider);
+				return 0
+			}
+			//Create a container for the button and potential sub-menu
+			const buttonContainer = document.createElement("div");
+			buttonContainer.style.display = "flex";
+			buttonContainer.style.flexDirection = "column";
+			buttonContainer.style.position = "relative";
+			buttonContainer.style.background = "#ffffff";
+			buttonContainer.style.paddingRight = `${BASE_SPACING / 2}rem`;
+			buttonContainer.style.marginRight = `-${BASE_SPACING / 2}rem`;
+			//Create the button
+			const button = document.createElement("button");
+			button.style.background = "inherit";
+			button.style.border = "none";
+			button.style.paddingBlock = `${BASE_SPACING * 0.75}rem`;
+			button.style.paddingInline = `${BASE_SPACING * 1.25}rem`;
+			button.style.borderRadius = `${BASE_SPACING / 2}rem`;
+			button.style.display = "grid";
+			button.style.gridTemplateColumns = "auto";
+			button.style.alignItems = "center";
+			button.style.justifyContent = "left";
+			button.style.gap = `${BASE_SPACING}rem`;
+			//Create the icon
+			if (section.icon) {
+				const img = document.createElement("img");
+				img.style.minWidth = `${BASE_SPACING * 2.5}rem`;
+				img.style.minHeight = `${BASE_SPACING * 2.5}rem`;
+				img.style.width = `${BASE_SPACING * 2.5}rem`;
+				img.style.height = `${BASE_SPACING * 2.5}rem`;
+				img.style.maxWidth = `${BASE_SPACING * 2.5}rem`;
+				img.style.maxHeight = `${BASE_SPACING * 2.5}rem`;
+				img.style.objectFit = `${BASE_SPACING * 2.5}rem`;
+				img.src = section.icon;
+				button.appendChild(img);
+				button.style.gridTemplateColumns = "max-content auto";
+			}
+			//Create the label
+			const textContainer = document.createElement("div");
+			textContainer.style.textAlign = "left";
+			textContainer.style.fontSize = `${BASE_SPACING * 1.75}rem`;
+			textContainer.style.fontFamily = "sans-serif";
+			textContainer.appendChild(document.createTextNode(section.label));
+			button.appendChild(textContainer);
+			//If there is a function action, add a click listener
+			if (typeof section.action === "function") {
+				button.addEventListener("click", section.action);
+			}
+			//If the action is a sub-menu then create it
+			else if (Array.isArray(section.action)) {
+				//Create chevron icon
+				const img = document.createElement("div");
+				img.innerHTML = `<svg width='${BASE_SPACING * 1.25 * 16}' height='${BASE_SPACING * 1.25 * 16}' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><polyline points='7 2 18 12 7 22'></polyline></svg>`;
+				button.appendChild(img);
+				button.style.gridTemplateColumns = section.icon ? "max-content 1fr max-content" : "auto max-content";
+				//Create sub-menu
+				const subMenuContainer = document.createElement("div");
+				subMenuContainer.style.position = "absolute";
+				subMenuContainer.style.zIndex = 1;
+				subMenuContainer.style.left = "100%";
+				subMenuContainer.style.top = `-${BASE_SPACING}rem`; //Same as parent padding
+				subMenuContainer.style.display = "none";
+				this.createMenuFromSections(section.action, subMenuContainer);
+				buttonContainer.addEventListener("pointerenter", () => {
+					subMenuContainer.style.display = "block";
+					const { leftAdjustment, topAdjustment } = this.computeAdjustIntoViewport(subMenuContainer);
+					if (leftAdjustment < 0) {
+						subMenuContainer.style.right = subMenuContainer.style.left;
+						subMenuContainer.style.left = null;
+					}
+					if (topAdjustment < 0) {
+						subMenuContainer.style.bottom = subMenuContainer.style.top;
+						subMenuContainer.style.top = null;
+					}
+				});
+				buttonContainer.addEventListener("pointerleave", () => (subMenuContainer.style.display = "none"));
+				buttonContainer.appendChild(subMenuContainer);
+			}
+			//Add hover listeners for button to update background color
+			buttonContainer.addEventListener("pointerenter", () => {
+				button.style.background = "#f3f4f6";
+			});
+			buttonContainer.addEventListener("pointerleave", () => {
+				button.style.background = "inherit";
+			});
+			//Add the button to the menu
+			buttonContainer.appendChild(button);
+			parent.appendChild(buttonContainer);
+		});
+	}
+
+	/**
+	 * Unmounts the tooltip
+	 */
+	unmount() {
+		this.menu.remove();
+	}
+}
+
+// Usage Example
+// const cm = new ContextMenu()
+// cm.showMenu(10, 10, [
+// 	{
+// 		label: "Option A",
+// 		icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-zoom-in'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3Cline x1='11' y1='8' x2='11' y2='14'%3E%3C/line%3E%3Cline x1='8' y1='11' x2='14' y2='11'%3E%3C/line%3E%3C/svg%3E",
+// 		action: () => console.log("Hello World!")
+// 	},
+// 	"divider",
+// 	{
+// 		label: "Option B",
+// 		icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-zoom-in'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3Cline x1='11' y1='8' x2='11' y2='14'%3E%3C/line%3E%3Cline x1='8' y1='11' x2='14' y2='11'%3E%3C/line%3E%3C/svg%3E",
+// 		action: [
+// 			{
+// 				label: "Option A",
+// 				icon: "icon-url",
+// 				action: () => console.log("Hello World!")
+// 			},
+// 			{
+// 				label: "Option B",
+// 				icon: "icon-url",
+// 				action: [
+// 					{
+// 						label: "Option A",
+// 						icon: "icon-url",
+// 						action: () => console.log("Hello World!")
+// 					},
+// 					{
+// 						label: "Option B",
+// 						icon: "icon-url",
+// 						action: () => console.log("Hello World!")
+// 					}
+// 				]
+// 			}
+// 		]
+// 	},
+// 	{
+// 		label: "Option C",
+// 		icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='feather feather-zoom-in'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3Cline x1='11' y1='8' x2='11' y2='14'%3E%3C/line%3E%3Cline x1='8' y1='11' x2='14' y2='11'%3E%3C/line%3E%3C/svg%3E",
+// 		action: () => console.log("Hello World!")
+// 	}
+// ])
+
+class DashedLineBuilder {
+	/**
+	 * Creates dashed lines using PIXI Graphics objects
+	 * Note that you must use moveTo before lineTo, or dashed lines will be drawn from 0, 0
+	 * Simplified version based on https://github.com/davidfig/pixi-dashed-line/blob/main/lib/index.ts
+	 * @param {PIXI.Graphics} graphics - Pixi graphics object to work with
+	 * @param {[number, number]} dash - Array where first entry is dash length and second is gap length
+	 */
+	constructor(graphics, dash) {
+		/** @type {PIXI.Graphics} */
+		this.graphics = graphics;
+		this.dash = dash || [10, 5];
+		this.dashSize = this.dash.reduce((a, b) => a + b);
+		this.cursor = new Point();
+		this.lineLength = 0;
+	}
+
+	/**
+	 * Computes the distance between two vectors
+	 * @param {number} x1
+	 * @param {number} y1
+	 * @param {number} x2
+	 * @param {number} y2
+	 */
+	computeDistance(x1, y1, x2, y2) {
+		return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+	}
+
+	/**
+	 * moveTo equivalent to Graphics.moveTo
+	 * @param {number} x
+	 * @param {number} y
+	 */
+	moveTo(x, y) {
+		this.lineLength = 0;
+		this.cursor.set(x, y);
+		this.start = new Point(x, y);
+		this.graphics.moveTo(this.cursor.x, this.cursor.y);
+		return this
+	}
+
+	/**
+	 * lineTo equivalent to Graphics.lineTo
+	 * @param {number} x
+	 * @param {number} y
+	 */
+	lineTo(x, y) {
+		const length = this.computeDistance(this.cursor.x, this.cursor.y, x, y);
+		const angle = Math.atan2(y - this.cursor.y, x - this.cursor.x);
+		const cos = Math.cos(angle);
+		const sin = Math.sin(angle);
+		let x0 = this.cursor.x;
+		let y0 = this.cursor.y;
+
+		// find the first part of the dash for this line
+		const place = this.lineLength % this.dashSize;
+		let dashIndex = 0;
+		let dashStart = 0;
+		let dashX = 0;
+		for (let i = 0; i < this.dash.length; i++) {
+			const dashSize = this.dash[i];
+			if (place < dashX + dashSize) {
+				dashIndex = i;
+				dashStart = place - dashX;
+				break
+			} else {
+				dashX += dashSize;
+			}
+		}
+
+		let remaining = length;
+		while (remaining > 0) {
+			const dashSize = this.dash[dashIndex] - dashStart;
+			const dist = remaining > dashSize ? dashSize : remaining;
+
+			x0 += cos * dist;
+			y0 += sin * dist;
+
+			if (dashIndex % 2) {
+				this.graphics.moveTo(x0, y0);
+			} else {
+				this.graphics.lineTo(x0, y0);
+			}
+			remaining -= dist;
+
+			dashIndex++;
+			dashIndex = dashIndex === this.dash.length ? 0 : dashIndex;
+			dashStart = 0;
+		}
+		this.lineLength += length;
+		this.cursor.set(x, y);
+
+		return this
+	}
+
+	/**
+	 * circle equivalent to Graphics.circle
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} radius
+	 * @param {number} points - How smooth the bends will be, higher number is smoother but more expensive.
+	 */
+	circle(x, y, radius, points = 80) {
+		const interval = (Math.PI * 2) / points;
+		let angle = 0;
+		const first = new Point(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+		this.moveTo(first.x, first.y);
+		angle += interval;
+		for (let i = 1; i < points + 1; i++) {
+			const next = i === points ? first : [x + Math.cos(angle) * radius, y + Math.sin(angle) * radius];
+			this.lineTo(next[0], next[1]);
+			angle += interval;
+		}
+		return this
+	}
+
+	/**
+	 * rect equivalent to Graphics.rect
+	 * @param {number} x
+	 * @param {number} y
+	 * @param {number} width
+	 * @param {number} height
+	 * @returns
+	 */
+	rect(x, y, width, height) {
+		this.moveTo(x, y)
+			.lineTo(x + width, y)
+			.lineTo(x + width, y + height)
+			.lineTo(x, y + height)
+			.lineTo(x, y, true);
+		return this
+	}
+
+	/**
+	 * Computes and creates a dashed texture and matrix transformation for a line.
+	 * Can be applied in the stroke() function for the graphics object using a spread operator.
+	 * someGraphics.stroke({ width: 1, ...getDirectionalTexture(x1,y1,x2,y2) })
+	 * @param {number} sourceX
+	 * @param {number} sourceY
+	 * @param {number} targetX
+	 * @param {number} targetY
+	 * @returns { { texture: PIXI.Texture, matrix: PIXI.Matrix } }
+	 */
+	getDirectionalTexture(sourceX, sourceY, targetX, targetY) {
+		const canvas = document.createElement("canvas");
+		canvas.width = this.dashSize;
+		canvas.height = 1;
+		const context = canvas.getContext("2d");
+		context.strokeStyle = "white";
+		context.globalAlpha = 1;
+		context.lineWidth = 1;
+		let x = 0;
+		const y = 1 / 2;
+		context.moveTo(x, y);
+		for (let i = 0; i < this.dash.length; i += 2) {
+			x += this.dash[i];
+			context.lineTo(x, y);
+			if (this.dash.length !== i + 1) {
+				x += this.dash[i + 1];
+				context.moveTo(x, y);
+			}
+		}
+		context.stroke();
+		const texture = Texture.from(canvas);
+		const angle = Math.atan2(targetY - sourceY, targetX - sourceX);
+		const matrix = new Matrix();
+		matrix.rotate(angle);
+		matrix.translate(sourceX * Math.cos(angle), sourceY * Math.sin(angle));
+		return {
+			texture,
+			matrix,
+			textureSpace: "global"
+		}
+	}
+}
+
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
  * There are also several performance optimizations that could be made.
@@ -42339,7 +43010,7 @@ class WebGLRenderer {
 	 * @param {HTMLElement} element
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
-	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
 	 */
 	constructor(element, nodes, edges, options) {
 		/** @type {HTMLElement} */
@@ -42349,7 +43020,7 @@ class WebGLRenderer {
 		this.nodes = nodes;
 		/** @type {import("../model/nodesandedges").InternalRendererEdge[]} */
 		this.edges = edges;
-		/** @type {import("../model/rendereroptions").IRendererOptions[]} */
+		/** @type {import("../model/rendereroptions").IRendererOptions} */
 		this.options = options;
 		/** @type {PIXI.Renderer} */
 		this.renderer = null;
@@ -42362,21 +43033,30 @@ class WebGLRenderer {
 		this.lassoEnabled = false;
 		/** @type {import("../model/rendereroptions").LineTypes} */
 		this.lineType = this.options?.lineType || "line";
-		this.LINE_MARGIN_PX = 10;
-		this.sceneSize = 50000;
-		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : 0x3289e2;
-		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : 0xe6e7e8;
+		this.rotateEdgeLabels = typeof this.options?.rotateEdgeLabels === "boolean" ? this.options?.rotateEdgeLabels : Env.DEFAULT_RENDERER_ROTATE_EDGE_LABELS;
+		this.LINE_MARGIN_PX = Env.RENDERER_LINE_MARGIN;
+		this.sceneSize = Env.RENDERER_SCENE_SIZE;
+		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : Env.DEFAULT_RENDERER_PRIMARY_COLOR;
+		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : Env.DEFAULT_RENDERER_BACKGROUND_COLOR;
+		this.tooltip = new Tooltip();
+		this.contextMenu = new ContextMenu();
+		this.contextMenuBuilder = options?.contextMenuBuilder || null;
+		if (options?.zoomControls) {
+			this.zoomControls = new ZoomControls(this.element, this);
+		}
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
 			["entityclick", new Set()],
 			["entityrightclick", new Set()],
 			["entityhoverstart", new Set()],
+			["entityhovermove", new Set()],
 			["entityhoverend", new Set()],
 			["entitydragstart", new Set()],
 			["entitydragmove", new Set()],
 			["entitydragend", new Set()],
 			["edgelabelhoverstart", new Set()],
+			["edgelabelhovermove", new Set()],
 			["edgelabelhoverend", new Set()],
 			["edgelabelclick", new Set()],
 			["edgelabelrightclick", new Set()],
@@ -42408,8 +43088,9 @@ class WebGLRenderer {
 
 	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {(...any) => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		if (!this.listeners.has(name)) {
@@ -42418,6 +43099,12 @@ class WebGLRenderer {
 		this.listeners.get(name).add(fn);
 	}
 
+	/**
+	 * Triggers an event to all listeners
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEvents[T]} payload
+	 */
 	triggerEvent(name, payload) {
 		this.listeners.get(name).forEach(fn => fn(payload));
 	}
@@ -42444,7 +43131,7 @@ class WebGLRenderer {
 		this.stage.position.set(width / 2, height / 2);
 		this.renderer = await autoDetectRenderer({
 			preference: "webgl",
-			resolution: 2,
+			resolution: Env.RENDERER_RESOLUTION,
 			width,
 			height,
 			autoDensity: true,
@@ -42505,12 +43192,15 @@ class WebGLRenderer {
 		};
 		const onClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdropclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+				this.triggerEvent("backdropclick", { position: { x: event.clientX, y: event.clientY } });
 			}
 		};
 		const onRightClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdroprightclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+				this.triggerEvent("backdroprightclick", { position: { x: event.clientX, y: event.clientY } });
+				if (this.contextMenuBuilder) {
+					this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(null));
+				}
 			}
 		};
 		this.backdrop
@@ -42525,8 +43215,8 @@ class WebGLRenderer {
 	 * makes the canvas zoomable
 	 */
 	initializeZoom() {
-		const maxScale = 4;
-		const minScale = 0.05;
+		const maxScale = Env.RENDERER_MAX_SCALE;
+		const minScale = Env.RENDERER_MIN_SCALE;
 		let isZooming = false;
 		const handleZoom = event => {
 			event.stopPropagation();
@@ -42534,7 +43224,7 @@ class WebGLRenderer {
 			const mouseX = event.clientX;
 			const mouseY = event.clientY;
 			const localPointBefore = this.stage.toLocal(new Point(mouseX, mouseY));
-			const alpha = 1 + Math.abs(event.wheelDelta) / 2000;
+			const alpha = 1 + Math.abs(event.wheelDelta) / Env.RENDERER_ZOOM_SENSITIVITY;
 			let shouldRender = false;
 			let scale = this.stage.scale._x;
 			if (event.wheelDelta < 0) {
@@ -42592,7 +43282,9 @@ class WebGLRenderer {
 		this.nodes = nodes;
 		this.edges = edges;
 		const nodeLookupMap = new Map();
-		const stageNodes = [];
+		const nodesContainer = new Container();
+		const edgesContainer = new Container();
+		const edgeLabelContainer = new Container();
 		//Initializes Nodes
 		for (const node of this.nodes) {
 			nodeLookupMap.set(node.id, node);
@@ -42603,10 +43295,12 @@ class WebGLRenderer {
 				icon: null,
 				selected: new Graphics(),
 				isFocused: false,
-				isSelected: false
+				isSelected: false,
+				isDisabled: false
 			};
 			//Draw shape
 			const nodeGfx = node.rendererInternals.node;
+			node.rendererInternals.container.addChild(nodeGfx);
 			const nodeShape = node.shape.id;
 			const nodeHeight = node.shape.height || node.shape.radius * 2;
 			const nodeWidth = node.shape.width || node.shape.radius * 2;
@@ -42615,28 +43309,28 @@ class WebGLRenderer {
 			} else {
 				nodeGfx.circle(0, 0, node.shape.radius);
 			}
-			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || 0xffffff));
-			nodeGfx.stroke({ width: 2, color: 0xffffff });
+			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || Env.DEFAULT_RENDERER_NODE_FILL));
+			nodeGfx.stroke({ width: Env.DEFAULT_RENDERER_NODE_STROKE_WIDTH, color: Env.DEFAULT_RENDERER_NODE_STROKE });
 			//Draw label
-			const fontSize = Math.max(nodeHeight * 0.1, 12);
+			const fontSize = Math.max(nodeHeight * 0.1, Env.RENDERER_NODE_MIN_FONT_SIZE);
 			const icon = node.rendererOptions?.icon;
-			const iconMaxSize = 50;
-			const iconMinSize = 16;
+			const iconMaxSize = Env.RENDERER_NODE_MAX_ICON_SIZE;
+			const iconMinSize = Env.RENDERER_NODE_MIN_ICON_SIZE;
 			const iconSize = Math.max(Math.min(nodeHeight * 0.2, iconMaxSize), iconMinSize);
-			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.shape.radius * 1.25;
+			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth * 0.625) : node.shape.radius * 1.25;
 			const textStyle = new TextStyle({
-				fontFamily: "Arial",
+				fontFamily: Env.RENDERER_NODE_FONT_FAMILY,
 				fontSize,
 				wordWrap: true,
 				breakWords: true,
 				wordWrapWidth,
 				align: "center",
-				fill: this.getHexColor(node.rendererOptions?.textColor || 0x000000)
+				fill: this.getHexColor(node.rendererOptions?.textColor || Env.DEFAULT_RENDERER_NODE_TEXT_COLOR)
 			});
-			const label = node.rendererOptions?.label || node.id;
+			const label = node.rendererOptions?.label || `${node.id}`;
 			const measurements = CanvasTextMetrics.measureText(label, textStyle);
 			let processedLabel = measurements.lines.shift();
-			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.shape.radius > 40);
+			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight >= 40) || (nodeShape !== "rectangle" && node.shape.radius > 40);
 			if (measurements.lines.length && shouldWrapText) {
 				processedLabel = `${processedLabel}\n${measurements.lines.shift()}`;
 			}
@@ -42644,9 +43338,9 @@ class WebGLRenderer {
 				processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`;
 			}
 			const text = new Text({ text: processedLabel, style: textStyle });
-			text.resolution = 3;
+			text.resolution = Env.RENDERER_NODE_TEXT_RESOLUTION;
 			text.anchor.set(0.5);
-			nodeGfx.addChild(text);
+			node.rendererInternals.container.addChild(text);
 			node.rendererInternals.text = text;
 			//Draw icon
 			if (node.rendererOptions?.icon) {
@@ -42658,7 +43352,7 @@ class WebGLRenderer {
 				icon.anchor.y = 0.5;
 				text.anchor.y = 0.5;
 				text.anchor.x = 0.5;
-				nodeGfx.addChild(icon);
+				node.rendererInternals.container.addChild(icon);
 				if (nodeShape === "rectangle") {
 					icon.x = -measurements.maxLineWidth / 2 - icon.width / 2;
 					text.x = iconSize / 2;
@@ -42676,14 +43370,14 @@ class WebGLRenderer {
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
-					12
+					8
 				);
 			} else {
 				selectedGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF);
 			}
 			selectedGfx.fill(this.primaryColor);
 			selectedGfx.alpha = 0;
-			node.rendererInternals.container.addChild(selectedGfx);
+			node.rendererInternals.container.addChildAt(selectedGfx, 0);
 			//Make node dragable
 			nodeGfx.interactive = true;
 			nodeGfx.cursor = "pointer"; //Added in pixi v7 to replace nodegfx.buttonMode = true
@@ -42731,14 +43425,14 @@ class WebGLRenderer {
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
-					12
+					8
 				);
 				focusGfx2.roundRect(
 					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
 					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 4,
 					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 4,
-					16
+					12
 				);
 			} else {
 				focusGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF);
@@ -42746,13 +43440,19 @@ class WebGLRenderer {
 			}
 			focusGfx.fill(this.primaryColor);
 			focusGfx2.fill(this.primaryColor);
-			const pointerOver = () => {
+			const pointerOver = event => {
 				if (!dragging) {
 					node.rendererInternals.container.addChildAt(focusGfx, 0);
 					node.rendererInternals.container.addChildAt(focusGfx2, 0);
 					node.rendererInternals.isFocused = true;
 					this.render();
+					this.triggerEvent("entityhoverstart", { node, position: { x: event.clientX, y: event.clientY } });
+					this.tooltip.showTooltip(event.clientX, event.clientY, label);
 				}
+			};
+			const pointerMove = event => {
+				this.triggerEvent("entityhovermove", { node, position: { x: event.clientX, y: event.clientY } });
+				this.tooltip.moveTooltip(event.clientX, event.clientY);
 			};
 			const pointerOut = () => {
 				if (node.rendererInternals.isFocused) {
@@ -42760,33 +43460,37 @@ class WebGLRenderer {
 					node.rendererInternals.container.removeChild(focusGfx2);
 					node.rendererInternals.isFocused = false;
 					this.render();
+					this.triggerEvent("entityhoverend", { node });
+					this.tooltip.hideTooltip();
 				}
 			};
 			nodeGfx.on("pointerover", pointerOver);
+			nodeGfx.on("pointermove", pointerMove);
 			nodeGfx.on("pointerout", pointerOut);
 			//Make node clickable
 			const onClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+					this.triggerEvent("entityclick", { node, position: { x: event.clientX, y: event.clientY } });
 				}
 			};
 			const onRightClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+					this.triggerEvent("entityrightclick", { node, position: { x: event.clientX, y: event.clientY } });
+					if (this.contextMenuBuilder) {
+						this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(node));
+					}
 				}
 			};
 			nodeGfx.on("click", onClick);
 			nodeGfx.on("rightclick", onRightClick);
 			//Add node to stage
-			node.rendererInternals.container.addChild(nodeGfx);
 			node.rendererInternals.container.cullable = true;
 			node.rendererInternals.container.cullableChildren = false;
-			stageNodes.push(node);
+			nodesContainer.addChild(node.rendererInternals.container);
 		}
 		//Initialize Edges
 		for (const edge of this.edges) {
 			//Initialize edge properties
-
 			const markerSourceAsset = await Assets.load(
 				edge.rendererOptions?.markerSource ? this.markers[edge.rendererOptions?.markerSource] : this.markers.none
 			);
@@ -42795,7 +43499,7 @@ class WebGLRenderer {
 			);
 			const markerSource = Sprite.from(markerSourceAsset);
 			const markerTarget = Sprite.from(markerTargetAsset);
-			const markerSize = 16;
+			const markerSize = Env.RENDERER_EDGE_MARKER_SIZE;
 			markerSource.width = markerSize;
 			markerSource.height = markerSize;
 			markerTarget.width = markerSize;
@@ -42808,6 +43512,10 @@ class WebGLRenderer {
 				markerSource,
 				markerTarget,
 				text: null,
+				isSelected: false,
+				isFocused: false,
+				isDisabled: false,
+				selected: null,
 				edgeCounter: {
 					//Placeholder, this is computed in a different function
 					total: -1,
@@ -42821,17 +43529,17 @@ class WebGLRenderer {
 			edge.rendererInternals.markerTarget.anchor.set(0.45, 0.25);
 			edge.rendererInternals.container.cullable = true;
 			edge.rendererInternals.container.cullableChildren = false;
-			this.stage.addChild(edge.rendererInternals.container);
+			edgesContainer.addChild(edge.rendererInternals.container);
 			//Initialize label
 			if (edge.rendererOptions?.label) {
 				const textStyle = new TextStyle({
-					fontFamily: "Arial",
-					fontSize: 10,
+					fontFamily: Env.RENDERER_EDGE_FONT_FAMILY,
+					fontSize: Env.RENDERER_EDGE_FONT_SIZE,
 					wordWrap: true,
 					breakWords: true,
 					align: "center",
-					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || 0x000000)
+					wordWrapWidth: (edge.rendererOptions.isInteractive ? Env.RENDERER_EDGE_LABEL_WIDTH : false) || edge.visibleDistance * 0.5,
+					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || Env.DEFAULT_RENDERER_EDGE_TEXT_COLOR)
 				});
 				const label = edge.rendererOptions?.label;
 				const measurements = CanvasTextMetrics.measureText(label, textStyle);
@@ -42840,7 +43548,7 @@ class WebGLRenderer {
 					processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`;
 				}
 				const text = new Text({ text: processedLabel, style: textStyle });
-				text.resolution = 3;
+				text.resolution = Env.RENDERER_EDGE_TEXT_RESOLUTION;
 				if (edge.sourceNode !== edge.targetNode) {
 					text.anchor.x = 0.5;
 					text.anchor.y = 1.2;
@@ -42853,14 +43561,31 @@ class WebGLRenderer {
 				//If the edge is interactive, then update the label
 				if (edge.rendererOptions?.isInteractive) {
 					text.anchor.y = 0.5;
-					const width = text.width + 10;
-					const height = text.height + 10;
+					const width = (Env.RENDERER_EDGE_LABEL_WIDTH || text.width) + Env.RENDERER_EDGE_LABEL_INLINE_PADDING;
+					const height = text.height + Env.RENDERER_EDGE_LABEL_BLOCK_PADDING;
 					const textBackground = new Graphics();
 					textBackground.alpha = 1;
 					textBackground.roundRect(-width / 2, -height / 2, width, height, 4);
-					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff));
-					textBackground.stroke({ width: 2, color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || 0xffffff) });
+					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_FILL));
+					textBackground.stroke({
+						width: Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE_WIDTH,
+						color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE)
+					});
 					textContainer.addChildAt(textBackground, 0);
+					//Make it selectable
+					const selectedGfx = new Graphics();
+					edge.rendererInternals.selected = selectedGfx;
+					selectedGfx.roundRect(
+						-(width / 2 + FOCUS_SHAPE_SIZE_HALF),
+						-(height / 2 + FOCUS_SHAPE_SIZE_HALF),
+						width + FOCUS_SHAPE_SIZE_HALF * 2,
+						height + FOCUS_SHAPE_SIZE_HALF * 2,
+						8
+					);
+					selectedGfx.fill(this.primaryColor);
+					selectedGfx.alpha = 0;
+					textContainer.addChildAt(selectedGfx, 0);
+					//Make it focusable
 					const textFocusBackground = new Graphics();
 					const textFocusBackground2 = new Graphics();
 					textFocusBackground.roundRect(
@@ -42889,40 +43614,54 @@ class WebGLRenderer {
 						this.render();
 						this.triggerEvent("edgelabelhoverstart", {
 							edge,
-							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+							position: { x: event.clientX, y: event.clientY }
 						});
+						this.tooltip.showTooltip(event.clientX, event.clientY, label);
 					};
-					const pointerOut = event => {
+					const pointerMove = event => {
+						this.triggerEvent("edgelabelhovermove", {
+							edge,
+							position: { x: event.clientX, y: event.clientY }
+						});
+						this.tooltip.moveTooltip(event.clientX, event.clientY);
+					};
+					const pointerOut = () => {
 						if (edge.rendererInternals.isFocused) {
 							textContainer.removeChild(textFocusBackground);
 							textContainer.removeChild(textFocusBackground2);
 							edge.rendererInternals.isFocused = false;
 							this.render();
-							this.triggerEvent("edgelabelhoverend", {
-								edge,
-								position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
-							});
+							this.triggerEvent("edgelabelhoverend", { edge });
+							this.tooltip.hideTooltip();
 						}
 					};
+					textContainer.on("pointerover", pointerOver);
+					textContainer.on("pointermove", pointerMove);
+					textContainer.on("pointerout", pointerOut);
+					//Make it clickable
 					const onClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+						this.triggerEvent("edgelabelclick", { edge, position: { x: event.clientX, y: event.clientY } });
 					};
 					const onRightClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } });
+						this.triggerEvent("edgelabelrightclick", {
+							edge,
+							position: { x: event.clientX, y: event.clientY }
+						});
+						if (this.contextMenuBuilder) {
+							this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(edge));
+						}
 					};
-					textContainer.on("pointerover", pointerOver);
-					textContainer.on("pointerout", pointerOut);
 					textContainer.on("click", onClick);
 					textContainer.on("rightclick", onRightClick);
 				}
-				edge.rendererInternals.container.addChild(textContainer);
+				edgeLabelContainer.addChild(textContainer);
 				edge.rendererInternals.text = textContainer;
 			}
 		}
 		//The order in which we add things to the stage matters, nodes need to be on top of the edges so they are added last.
-		stageNodes.forEach(node => {
-			this.stage.addChild(node.rendererInternals.container);
-		});
+		this.stage.addChild(edgesContainer);
+		this.stage.addChild(edgeLabelContainer);
+		this.stage.addChild(nodesContainer);
 	}
 
 	/**
@@ -42980,28 +43719,38 @@ class WebGLRenderer {
 				const lassoEndY = rectTopLeftY + height;
 				const coveredSelection = new Set(Array.from(lastLassoCoveredSelection));
 				let selectionChanged = false;
-				const removed = [];
-				const added = [];
-				this.nodes.forEach(node => {
-					if (
-						node.x >= Math.min(rectTopLeftX, lassoEndX) &&
-						node.y >= Math.min(rectTopLeftY, lassoEndY) &&
-						node.x + (node.shape.width || node.shape.radius) <= Math.max(lassoEndX, rectTopLeftX) &&
-						node.y + (node.shape.height || node.shape.radius) <= Math.max(lassoEndY, rectTopLeftY)
-					) {
-						if (!lastLassoCoveredSelection.has(node.id)) {
-							added.push(node);
-							coveredSelection.add(node.id);
+				const removedNodes = [];
+				const addedNodes = [];
+				const removedEdges = [];
+				const addedEdges = []
+				;[...this.nodes, ...this.edges.filter(edge => edge.rendererOptions?.isInteractive && !edge.rendererInternals.isDisabled)]
+					.filter(nodeOrEdge => !nodeOrEdge.rendererInternals.isDisabled)
+					.forEach(nodeOrEdge => {
+						const isNode = !!nodeOrEdge.shape;
+						const width = isNode ? nodeOrEdge.shape.width / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.width / 2;
+						const height = isNode ? nodeOrEdge.shape.height / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.height / 2;
+						const x = isNode ? nodeOrEdge.x : nodeOrEdge.rendererInternals.text.x;
+						const y = isNode ? nodeOrEdge.y : nodeOrEdge.rendererInternals.text.y;
+						const id = isNode ? nodeOrEdge.id : `${nodeOrEdge.sourceNode}-${nodeOrEdge.targetNode}`;
+						if (
+							x >= Math.min(rectTopLeftX, lassoEndX) &&
+							y >= Math.min(rectTopLeftY, lassoEndY) &&
+							x + width <= Math.max(lassoEndX, rectTopLeftX) &&
+							y + height <= Math.max(lassoEndY, rectTopLeftY)
+						) {
+							if (!lastLassoCoveredSelection.has(id)) {
+								isNode ? addedNodes.push(nodeOrEdge) : addedEdges.push(nodeOrEdge);
+								coveredSelection.add(id);
+								selectionChanged = true;
+							}
+						} else if (lastLassoCoveredSelection.has(id)) {
+							isNode ? removedNodes.push(nodeOrEdge) : removedEdges.push(nodeOrEdge);
+							coveredSelection.delete(id);
 							selectionChanged = true;
 						}
-					} else if (lastLassoCoveredSelection.has(node.id)) {
-						removed.push(node);
-						coveredSelection.delete(node.id);
-						selectionChanged = true;
-					}
-				});
+					});
 				if (selectionChanged) {
-					this.triggerEvent("lassoupdate", { added, removed, selection: Array.from(coveredSelection) });
+					this.triggerEvent("lassoupdate", { addedNodes, removedNodes, addedEdges, removedEdges, selection: Array.from(coveredSelection) });
 					lastLassoCoveredSelection = coveredSelection;
 				}
 				this.render();
@@ -43031,7 +43780,7 @@ class WebGLRenderer {
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(nodes, value = null) {
+	toggleSelectNodes(nodes, value = null) {
 		for (const node of nodes) {
 			if (typeof value !== "boolean") {
 				node.rendererInternals.isSelected = !node.rendererInternals.isSelected;
@@ -43042,6 +43791,29 @@ class WebGLRenderer {
 				node.rendererInternals.selected.alpha = 1;
 			} else {
 				node.rendererInternals.selected.alpha = 0;
+			}
+		}
+		this.render();
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		for (const edge of edges) {
+			if (edge.rendererOptions.isInteractive) {
+				if (typeof value !== "boolean") {
+					edge.rendererInternals.isSelected = !edge.rendererInternals.isSelected;
+				} else {
+					edge.rendererInternals.isSelected = value;
+				}
+				if (edge.rendererInternals.isSelected) {
+					edge.rendererInternals.selected.alpha = 1;
+				} else {
+					edge.rendererInternals.selected.alpha = 0;
+				}
 			}
 		}
 		this.render();
@@ -43066,21 +43838,56 @@ class WebGLRenderer {
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/nodesandedges").IBasicNode} - Node to check
+	 * @param {import("../model/nodesandedges").RendererNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
-		return !!node?.renderer?._private?.isSelected
+		return !!node?.rendererInternals?.isSelected
+	}
+
+	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return !!edge?.rendererInternals?.isSelected
 	}
 
 	/**
 	 * Clears all node selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
 	 */
-	clearAllNodeSelections() {
+	clearAllNodeSelections(shouldRender = true) {
 		this.nodes.forEach(node => {
 			node.rendererInternals.isSelected = false;
 			node.rendererInternals.selected.alpha = 0;
 		});
+		if (shouldRender) this.render();
+	}
+
+	/**
+	 * Clears all edge selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
+	 */
+	clearAllEdgeSelections(shouldRender = true) {
+		this.edges.forEach(edge => {
+			if (edge.rendererOptions?.isInteractive) {
+				edge.rendererInternals.isSelected = false;
+				if (edge.rendererInternals.selected) {
+					edge.rendererInternals.selected.alpha = 0;
+				}
+			}
+		});
+		if (shouldRender) this.render();
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.clearAllNodeSelections(false);
+		this.clearAllEdgeSelections(false);
 		this.render();
 	}
 
@@ -43098,7 +43905,6 @@ class WebGLRenderer {
 	 * @param {number} duration - Time in milliseconds for the transition
 	 */
 	zoomToFit(duration = 200) {
-		const PADDING_PX = 250;
 		const parentWidth = this.element.clientWidth;
 		const parentHeight = this.element.clientHeight;
 		const sizeCoordinates = { lowestX: Infinity, lowestY: Infinity, highestX: -Infinity, highestY: -Infinity };
@@ -43110,29 +43916,47 @@ class WebGLRenderer {
 			if (node.x + node.shape.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.shape.radius;
 			if (node.y + node.shape.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.shape.radius;
 		}
-		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + PADDING_PX);
-		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + PADDING_PX);
+		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + Env.RENDERER_ZOOM_TO_FIT_PADDING);
+		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + Env.RENDERER_ZOOM_TO_FIT_PADDING);
 		const widthRatio = parentWidth / width;
 		const heightRatio = parentHeight / height;
 		const newScale = Math.min(widthRatio, heightRatio);
 		const midX = (sizeCoordinates.highestX + sizeCoordinates.lowestX) / 2;
 		const midY = (sizeCoordinates.highestY + sizeCoordinates.lowestY) / 2;
-		const animation = {
-			sourceX: this.stage.x,
-			sourceY: this.stage.y,
-			sourceScale: this.stage.scale._x,
-			targetX: -midX + parentWidth / 2,
-			targetY: -midY + parentHeight / 2,
-			targetScale: newScale
-		};
+		const targetX = -(midX * newScale) + parentWidth / 2;
+		const targetY = -(midY * newScale) + parentHeight / 2;
+		const targetScale = newScale;
+		this.zoomTo(targetX, targetY, targetScale, duration);
+	}
+
+	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		const node = this.nodes.find(node => node.id === nodeID);
+		if (node) {
+			const width = this.element.offsetWidth / 2;
+			const height = this.element.offsetHeight / 2;
+			const scale = 1.5;
+			const x = -node.x * scale + width;
+			const y = -node.y * scale + height;
+			this.zoomTo(x, y, scale);
+		}
+	}
+
+	zoomTo(x, y, scale, duration = 200) {
 		const startTime = Date.now();
+		const sourceX = this.stage.x;
+		const sourceY = this.stage.y;
+		const sourceScale = this.stage.scale._x;
 		const loop = () => {
 			setTimeout(() => {
 				const deltaTime = Date.now() - startTime;
 				const percentOfAnimation = Math.min(deltaTime / duration, 1);
-				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation;
-				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation;
-				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation;
+				const nextX = sourceX + (x - sourceX) * percentOfAnimation;
+				const nextY = sourceY + (y - sourceY) * percentOfAnimation;
+				const nextScale = sourceScale + (scale - sourceScale) * percentOfAnimation;
 				this.stage.updateTransform({ x: nextX, y: nextY, scaleX: nextScale, scaleY: nextScale });
 				this.render();
 				if (deltaTime < duration) {
@@ -43180,7 +44004,6 @@ class WebGLRenderer {
 	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
-		this.clearAllFilters();
 		const includedNodes = new Set();
 		this.nodes
 			.filter(node => fn(node))
@@ -43207,6 +44030,26 @@ class WebGLRenderer {
 			edge.rendererInternals.isDisabled = false;
 		});
 		this.render();
+	}
+
+	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		const oldIndex = this.stage.getChildIndex(this.backdrop);
+		this.stage.removeChild(this.backdrop);
+		Culler.shared.cull(this.stage, { x: -25e3, y: -25e3, width: 50000, height: 50000 });
+		try {
+			const url = await this.renderer.extract.base64(this.stage);
+			const screenshot = document.createElement("a");
+			screenshot.download = "graph";
+			screenshot.href = url;
+			screenshot.click();
+		} catch {
+			console.error("Graph is too large");
+		}
+		Culler.shared.cull(this.stage, this.renderer.screen);
+		this.stage.addChildAt(this.backdrop, oldIndex);
 	}
 
 	/**
@@ -43424,15 +44267,35 @@ class WebGLRenderer {
 				line.moveTo(pathStart.x, pathStart.y);
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
 			} else if (this.lineType === "taxi") {
-				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
-				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
-				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
-				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
-				const midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2;
-				line.moveTo(pathStart.x, pathStart.y);
-				line.lineTo(pathStart.x, midPointY);
-				line.lineTo(pathEnd.x, midPointY);
-				line.lineTo(pathEnd.x, pathEnd.y);
+				let midPointY;
+				if (edge.rendererInternals.edgeCounter.total > 1) {
+					pathStart = this.calculateIntersection(target, source, this.LINE_MARGIN_PX);
+					pathEnd = this.calculateIntersection(source, target, this.LINE_MARGIN_PX);
+					const dividedDistance = (pathEnd.y - pathStart.y) / edge.rendererInternals.edgeCounter.total;
+					midPointY = pathStart.y + dividedDistance * edge.rendererInternals.edgeCounter.index + dividedDistance / 2;
+					curvePoint = {
+						x: pathStart.x + (pathEnd.x - pathStart.x) / 2,
+						y: midPointY
+					};
+				} else {
+					curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
+					midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2;
+				}
+				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: midPointY };
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line);
+					dlb.moveTo(pathStart.x, pathStart.y);
+					dlb.lineTo(pathStart.x, midPointY);
+					dlb.lineTo(pathEnd.x, midPointY);
+					dlb.lineTo(pathEnd.x, pathEnd.y);
+				} else {
+					line.moveTo(pathStart.x, pathStart.y);
+					line.lineTo(pathStart.x, midPointY);
+					line.lineTo(pathEnd.x, midPointY);
+					line.lineTo(pathEnd.x, pathEnd.y);
+				}
 			} else if (this.lineType === "cubicbezier") {
 				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
 				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
@@ -43485,19 +44348,36 @@ class WebGLRenderer {
 				const finalStep = path[path.length - 1];
 				pathStart = { x, y };
 				pathEnd = { x: finalStep.x, y: finalStep.y };
+				//The positioning labels needs to work for orthogonal layouts...
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
 				//We hijack the curvepoint parameter to use later for positioning the markers
-				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side };
-				line.moveTo(x, y);
-				path.forEach(path => line.lineTo(path.x, path.y));
+				curvePoint = { ...labelPoint, source: routeOptions.pointA.side, target: routeOptions.pointB.side };
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line);
+					dlb.moveTo(x, y);
+					path.forEach(path => dlb.lineTo(path.x, path.y));
+				} else {
+					line.moveTo(x, y);
+					path.forEach(path => line.lineTo(path.x, path.y));
+				}
 			} else {
 				//Straight lines
 				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter);
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX);
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX);
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 };
-				line.moveTo(pathStart.x, pathStart.y);
-				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
+				if (edge.rendererOptions?.dotted && edge.rendererInternals.edgeCounter.total <= 1) {
+					const dlb = new DashedLineBuilder(line);
+					dlb.moveTo(pathStart.x, pathStart.y);
+					dlb.lineTo(pathEnd.x, pathEnd.y);
+				} else {
+					line.moveTo(pathStart.x, pathStart.y);
+					if (edge.rendererInternals.edgeCounter.total > 1) {
+						line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y);
+					} else {
+						line.lineTo(pathEnd.x, pathEnd.y);
+					}
+				}
 			}
 			//Compute marker positions (arrow heads)
 			if (this.lineType === "taxi" && source !== target) {
@@ -43523,13 +44403,30 @@ class WebGLRenderer {
 				markerSource.position = new Point(pathStart.x, pathStart.y);
 			}
 			//Complete drawing the line
-			line.stroke({ width: 1, color: this.getHexColor(edge.rendererOptions?.color || 0x000000) });
+			if (edge.rendererOptions?.dotted && (edge.rendererInternals.edgeCounter.total > 1 || this.lineType === "cubicbezier")) {
+				//If we have drawn bent lines (quadratic curve or bezier) then we add the dash using a texture instead
+				const dlb = new DashedLineBuilder(line);
+				line.stroke({
+					width: Env.RENDERER_EDGE_WIDTH,
+					color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR),
+					...dlb.getDirectionalTexture(pathStart.x, pathStart.y, pathEnd.x, pathEnd.y)
+				});
+			} else {
+				line.stroke({ width: Env.RENDERER_EDGE_WIDTH, color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR) });
+			}
+
 			//Compute label position (if applicable)
 			const text = edge.rendererInternals.text;
 			if (text) {
-				text.position = new Point(labelPoint.x, labelPoint.y);
-				if (this.lineType === "line") {
+				if (edge.sourceNode === edge.targetNode) {
+					text.position = new Point(labelPoint.x, labelPoint.y);
+				} else {
+					text.position = new Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2);
+				}
+				if (this.lineType === "line" && this.rotateEdgeLabels) {
 					text.angle = this.computeLabelAngle(source, target);
+				} else {
+					text.angle = 0;
 				}
 				text.renderable = this.stage.scale._x < 0.3 ? false : true;
 			}
@@ -43563,7 +44460,7 @@ class Renderer {
 	 * @param {HTMLElement} element
 	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
-	 * @param {import("../model/rendereroptions").IRendererOptions[]} options
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
 	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options);
@@ -43578,8 +44475,9 @@ class Renderer {
 
 	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {() => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		this.WebGLRenderer.on(name, fn);
@@ -43599,7 +44497,16 @@ class Renderer {
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
 	toggleSelectNodes(nodes, value = null) {
-		this.WebGLRenderer.toggleSelectNode(nodes, value);
+		this.WebGLRenderer.toggleSelectNodes(nodes, value);
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		this.WebGLRenderer.toggleSelectEdges(edges, value);
 	}
 
 	/**
@@ -43621,10 +44528,33 @@ class Renderer {
 	}
 
 	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return this.WebGLRenderer.isEdgeSelected(edge)
+	}
+
+	/**
 	 * Clears all node selections
 	 */
 	clearAllNodeSelections() {
 		this.WebGLRenderer.clearAllNodeSelections();
+	}
+
+	/**
+	 * Clears all edge selections
+	 */
+	clearAllEdgeSelections() {
+		this.WebGLRenderer.clearAllEdgeSelections();
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.WebGLRenderer.clearAllSelections();
 	}
 
 	/**
@@ -43641,6 +44571,14 @@ class Renderer {
 	 */
 	zoomToFit(duration) {
 		this.WebGLRenderer.zoomToFit(duration);
+	}
+
+	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		this.WebGLRenderer.zoomToNode(nodeID);
 	}
 
 	/**
@@ -43685,6 +44623,13 @@ class Renderer {
 	 */
 	clearAllDisabledStatuses() {
 		this.WebGLRenderer.clearAllDisabledStatuses();
+	}
+
+	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		return await this.WebGLRenderer.exportToPng()
 	}
 
 	/**
