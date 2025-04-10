@@ -5,8 +5,14 @@ import LayoutComponent from "./layoutcomponent"
  * I.e. nodes that have edges between them.
  */
 export default class Link extends LayoutComponent {
-	constructor() {
+	/**
+	 * @param {Object} options - options for the object
+	 * @param {boolean} options.useRelativeStrength - Should edge strength be computed based on total edge counts for connected nodes rather than a fixed value?
+	 */
+	constructor({ useRelativeStrength = false } = {}) {
 		super()
+		this.useRelativeStrength = useRelativeStrength
+		this.strengths = []
 		this.count = []
 		this.bias = []
 	}
@@ -23,6 +29,7 @@ export default class Link extends LayoutComponent {
 		for (let i = 0; i < this.edges.length; i++) {
 			const edge = this.edges[i]
 			this.bias[i] = this.count[edge.source.index] / (this.count[edge.source.index] + this.count[edge.target.index])
+			this.strengths[i] = 1 / Math.min(this.count[edge.source.index], this.count[edge.target.index])
 		}
 	}
 
@@ -40,7 +47,7 @@ export default class Link extends LayoutComponent {
 			xDistance = edge.target.x + edge.target.vx - edge.source.x - edge.source.vx || this.randomize()
 			yDistance = edge.target.y + edge.target.vy - edge.source.y - edge.source.vy || this.randomize()
 			distanceSquared = Math.sqrt(xDistance * xDistance + yDistance * yDistance)
-			force = ((distanceSquared - edge.distance) / distanceSquared) * alpha * edge.strength
+			force = ((distanceSquared - edge.distance) / distanceSquared) * alpha * (this.useRelativeStrength ? this.strengths[i] : edge.strength)
 			xAdjustment = xDistance * force
 			yAdjustment = yDistance * force
 			bias = this.bias[i]

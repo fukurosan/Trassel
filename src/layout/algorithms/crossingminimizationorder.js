@@ -3,9 +3,9 @@
  * If a fake hierarchy is provided null values will be inserted into the resulting order.
  * Solution is partially inspired by the "Hungarian Method" for maximization
  * Note that this solution is *not* suitable for large graphs
- * @param {import("../../model/ibasicnode").IBasicNode[][]} hierarchyIn
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {import("../../model/ibasicnode").IBasicNode[][]} - Ordered Hierarchy
+ * @param {import("../../model/nodesandedges").IBasicNode[][]} hierarchyIn
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {import("../../model/nodesandedges").IBasicNode[][]} - Ordered Hierarchy
  */
 export const crossingMinimizationOrder = (hierarchyIn, edges) => {
 	let hierarchy = hierarchyIn.reduce((acc, group) => {

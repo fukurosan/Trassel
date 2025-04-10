@@ -1,38 +1,68 @@
 import * as PIXI from "pixi.js"
 import { OrthogonalConnector } from "./orthogonalRouter"
+import { Env } from "../config/env"
+import { Tooltip } from "./tooltip"
+import { ZoomControls } from "./zoombuttons"
+import { ContextMenu } from "./contextmenu"
+import { DashedLineBuilder } from "./dashedlinebuilder"
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
- * There are also several performance optimizations that could be made. Most especially with regards to text and culling of edges.
+ * There are also several performance optimizations that could be made.
  * This started out as a "basic" renderer, but grew into a playground for fun and interesting ideas.
  */
 export class WebGLRenderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
+	 */
 	constructor(element, nodes, edges, options) {
+		/** @type {HTMLElement} */
 		this.element = element
+		this.element.style.overflow = "hidden"
+		/** @type {import("../model/nodesandedges").InternalRendererNode[]} */
 		this.nodes = nodes
+		/** @type {import("../model/nodesandedges").InternalRendererEdge[]} */
 		this.edges = edges
+		/** @type {import("../model/rendereroptions").IRendererOptions} */
 		this.options = options
+		/** @type {PIXI.Renderer} */
 		this.renderer = null
+		/** @type {PIXI.Container} */
 		this.stage = null
+		/** @type {PIXI.Container} */
 		this.backdrop = null
+		/** @type {ResizeObserver | null} */
 		this.resizeObserver = null
 		this.lassoEnabled = false
-		this.lineType = options?.lineType || "line"
-		this.LINE_MARGIN_PX = 10
-		this.sceneSize = 50000
-		this.primaryColor = options?.primaryColor ? options.primaryColor : 0x3289e2
-		this.backgroundColor = this.options?.backdropColor ? this.options.backdropColor : 0xe6e7e8
+		/** @type {import("../model/rendereroptions").LineTypes} */
+		this.lineType = this.options?.lineType || "line"
+		this.rotateEdgeLabels = typeof this.options?.rotateEdgeLabels === "boolean" ? this.options?.rotateEdgeLabels : Env.DEFAULT_RENDERER_ROTATE_EDGE_LABELS
+		this.LINE_MARGIN_PX = Env.RENDERER_LINE_MARGIN
+		this.sceneSize = Env.RENDERER_SCENE_SIZE
+		this.primaryColor = options?.primaryColor ? this.getHexColor(this.options.primaryColor) : Env.DEFAULT_RENDERER_PRIMARY_COLOR
+		this.backgroundColor = this.options?.backdropColor ? this.getHexColor(this.options.backdropColor) : Env.DEFAULT_RENDERER_BACKGROUND_COLOR
+		this.tooltip = new Tooltip()
+		this.contextMenu = new ContextMenu()
+		this.contextMenuBuilder = options?.contextMenuBuilder || null
+		if (options?.zoomControls) {
+			this.zoomControls = new ZoomControls(this.element, this)
+		}
 		this.listeners = new Map([
 			["backdropclick", new Set()],
 			["backdroprightclick", new Set()],
 			["entityclick", new Set()],
 			["entityrightclick", new Set()],
 			["entityhoverstart", new Set()],
+			["entityhovermove", new Set()],
 			["entityhoverend", new Set()],
 			["entitydragstart", new Set()],
 			["entitydragmove", new Set()],
 			["entitydragend", new Set()],
 			["edgelabelhoverstart", new Set()],
+			["edgelabelhovermove", new Set()],
 			["edgelabelhoverend", new Set()],
 			["edgelabelclick", new Set()],
 			["edgelabelrightclick", new Set()],
@@ -42,25 +72,31 @@ export class WebGLRenderer {
 			["lassoupdate", new Set()],
 			["lassoend", new Set()]
 		])
+		//Markers are the tips of the edges, the arrow heads
 		this.markers = {
-			none: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' %3E%3C/svg%3E",
-			arrow: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E",
+			none: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'></svg>",
+			arrow: "data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23000000;'><polygon points='0,0 30,15 0,30' /></svg>",
 			hollowArrow:
-				"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23ffffff;stroke:%23000000;stroke-width:4;'%3E%3Cpolygon points='0,0 30,15 0,30'/%3E%3C/svg%3E"
+				"data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' style='fill:%23ffffff;stroke:%23000000;stroke-width:4;'><polygon points='0,0 30,15 0,30' /></svg>"
 		}
-		this.initializeRenderer()
-		this.initializePanAndBackdropEvents()
-		this.initializeZoom()
-		this.initializeResizer()
-		this.initializeData(nodes, edges)
-		this.initializeEdgeCounters()
-		this.initializeLasso()
+	}
+
+	/**
+	 * Takes a hex color as input either as a number or string, returns the value as a number
+	 * @param {string | number} value - The value
+	 */
+	getHexColor(value) {
+		if (typeof value == "string") {
+			return PIXI.Color.shared.setValue(value).toNumber()
+		}
+		return value
 	}
 
 	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {(...any) => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		if (!this.listeners.has(name)) {
@@ -69,22 +105,39 @@ export class WebGLRenderer {
 		this.listeners.get(name).add(fn)
 	}
 
+	/**
+	 * Triggers an event to all listeners
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEvents[T]} payload
+	 */
 	triggerEvent(name, payload) {
 		this.listeners.get(name).forEach(fn => fn(payload))
+	}
+
+	async initialize() {
+		await this.initializeRenderer()
+		this.initializePanAndBackdropEvents()
+		this.initializeZoom()
+		this.initializeResizer()
+		await this.initializeData(this.nodes, this.edges)
+		this.initializeEdgeCounters()
+		this.initializeLasso()
 	}
 
 	/**
 	 * Initializes the main renderer classes and variables
 	 */
-	initializeRenderer() {
+	async initializeRenderer() {
 		this.worldWidth = this.sceneSize
 		this.worldHeight = this.sceneSize
 		const width = this.element.clientWidth
 		const height = this.element.clientHeight
 		this.stage = new PIXI.Container()
 		this.stage.position.set(width / 2, height / 2)
-		this.renderer = PIXI.autoDetectRenderer({
-			resolution: 2,
+		this.renderer = await PIXI.autoDetectRenderer({
+			preference: "webgl",
+			resolution: Env.RENDERER_RESOLUTION,
 			width,
 			height,
 			autoDensity: true,
@@ -92,16 +145,16 @@ export class WebGLRenderer {
 			backgroundAlpha: 1,
 			backgroundColor: this.backgroundColor
 		})
-		this.renderer.view.style.display = "block"
-		this.element.appendChild(this.renderer.view)
+		this.renderer.view.canvas.style.display = "block"
+		this.element.appendChild(this.renderer.view.canvas)
 		this.backdrop = new PIXI.Container()
 		this.backdrop.interactive = true
 		this.backdrop.containsPoint = () => true
-		const svg = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='200' height='200' style='background-color:%23${this.backgroundColor.toString(
+		const svg = `data:image/svg+xml;utf-8,<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' width='200' height='200' style='background-color:%23${this.backgroundColor.toString(
 			16
-		)};'%3E%3Cpath style='stroke: %23a0a0a0; stroke-width: 4px;fill: none;stroke-dasharray: 0;stroke-linecap: round; stroke-linejoin: round;' d='M95 100 L105 100 M100 95 L100 105 Z' /%3E%3C/svg%3E`
-		const texture = PIXI.Texture.from(svg, { resolution: 4 })
-		const tilingSprite = new PIXI.TilingSprite(texture, this.worldWidth, this.worldHeight)
+		)};'><path style='stroke: %23a0a0a0; stroke-width: 4px;fill: none;stroke-dasharray: 0;stroke-linecap: round; stroke-linejoin: round;' d='M95 100 L105 100 M100 95 L100 105 Z' /></svg>`
+		const texture = await PIXI.Assets.load(svg)
+		const tilingSprite = new PIXI.TilingSprite({ texture, width: this.worldWidth, height: this.worldHeight, tileScale: { x: 0.25, y: 0.25 } })
 		tilingSprite.anchor.set(0.5)
 		this.backdrop.addChild(tilingSprite)
 		this.stage.addChild(this.backdrop)
@@ -120,6 +173,7 @@ export class WebGLRenderer {
 				initialMouseX = event.data.global.x - this.stage.x
 				initialMouseY = event.data.global.y - this.stage.y
 				mouseDrag = true
+				this.backdrop.on("globalpointermove", onStageDragMove)
 				this.triggerEvent("canvasdragstart")
 			}
 		}
@@ -128,12 +182,14 @@ export class WebGLRenderer {
 				blockCanvasClick = true
 				this.stage.x = event.data.global.x - initialMouseX
 				this.stage.y = event.data.global.y - initialMouseY
+				PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
 				requestAnimationFrame(() => this.renderer.render(this.stage))
 			}
 		}
 		const onStageDragEnd = () => {
 			if (mouseDrag) {
 				mouseDrag = false
+				this.backdrop.removeEventListener("globalpointermove", onStageDragMove)
 				this.triggerEvent("canvasdragend")
 				setTimeout(() => {
 					blockCanvasClick = false
@@ -142,17 +198,19 @@ export class WebGLRenderer {
 		}
 		const onClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdropclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+				this.triggerEvent("backdropclick", { position: { x: event.clientX, y: event.clientY } })
 			}
 		}
 		const onRightClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdroprightclick", { position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+				this.triggerEvent("backdroprightclick", { position: { x: event.clientX, y: event.clientY } })
+				if (this.contextMenuBuilder) {
+					this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(null))
+				}
 			}
 		}
 		this.backdrop
 			.on("pointerdown", onStageDragStart)
-			.on("pointermove", onStageDragMove)
 			.on("pointerup", onStageDragEnd)
 			.on("pointerupoutside", onStageDragEnd)
 			.on("click", onClick)
@@ -163,24 +221,25 @@ export class WebGLRenderer {
 	 * makes the canvas zoomable
 	 */
 	initializeZoom() {
-		let scale = 1
-		const maxScale = 4
-		const minScale = 0.05
+		const maxScale = Env.RENDERER_MAX_SCALE
+		const minScale = Env.RENDERER_MIN_SCALE
+		let isZooming = false
 		const handleZoom = event => {
 			event.stopPropagation()
 			event.preventDefault()
 			const mouseX = event.clientX
 			const mouseY = event.clientY
 			const localPointBefore = this.stage.toLocal(new PIXI.Point(mouseX, mouseY))
-			const alpha = 1 + Math.abs(event.wheelDelta) / 2000
+			const alpha = 1 + Math.abs(event.wheelDelta) / Env.RENDERER_ZOOM_SENSITIVITY
 			let shouldRender = false
+			let scale = this.stage.scale._x
 			if (event.wheelDelta < 0) {
 				scale = Math.min(scale * alpha, maxScale)
-				this.stage.setTransform(this.stage.x, this.stage.y, scale, scale)
+				this.stage.updateTransform({ x: this.stage.x, y: this.stage.y, scaleX: scale, scaleY: scale })
 				shouldRender = true
 			} else if (event.wheelDelta) {
 				scale = Math.max(scale / alpha, minScale)
-				this.stage.setTransform(this.stage.x, this.stage.y, scale, scale)
+				this.stage.updateTransform({ x: this.stage.x, y: this.stage.y, scaleX: scale, scaleY: scale })
 				shouldRender = true
 			}
 			const localPointAfter = this.stage.toLocal(new PIXI.Point(mouseX, mouseY))
@@ -189,10 +248,17 @@ export class WebGLRenderer {
 				this.stage.y += (localPointAfter.y - localPointBefore.y) * this.stage.scale.y
 			}
 			if (shouldRender) {
-				this.render()
+				//This prevents us from spamming zoom events that lock the event loop
+				isZooming = true
+				setTimeout(() => {
+					if (isZooming) {
+						isZooming = false
+						this.render()
+					}
+				}, 0)
 			}
 		}
-		this.renderer.view.addEventListener("wheel", handleZoom)
+		this.renderer.view.canvas.addEventListener("wheel", handleZoom)
 	}
 
 	/**
@@ -214,88 +280,85 @@ export class WebGLRenderer {
 
 	/**
 	 * Initializes all the graphics for provided nodes and edges
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
-	initializeData(nodes, edges) {
+	async initializeData(nodes, edges) {
 		const FOCUS_SHAPE_SIZE_HALF = 6
 		this.nodes = nodes
 		this.edges = edges
 		const nodeLookupMap = new Map()
-		const stageNodes = []
+		const nodesContainer = new PIXI.Container()
+		const edgesContainer = new PIXI.Container()
+		const edgeLabelContainer = new PIXI.Container()
 		//Initializes Nodes
-		this.nodes.forEach(node => {
+		for (const node of this.nodes) {
 			nodeLookupMap.set(node.id, node)
-			if (!node.renderer) node.renderer = {}
-			if (node.renderer.shape === "rectangle") {
-				!node.width && (node.width = 50)
-				!node.height && (node.height = 50)
-				!node.radius && (node.radius = Math.max(node.width, node.height) / 2)
-			} else {
-				!node.radius && (node.radius = 50)
-			}
-			node.renderer._private = {
+			node.rendererInternals = {
 				container: new PIXI.Container(),
 				node: new PIXI.Graphics(),
 				text: null,
 				icon: null,
 				selected: new PIXI.Graphics(),
 				isFocused: false,
-				isSelected: false
+				isSelected: false,
+				isDisabled: false
 			}
 			//Draw shape
-			const nodeGfx = node.renderer._private.node
-			const nodeShape = node.renderer.shape
-			const nodeHeight = node.height || node.radius * 2
-			const nodeWidth = node.width || node.radius * 2
-			nodeGfx.lineStyle(2, 0xffffff)
-			nodeGfx.beginFill(node.renderer.backgroundColor || 0xffffff)
+			const nodeGfx = node.rendererInternals.node
+			node.rendererInternals.container.addChild(nodeGfx)
+			const nodeShape = node.shape.id
+			const nodeHeight = node.shape.height || node.shape.radius * 2
+			const nodeWidth = node.shape.width || node.shape.radius * 2
 			if (nodeShape === "rectangle") {
-				nodeGfx.drawRoundedRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
+				nodeGfx.roundRect(-(nodeWidth / 2), -(nodeHeight / 2), nodeWidth, nodeHeight, 4)
 			} else {
-				nodeGfx.drawCircle(0, 0, node.radius)
+				nodeGfx.circle(0, 0, node.shape.radius)
 			}
+			nodeGfx.fill(this.getHexColor(node.rendererOptions?.backgroundColor || Env.DEFAULT_RENDERER_NODE_FILL))
+			nodeGfx.stroke({ width: Env.DEFAULT_RENDERER_NODE_STROKE_WIDTH, color: Env.DEFAULT_RENDERER_NODE_STROKE })
 			//Draw label
-			const fontSize = Math.max(nodeHeight * 0.1, 12)
-			const icon = node.renderer.icon
-			const iconMaxSize = 50
-			const iconMinSize = 16
+			const fontSize = Math.max(nodeHeight * 0.1, Env.RENDERER_NODE_MIN_FONT_SIZE)
+			const icon = node.rendererOptions?.icon
+			const iconMaxSize = Env.RENDERER_NODE_MAX_ICON_SIZE
+			const iconMinSize = Env.RENDERER_NODE_MIN_ICON_SIZE
 			const iconSize = Math.max(Math.min(nodeHeight * 0.2, iconMaxSize), iconMinSize)
-			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth - iconSize * 2) : node.radius * 1.25
+			const wordWrapWidth = nodeShape === "rectangle" ? (icon ? nodeWidth - iconSize * 3 : nodeWidth * 0.625) : node.shape.radius * 1.25
 			const textStyle = new PIXI.TextStyle({
-				fontFamily: "Arial",
+				fontFamily: Env.RENDERER_NODE_FONT_FAMILY,
 				fontSize,
 				wordWrap: true,
 				breakWords: true,
 				wordWrapWidth,
 				align: "center",
-				fill: node.renderer.textColor || 0x000000
+				fill: this.getHexColor(node.rendererOptions?.textColor || Env.DEFAULT_RENDERER_NODE_TEXT_COLOR)
 			})
-			const label = node.renderer.label || node.id
-			const measurements = PIXI.TextMetrics.measureText(label, textStyle)
+			const label = node.rendererOptions?.label || `${node.id}`
+			const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 			let processedLabel = measurements.lines.shift()
-			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight > 50) || (nodeShape !== "rectangle" && node.radius > 40)
+			const shouldWrapText = (nodeShape === "rectangle" && nodeHeight >= 40) || (nodeShape !== "rectangle" && node.shape.radius > 40)
 			if (measurements.lines.length && shouldWrapText) {
 				processedLabel = `${processedLabel}\n${measurements.lines.shift()}`
 			}
 			if (measurements.lines.length) {
 				processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 			}
-			const text = new PIXI.Text(processedLabel, textStyle)
-			text.resolution = 3
+			const text = new PIXI.Text({ text: processedLabel, style: textStyle })
+			text.resolution = Env.RENDERER_NODE_TEXT_RESOLUTION
 			text.anchor.set(0.5)
-			nodeGfx.addChild(text)
-			node.renderer._private.text = text
+			node.rendererInternals.container.addChild(text)
+			node.rendererInternals.text = text
 			//Draw icon
-			if (node.renderer.icon) {
-				const icon = PIXI.Sprite.from(node.renderer.icon)
+			if (node.rendererOptions?.icon) {
+				const texture = await PIXI.Assets.load(node.rendererOptions?.icon)
+				const icon = PIXI.Sprite.from(texture)
 				icon.width = iconSize
 				icon.height = iconSize
 				icon.anchor.x = 0.5
 				icon.anchor.y = 0.5
 				text.anchor.y = 0.5
 				text.anchor.x = 0.5
-				nodeGfx.addChild(icon)
+				node.rendererInternals.container.addChild(icon)
 				if (nodeShape === "rectangle") {
 					icon.x = -measurements.maxLineWidth / 2 - icon.width / 2
 					text.x = iconSize / 2
@@ -303,27 +366,27 @@ export class WebGLRenderer {
 					icon.anchor.y = 1.2
 					text.anchor.y = 0
 				}
-				node.renderer._private.icon = icon
+				node.rendererInternals.icon = icon
 			}
 			//Add selection graphics
-			const selectedGfx = node.renderer._private.selected
-			selectedGfx.beginFill(this.primaryColor)
-			if (node.renderer.shape === "rectangle") {
-				selectedGfx.drawRoundedRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 2,
-					12
+			const selectedGfx = node.rendererInternals.selected
+			if (node.shape.id === "rectangle") {
+				selectedGfx.roundRect(
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
+					8
 				)
 			} else {
-				selectedGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
+				selectedGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF)
 			}
+			selectedGfx.fill(this.primaryColor)
 			selectedGfx.alpha = 0
-			node.renderer._private.container.addChild(selectedGfx)
+			node.rendererInternals.container.addChildAt(selectedGfx, 0)
 			//Make node dragable
 			nodeGfx.interactive = true
-			nodeGfx.buttonMode = true
+			nodeGfx.cursor = "pointer" //Added in pixi v7 to replace nodegfx.buttonMode = true
 			let dragEventData = null
 			let dragging = false
 			let blockClick = false
@@ -333,6 +396,7 @@ export class WebGLRenderer {
 				dragEventData = event.data
 				initialMouse = dragEventData.getLocalPosition(this.stage)
 				dragging = true
+				nodeGfx.on("globalpointermove", onDragMove)
 				initialNode = { x: node.x, y: node.y }
 				this.triggerEvent("entitydragstart", { node, position: { ...initialNode } })
 			}
@@ -349,118 +413,148 @@ export class WebGLRenderer {
 					blockClick = false
 				}, 1)
 				dragging = false
+				nodeGfx.removeEventListener("globalpointermove", onDragMove)
 				dragEventData = null
 				this.triggerEvent("entitydragend", { node })
 			}
 			nodeGfx.on("pointerdown", onDragStart)
-			nodeGfx.on("pointermove", onDragMove)
 			nodeGfx.on("pointerup", onDragEnd)
 			nodeGfx.on("pointerupoutside", onDragEnd)
 			//Give node hover effect
 			const focusGfx = new PIXI.Graphics()
 			const focusGfx2 = new PIXI.Graphics()
-			focusGfx.beginFill(this.primaryColor)
-			focusGfx2.beginFill(this.primaryColor)
 			focusGfx.alpha = 0.2
 			focusGfx2.alpha = 0.1
-			if (node.renderer.shape === "rectangle") {
-				focusGfx.drawRoundedRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 2,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 2,
+			if (node.shape.id === "rectangle") {
+				focusGfx.roundRect(
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 2,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 2,
+					8
+				)
+				focusGfx2.roundRect(
+					-(node.shape.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
+					-(node.shape.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
+					node.shape.width + FOCUS_SHAPE_SIZE_HALF * 4,
+					node.shape.height + FOCUS_SHAPE_SIZE_HALF * 4,
 					12
 				)
-				focusGfx2.drawRoundedRect(
-					-(node.width / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
-					-(node.height / 2 + FOCUS_SHAPE_SIZE_HALF * 2),
-					node.width + FOCUS_SHAPE_SIZE_HALF * 4,
-					node.height + FOCUS_SHAPE_SIZE_HALF * 4,
-					16
-				)
 			} else {
-				focusGfx.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF)
-				focusGfx2.drawCircle(0, 0, node.radius + FOCUS_SHAPE_SIZE_HALF * 2)
+				focusGfx.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF)
+				focusGfx2.circle(0, 0, node.shape.radius + FOCUS_SHAPE_SIZE_HALF * 2)
 			}
-			const pointerOver = () => {
+			focusGfx.fill(this.primaryColor)
+			focusGfx2.fill(this.primaryColor)
+			const pointerOver = event => {
 				if (!dragging) {
-					node.renderer._private.container.addChildAt(focusGfx, 0)
-					node.renderer._private.container.addChildAt(focusGfx2, 0)
-					node.renderer._private.isFocused = true
+					node.rendererInternals.container.addChildAt(focusGfx, 0)
+					node.rendererInternals.container.addChildAt(focusGfx2, 0)
+					node.rendererInternals.isFocused = true
 					this.render()
+					this.triggerEvent("entityhoverstart", { node, position: { x: event.clientX, y: event.clientY } })
+					this.tooltip.showTooltip(event.clientX, event.clientY, label)
 				}
 			}
+			const pointerMove = event => {
+				this.triggerEvent("entityhovermove", { node, position: { x: event.clientX, y: event.clientY } })
+				this.tooltip.moveTooltip(event.clientX, event.clientY)
+			}
 			const pointerOut = () => {
-				if (node.renderer._private.isFocused) {
-					node.renderer._private.container.removeChild(focusGfx)
-					node.renderer._private.container.removeChild(focusGfx2)
-					node.renderer._private.isFocused = false
+				if (node.rendererInternals.isFocused) {
+					node.rendererInternals.container.removeChild(focusGfx)
+					node.rendererInternals.container.removeChild(focusGfx2)
+					node.rendererInternals.isFocused = false
 					this.render()
+					this.triggerEvent("entityhoverend", { node })
+					this.tooltip.hideTooltip()
 				}
 			}
 			nodeGfx.on("pointerover", pointerOver)
+			nodeGfx.on("pointermove", pointerMove)
 			nodeGfx.on("pointerout", pointerOut)
 			//Make node clickable
 			const onClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityclick", { node, position: { x: event.clientX, y: event.clientY } })
 				}
 			}
 			const onRightClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+					this.triggerEvent("entityrightclick", { node, position: { x: event.clientX, y: event.clientY } })
+					if (this.contextMenuBuilder) {
+						this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(node))
+					}
 				}
 			}
 			nodeGfx.on("click", onClick)
 			nodeGfx.on("rightclick", onRightClick)
 			//Add node to stage
-			node.renderer._private.container.addChild(nodeGfx)
-			node.renderer._private.container.cullable = true
-			stageNodes.push(node)
-		})
+			node.rendererInternals.container.cullable = true
+			node.rendererInternals.container.cullableChildren = false
+			nodesContainer.addChild(node.rendererInternals.container)
+		}
 		//Initialize Edges
-		this.edges.forEach(edge => {
+		for (const edge of this.edges) {
 			//Initialize edge properties
-			if (!edge.renderer) edge.renderer = {}
-			edge.renderer._private = {
+			const markerSourceAsset = await PIXI.Assets.load(
+				edge.rendererOptions?.markerSource ? this.markers[edge.rendererOptions?.markerSource] : this.markers.none
+			)
+			const markerTargetAsset = await PIXI.Assets.load(
+				edge.rendererOptions?.markerTarget ? this.markers[edge.rendererOptions?.markerTarget] : this.markers.arrow
+			)
+			const markerSource = PIXI.Sprite.from(markerSourceAsset)
+			const markerTarget = PIXI.Sprite.from(markerTargetAsset)
+			const markerSize = Env.RENDERER_EDGE_MARKER_SIZE
+			markerSource.width = markerSize
+			markerSource.height = markerSize
+			markerTarget.width = markerSize
+			markerTarget.height = markerSize
+			edge.rendererInternals = {
 				source: nodeLookupMap.get(edge.sourceNode),
 				target: nodeLookupMap.get(edge.targetNode),
 				container: new PIXI.Container(),
 				line: new PIXI.Graphics(),
-				markerSource: new PIXI.Sprite.from(edge.renderer.markerSource ? this.markers[edge.renderer.markerSource] : this.markers.none, {
-					resolution: 4
-				}),
-				markerTarget: new PIXI.Sprite.from(edge.renderer.markerTarget ? this.markers[edge.renderer.markerTarget] : this.markers.arrow, {
-					resolution: 4
-				}),
-				text: null
+				markerSource,
+				markerTarget,
+				text: null,
+				isSelected: false,
+				isFocused: false,
+				isDisabled: false,
+				selected: null,
+				edgeCounter: {
+					//Placeholder, this is computed in a different function
+					total: -1,
+					index: -1
+				}
 			}
-			edge.renderer._private.container.addChild(edge.renderer._private.line)
-			edge.renderer._private.container.addChild(edge.renderer._private.markerSource)
-			edge.renderer._private.container.addChild(edge.renderer._private.markerTarget)
-			edge.renderer._private.markerSource.anchor.set(0.45, 0.25)
-			edge.renderer._private.markerTarget.anchor.set(0.45, 0.25)
-			edge.renderer._private.container.cullable = true
-			this.stage.addChild(edge.renderer._private.container)
+			edge.rendererInternals.container.addChild(edge.rendererInternals.line)
+			edge.rendererInternals.container.addChild(edge.rendererInternals.markerSource)
+			edge.rendererInternals.container.addChild(edge.rendererInternals.markerTarget)
+			edge.rendererInternals.markerSource.anchor.set(0.45, 0.25)
+			edge.rendererInternals.markerTarget.anchor.set(0.45, 0.25)
+			edge.rendererInternals.container.cullable = true
+			edge.rendererInternals.container.cullableChildren = false
+			edgesContainer.addChild(edge.rendererInternals.container)
 			//Initialize label
-			if (edge.renderer.label) {
+			if (edge.rendererOptions?.label) {
 				const textStyle = new PIXI.TextStyle({
-					fontFamily: "Arial",
-					fontSize: 10,
+					fontFamily: Env.RENDERER_EDGE_FONT_FAMILY,
+					fontSize: Env.RENDERER_EDGE_FONT_SIZE,
 					wordWrap: true,
 					breakWords: true,
 					align: "center",
-					wordWrapWidth: (edge.distance || 100) * 0.5,
-					fill: edge.renderer.labelColor || 0x000000
+					wordWrapWidth: (edge.rendererOptions.isInteractive ? Env.RENDERER_EDGE_LABEL_WIDTH : false) || edge.visibleDistance * 0.5,
+					fill: this.getHexColor(edge.rendererOptions?.labelTextColor || Env.DEFAULT_RENDERER_EDGE_TEXT_COLOR)
 				})
-				const label = edge.renderer.label
-				const measurements = PIXI.TextMetrics.measureText(label, textStyle)
+				const label = edge.rendererOptions?.label
+				const measurements = PIXI.CanvasTextMetrics.measureText(label, textStyle)
 				let processedLabel = measurements.lines[0]
 				if (measurements.lines.length > 1) {
 					processedLabel = `${processedLabel.slice(0, processedLabel.length - 2)}..`
 				}
-				const text = new PIXI.Text(processedLabel, textStyle)
-				text.resolution = 3
+				const text = new PIXI.Text({ text: processedLabel, style: textStyle })
+				text.resolution = Env.RENDERER_EDGE_TEXT_RESOLUTION
 				if (edge.sourceNode !== edge.targetNode) {
 					text.anchor.x = 0.5
 					text.anchor.y = 1.2
@@ -471,80 +565,109 @@ export class WebGLRenderer {
 				const textContainer = new PIXI.Container()
 				textContainer.addChild(text)
 				//If the edge is interactive, then update the label
-				if (edge.renderer.isInteractive) {
+				if (edge.rendererOptions?.isInteractive) {
 					text.anchor.y = 0.5
-					const width = text.width + 10
-					const height = text.height + 10
+					const width = (Env.RENDERER_EDGE_LABEL_WIDTH || text.width) + Env.RENDERER_EDGE_LABEL_INLINE_PADDING
+					const height = text.height + Env.RENDERER_EDGE_LABEL_BLOCK_PADDING
 					const textBackground = new PIXI.Graphics()
-					textBackground.lineStyle(2, edge.renderer.labelBackgroundColor || 0xffffff)
-					textBackground.beginFill(edge.renderer.labelBackgroundColor || 0xffffff)
 					textBackground.alpha = 1
-					textBackground.drawRoundedRect(-width / 2, -height / 2, width, height, 4)
-					textBackground.endFill()
+					textBackground.roundRect(-width / 2, -height / 2, width, height, 4)
+					textBackground.fill(this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_FILL))
+					textBackground.stroke({
+						width: Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE_WIDTH,
+						color: this.getHexColor(edge.rendererOptions?.labelBackgroundColor || Env.DEFAULT_RENDERER_EDGE_LABEL_STROKE)
+					})
 					textContainer.addChildAt(textBackground, 0)
+					//Make it selectable
+					const selectedGfx = new PIXI.Graphics()
+					edge.rendererInternals.selected = selectedGfx
+					selectedGfx.roundRect(
+						-(width / 2 + FOCUS_SHAPE_SIZE_HALF),
+						-(height / 2 + FOCUS_SHAPE_SIZE_HALF),
+						width + FOCUS_SHAPE_SIZE_HALF * 2,
+						height + FOCUS_SHAPE_SIZE_HALF * 2,
+						8
+					)
+					selectedGfx.fill(this.primaryColor)
+					selectedGfx.alpha = 0
+					textContainer.addChildAt(selectedGfx, 0)
+					//Make it focusable
 					const textFocusBackground = new PIXI.Graphics()
 					const textFocusBackground2 = new PIXI.Graphics()
-					textFocusBackground.beginFill(this.primaryColor)
-					textFocusBackground2.beginFill(this.primaryColor)
-					textFocusBackground.drawRoundedRect(
+					textFocusBackground.roundRect(
 						-width / 2 - FOCUS_SHAPE_SIZE_HALF * 2,
 						-height / 2 - FOCUS_SHAPE_SIZE_HALF * 2,
 						width + FOCUS_SHAPE_SIZE_HALF * 4,
 						height + FOCUS_SHAPE_SIZE_HALF * 4,
 						12
 					)
-					textFocusBackground2.drawRoundedRect(
+					textFocusBackground2.roundRect(
 						-width / 2 - FOCUS_SHAPE_SIZE_HALF,
 						-height / 2 - FOCUS_SHAPE_SIZE_HALF,
 						width + FOCUS_SHAPE_SIZE_HALF * 2,
 						height + FOCUS_SHAPE_SIZE_HALF * 2,
 						8
 					)
-					textFocusBackground.endFill()
-					textFocusBackground2.endFill()
+					textFocusBackground.fill(this.primaryColor)
+					textFocusBackground2.fill(this.primaryColor)
 					textFocusBackground.alpha = 0.1
 					textFocusBackground2.alpha = 0.2
 					textContainer.interactive = true
 					const pointerOver = event => {
 						textContainer.addChildAt(textFocusBackground, 0)
 						textContainer.addChildAt(textFocusBackground2, 0)
-						edge.renderer._private.isFocused = true
+						edge.rendererInternals.isFocused = true
 						this.render()
 						this.triggerEvent("edgelabelhoverstart", {
 							edge,
-							position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
+							position: { x: event.clientX, y: event.clientY }
 						})
+						this.tooltip.showTooltip(event.clientX, event.clientY, label)
 					}
-					const pointerOut = event => {
-						if (edge.renderer._private.isFocused) {
+					const pointerMove = event => {
+						this.triggerEvent("edgelabelhovermove", {
+							edge,
+							position: { x: event.clientX, y: event.clientY }
+						})
+						this.tooltip.moveTooltip(event.clientX, event.clientY)
+					}
+					const pointerOut = () => {
+						if (edge.rendererInternals.isFocused) {
 							textContainer.removeChild(textFocusBackground)
 							textContainer.removeChild(textFocusBackground2)
-							edge.renderer._private.isFocused = false
+							edge.rendererInternals.isFocused = false
 							this.render()
-							this.triggerEvent("edgelabelhoverend", {
-								edge,
-								position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY }
-							})
+							this.triggerEvent("edgelabelhoverend", { edge })
+							this.tooltip.hideTooltip()
 						}
 					}
+					textContainer.on("pointerover", pointerOver)
+					textContainer.on("pointermove", pointerMove)
+					textContainer.on("pointerout", pointerOut)
+					//Make it clickable
 					const onClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+						this.triggerEvent("edgelabelclick", { edge, position: { x: event.clientX, y: event.clientY } })
 					}
 					const onRightClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.screenX, y: event.data.originalEvent.screenY } })
+						this.triggerEvent("edgelabelrightclick", {
+							edge,
+							position: { x: event.clientX, y: event.clientY }
+						})
+						if (this.contextMenuBuilder) {
+							this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(edge))
+						}
 					}
-					textContainer.on("pointerover", pointerOver)
-					textContainer.on("pointerout", pointerOut)
 					textContainer.on("click", onClick)
 					textContainer.on("rightclick", onRightClick)
 				}
-				edge.renderer._private.container.addChild(textContainer)
-				edge.renderer._private.text = textContainer
+				edgeLabelContainer.addChild(textContainer)
+				edge.rendererInternals.text = textContainer
 			}
-		})
-		stageNodes.forEach(node => {
-			this.stage.addChild(node.renderer._private.container)
-		})
+		}
+		//The order in which we add things to the stage matters, nodes need to be on top of the edges so they are added last.
+		this.stage.addChild(edgesContainer)
+		this.stage.addChild(edgeLabelContainer)
+		this.stage.addChild(nodesContainer)
 	}
 
 	/**
@@ -564,7 +687,7 @@ export class WebGLRenderer {
 		for (const [, edgeArray] of edgeMap) {
 			for (let i = 0; i < edgeArray.length; i++) {
 				const edge = edgeArray[i]
-				edge.renderer._private.edgeCounter = { total: edgeArray.length, index: i }
+				edge.rendererInternals.edgeCounter = { total: edgeArray.length, index: i }
 			}
 		}
 	}
@@ -584,44 +707,56 @@ export class WebGLRenderer {
 				this.stage.addChild(rect)
 				rect.alpha = 0.4
 				moving = true
+				this.backdrop.on("globalpointermove", onLassoMove)
 				this.triggerEvent("lassostart")
 			}
 		}
 		const onLassoMove = event => {
 			if (moving) {
 				const currentMouse = this.stage.toLocal(new PIXI.Point(event.data.global.x, event.data.global.y))
-				const width = currentMouse.x - initialMouse.x
-				const height = currentMouse.y - initialMouse.y
+				const width = Math.abs(currentMouse.x - initialMouse.x)
+				const height = Math.abs(currentMouse.y - initialMouse.y)
+				const rectTopLeftX = initialMouse.x < currentMouse.x ? initialMouse.x : currentMouse.x
+				const rectTopLeftY = initialMouse.y < currentMouse.y ? initialMouse.y : currentMouse.y
 				rect.clear()
-				rect.beginFill(this.primaryColor)
-				rect.drawRect(initialMouse.x, initialMouse.y, width, height)
-				rect.endFill()
-				const lassoEndX = initialMouse.x + width
-				const lassoEndY = initialMouse.y + height
+				rect.rect(rectTopLeftX, rectTopLeftY, width, height)
+				rect.fill(this.primaryColor)
+				const lassoEndX = rectTopLeftX + width
+				const lassoEndY = rectTopLeftY + height
 				const coveredSelection = new Set(Array.from(lastLassoCoveredSelection))
 				let selectionChanged = false
-				const removed = []
-				const added = []
-				this.nodes.forEach(node => {
-					if (
-						node.x >= Math.min(initialMouse.x, lassoEndX) &&
-						node.y >= Math.min(initialMouse.y, lassoEndY) &&
-						node.x + (node.width || node.radius) <= Math.max(lassoEndX, initialMouse.x) &&
-						node.y + (node.height || node.radius) <= Math.max(lassoEndY, initialMouse.y)
-					) {
-						if (!lastLassoCoveredSelection.has(node.id)) {
-							added.push(node)
-							coveredSelection.add(node.id)
+				const removedNodes = []
+				const addedNodes = []
+				const removedEdges = []
+				const addedEdges = []
+				;[...this.nodes, ...this.edges.filter(edge => edge.rendererOptions?.isInteractive && !edge.rendererInternals.isDisabled)]
+					.filter(nodeOrEdge => !nodeOrEdge.rendererInternals.isDisabled)
+					.forEach(nodeOrEdge => {
+						const isNode = !!nodeOrEdge.shape
+						const width = isNode ? nodeOrEdge.shape.width / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.width / 2
+						const height = isNode ? nodeOrEdge.shape.height / 2 || nodeOrEdge.shape.radius : nodeOrEdge.rendererInternals.text.height / 2
+						const x = isNode ? nodeOrEdge.x : nodeOrEdge.rendererInternals.text.x
+						const y = isNode ? nodeOrEdge.y : nodeOrEdge.rendererInternals.text.y
+						const id = isNode ? nodeOrEdge.id : `${nodeOrEdge.sourceNode}-${nodeOrEdge.targetNode}`
+						if (
+							x >= Math.min(rectTopLeftX, lassoEndX) &&
+							y >= Math.min(rectTopLeftY, lassoEndY) &&
+							x + width <= Math.max(lassoEndX, rectTopLeftX) &&
+							y + height <= Math.max(lassoEndY, rectTopLeftY)
+						) {
+							if (!lastLassoCoveredSelection.has(id)) {
+								isNode ? addedNodes.push(nodeOrEdge) : addedEdges.push(nodeOrEdge)
+								coveredSelection.add(id)
+								selectionChanged = true
+							}
+						} else if (lastLassoCoveredSelection.has(id)) {
+							isNode ? removedNodes.push(nodeOrEdge) : removedEdges.push(nodeOrEdge)
+							coveredSelection.delete(id)
 							selectionChanged = true
 						}
-					} else if (lastLassoCoveredSelection.has(node.id)) {
-						removed.push(node)
-						coveredSelection.delete(node.id)
-						selectionChanged = true
-					}
-				})
+					})
 				if (selectionChanged) {
-					this.triggerEvent("lassoupdate", { added, removed, selection: Array.from(coveredSelection) })
+					this.triggerEvent("lassoupdate", { addedNodes, removedNodes, addedEdges, removedEdges, selection: Array.from(coveredSelection) })
 					lastLassoCoveredSelection = coveredSelection
 				}
 				this.render()
@@ -629,12 +764,13 @@ export class WebGLRenderer {
 		}
 		const onStageLassoEnd = () => {
 			moving = false
+			this.backdrop.removeEventListener("globalpointermove", onLassoMove)
 			this.stage.removeChild(rect)
 			this.triggerEvent("lassoend", { selection: Array.from(lastLassoCoveredSelection) })
 			lastLassoCoveredSelection = new Set()
 			this.render()
 		}
-		this.backdrop.on("pointerdown", onLassoStart).on("pointermove", onLassoMove).on("pointerup", onStageLassoEnd).on("pointerupoutside", onStageLassoEnd)
+		this.backdrop.on("pointerdown", onLassoStart).on("pointerup", onStageLassoEnd).on("pointerupoutside", onStageLassoEnd)
 	}
 
 	/**
@@ -647,56 +783,117 @@ export class WebGLRenderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions} node
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(node, value = null) {
-		if (typeof value !== "boolean") {
-			node.renderer._private.isSelected = !node.renderer._private.isSelected
-		} else {
-			node.renderer._private.isSelected = value
+	toggleSelectNodes(nodes, value = null) {
+		for (const node of nodes) {
+			if (typeof value !== "boolean") {
+				node.rendererInternals.isSelected = !node.rendererInternals.isSelected
+			} else {
+				node.rendererInternals.isSelected = value
+			}
+			if (node.rendererInternals.isSelected) {
+				node.rendererInternals.selected.alpha = 1
+			} else {
+				node.rendererInternals.selected.alpha = 0
+			}
 		}
-		if (node.renderer._private.isSelected) {
-			node.renderer._private.selected.alpha = 1
-		} else {
-			node.renderer._private.selected.alpha = 0
+		this.render()
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		for (const edge of edges) {
+			if (edge.rendererOptions.isInteractive) {
+				if (typeof value !== "boolean") {
+					edge.rendererInternals.isSelected = !edge.rendererInternals.isSelected
+				} else {
+					edge.rendererInternals.isSelected = value
+				}
+				if (edge.rendererInternals.isSelected) {
+					edge.rendererInternals.selected.alpha = 1
+				} else {
+					edge.rendererInternals.selected.alpha = 0
+				}
+			}
 		}
 		this.render()
 	}
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
-	updateNodesAndEdges(nodes, edges) {
+	async updateNodesAndEdges(nodes, edges) {
 		while (this.stage.children[0]) {
 			this.stage.removeChild(this.stage.children[0])
 		}
 		this.stage.addChild(this.backdrop)
-		this.nodes.forEach(node => delete node.renderer._private)
-		this.edges.forEach(edge => delete edge.renderer._private)
-		this.initializeData(nodes, edges)
+		this.nodes.forEach(node => delete node.rendererInternals)
+		this.edges.forEach(edge => delete edge.rendererInternals)
+		await this.initializeData(nodes, edges)
+		this.initializeEdgeCounters()
 		this.render()
 	}
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} - Node to check
+	 * @param {import("../model/nodesandedges").RendererNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
-		return !!node?.renderer?._private?.isSelected
+		return !!node?.rendererInternals?.isSelected
+	}
+
+	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return !!edge?.rendererInternals?.isSelected
 	}
 
 	/**
 	 * Clears all node selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
 	 */
-	clearAllNodeSelections() {
+	clearAllNodeSelections(shouldRender = true) {
 		this.nodes.forEach(node => {
-			node.renderer._private.isSelected = false
-			node.renderer._private.selected.alpha = 0
+			node.rendererInternals.isSelected = false
+			node.rendererInternals.selected.alpha = 0
 		})
+		if (shouldRender) this.render()
+	}
+
+	/**
+	 * Clears all edge selections
+	 * @param {boolean} shouldRender - Should a re-render be fired after selection is updated?
+	 */
+	clearAllEdgeSelections(shouldRender = true) {
+		this.edges.forEach(edge => {
+			if (edge.rendererOptions?.isInteractive) {
+				edge.rendererInternals.isSelected = false
+				if (edge.rendererInternals.selected) {
+					edge.rendererInternals.selected.alpha = 0
+				}
+			}
+		})
+		if (shouldRender) this.render()
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.clearAllNodeSelections(false)
+		this.clearAllEdgeSelections(false)
 		this.render()
 	}
 
@@ -714,42 +911,59 @@ export class WebGLRenderer {
 	 * @param {number} duration - Time in milliseconds for the transition
 	 */
 	zoomToFit(duration = 200) {
-		const PADDING_PX = 250
 		const parentWidth = this.element.clientWidth
 		const parentHeight = this.element.clientHeight
 		const sizeCoordinates = { lowestX: Infinity, lowestY: Infinity, highestX: -Infinity, highestY: -Infinity }
 		let node
 		for (let i = 0; i < this.nodes.length; i++) {
 			node = this.nodes[i]
-			if (node.x - node.radius < sizeCoordinates.lowestX) sizeCoordinates.lowestX = node.x - node.radius
-			if (node.y - node.radius < sizeCoordinates.lowestY) sizeCoordinates.lowestY = node.y - node.radius
-			if (node.x + node.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.radius
-			if (node.y + node.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.radius
+			if (node.x - node.shape.radius < sizeCoordinates.lowestX) sizeCoordinates.lowestX = node.x - node.shape.radius
+			if (node.y - node.shape.radius < sizeCoordinates.lowestY) sizeCoordinates.lowestY = node.y - node.shape.radius
+			if (node.x + node.shape.radius > sizeCoordinates.highestX) sizeCoordinates.highestX = node.x + node.shape.radius
+			if (node.y + node.shape.radius > sizeCoordinates.highestY) sizeCoordinates.highestY = node.y + node.shape.radius
 		}
-		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + PADDING_PX)
-		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + PADDING_PX)
+		const width = Math.abs(sizeCoordinates.highestX - sizeCoordinates.lowestX + Env.RENDERER_ZOOM_TO_FIT_PADDING)
+		const height = Math.abs(sizeCoordinates.highestY - sizeCoordinates.lowestY + Env.RENDERER_ZOOM_TO_FIT_PADDING)
 		const widthRatio = parentWidth / width
 		const heightRatio = parentHeight / height
 		const newScale = Math.min(widthRatio, heightRatio)
 		const midX = (sizeCoordinates.highestX + sizeCoordinates.lowestX) / 2
 		const midY = (sizeCoordinates.highestY + sizeCoordinates.lowestY) / 2
-		const animation = {
-			sourceX: this.stage.x,
-			sourceY: this.stage.y,
-			sourceScale: this.stage.scale.x,
-			targetX: -midX + parentWidth / 2,
-			targetY: -midY + parentHeight / 2,
-			targetScale: newScale
+		const targetX = -(midX * newScale) + parentWidth / 2
+		const targetY = -(midY * newScale) + parentHeight / 2
+		const targetScale = newScale
+		this.zoomTo(targetX, targetY, targetScale, duration)
+	}
+
+	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		const node = this.nodes.find(node => node.id === nodeID)
+		if (node) {
+			const width = this.element.offsetWidth / 2
+			const height = this.element.offsetHeight / 2
+			const scale = 1.5
+			const x = -node.x * scale + width
+			const y = -node.y * scale + height
+			this.zoomTo(x, y, scale)
 		}
+	}
+
+	zoomTo(x, y, scale, duration = 200) {
 		const startTime = Date.now()
+		const sourceX = this.stage.x
+		const sourceY = this.stage.y
+		const sourceScale = this.stage.scale._x
 		const loop = () => {
 			setTimeout(() => {
 				const deltaTime = Date.now() - startTime
-				const percentOfAnimation = Math.min(deltaTime / duration, 100)
-				const nextX = animation.sourceX + (animation.targetX - animation.sourceX) * percentOfAnimation
-				const nextY = animation.sourceY + (animation.targetY - animation.sourceY) * percentOfAnimation
-				const nextScale = animation.sourceScale + (animation.targetScale - animation.sourceScale) * percentOfAnimation
-				this.stage.setTransform(nextX, nextY, nextScale, nextScale)
+				const percentOfAnimation = Math.min(deltaTime / duration, 1)
+				const nextX = sourceX + (x - sourceX) * percentOfAnimation
+				const nextY = sourceY + (y - sourceY) * percentOfAnimation
+				const nextScale = sourceScale + (scale - sourceScale) * percentOfAnimation
+				this.stage.updateTransform({ x: nextX, y: nextY, scaleX: nextScale, scaleY: nextScale })
 				this.render()
 				if (deltaTime < duration) {
 					loop()
@@ -766,7 +980,7 @@ export class WebGLRenderer {
 	 * @param {number} scale
 	 */
 	setTransform(x, y, scale) {
-		this.stage.setTransform(-x + this.element.clientWidth / 2, -y + this.element.clientHeight / 2, scale, scale)
+		this.stage.updateTransform({ x: -x + this.element.clientWidth / 2, y: -y + this.element.clientHeight / 2, scaleX: scale, scaleY: scale })
 		this.render()
 	}
 
@@ -793,20 +1007,19 @@ export class WebGLRenderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
-		this.clearAllFilters()
 		const includedNodes = new Set()
 		this.nodes
 			.filter(node => fn(node))
 			.forEach(node => {
-				node.renderer._private.isDisabled = true
+				node.rendererInternals.isDisabled = true
 				includedNodes.add(node.id)
 			})
 		this.edges.forEach(edge => {
 			if (includedNodes.has(edge.sourceNode) || includedNodes.has(edge.targetNode)) {
-				edge.renderer._private.isDisabled = true
+				edge.rendererInternals.isDisabled = true
 			}
 		})
 		this.render()
@@ -817,12 +1030,32 @@ export class WebGLRenderer {
 	 */
 	clearAllDisabledStatuses() {
 		this.nodes.forEach(node => {
-			node.renderer._private.isDisabled = false
+			node.rendererInternals.isDisabled = false
 		})
 		this.edges.forEach(edge => {
-			edge.renderer._private.isDisabled = false
+			edge.rendererInternals.isDisabled = false
 		})
 		this.render()
+	}
+
+	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		const oldIndex = this.stage.getChildIndex(this.backdrop)
+		this.stage.removeChild(this.backdrop)
+		PIXI.Culler.shared.cull(this.stage, { x: -25000, y: -25000, width: 50000, height: 50000 })
+		try {
+			const url = await this.renderer.extract.base64(this.stage)
+			const screenshot = document.createElement("a")
+			screenshot.download = "graph"
+			screenshot.href = url
+			screenshot.click()
+		} catch {
+			console.error("Graph is too large")
+		}
+		PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
+		this.stage.addChildAt(this.backdrop, oldIndex)
 	}
 
 	/**
@@ -834,29 +1067,29 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates the point where the edge between the source and target node intersects the border of the target node.
-	 * @param {{shape: string, x: number, y: number}} source - source node of the edge
-	 * @param {{shape: string, x: number, y: number}} target - target node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} source - source node of the edge
+	 * @param {import("../model/nodesandedges").InternalRendererNode} target - target node of the edge
 	 * @param {number} additionalDistance - additional distance, or what is essentially a padding.
 	 * @returns {{x: number, y: number}}
 	 */
 	calculateIntersection(source, target, additionalDistance) {
 		const dx = target.x - source.x
 		const dy = target.y - source.y
-		let innerDistance = target.radius
+		let innerDistance = target.shape.radius
 
 		//Rectangles require some more work...
-		if (target.renderer.shape === "rectangle") {
+		if (target.shape.id === "rectangle") {
 			const mEdge = Math.abs(dy / dx)
-			const mRect = target.height / target.width
+			const mRect = target.shape.height / target.shape.width
 
 			if (mEdge <= mRect) {
-				const timesX = dx / (target.width / 2)
+				const timesX = dx / (target.shape.width / 2)
 				const rectY = dy / timesX
-				innerDistance = Math.sqrt(Math.pow(target.width / 2, 2) + rectY * rectY)
+				innerDistance = Math.sqrt(Math.pow(target.shape.width / 2, 2) + rectY * rectY)
 			} else {
-				const timesY = dy / (target.height / 2)
+				const timesY = dy / (target.shape.height / 2)
 				const rectX = dx / timesY
-				innerDistance = Math.sqrt(Math.pow(target.height / 2, 2) + rectX * rectX)
+				innerDistance = Math.sqrt(Math.pow(target.shape.height / 2, 2) + rectX * rectX)
 			}
 		}
 
@@ -890,8 +1123,8 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates a point between two points for creating a curved line.
-	 * @param {object} source - Point where the source node is intersected by the edge
-	 * @param {object} target - Point where the target node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} source - Point where the source node is intersected by the edge
+	 * @param {import("../model/nodesandedges").RendererNode} target - Point where the target node is intersected by the edge
 	 * @param {{total: number, index: number}} edgeCounter - Edge counter
 	 */
 	computeCurvePoint(source, target, edgeCounter) {
@@ -954,7 +1187,7 @@ export class WebGLRenderer {
 
 	/**
 	 * Calculates edges to its input and stores the point for the labels. Only for circle shaped nodes!
-	 * @param {{radius: number, x: number, y: number}} node - Edge to be processed
+	 * @param {import("../model/nodesandedges").RendererNode} node - Edge to be processed
 	 * @param {{total: number, index: number}} edgeCounter - Edge to be processed
 	 * @param {number} additionalDistance - Additional padding in px
 	 */
@@ -965,11 +1198,11 @@ export class WebGLRenderer {
 		const arcFrom = this.computeRadian(loopShiftAngle * edgeCounter.index)
 		const arcTo = this.computeRadian(loopShiftAngle * edgeCounter.index + loopAngle)
 
-		const x1 = Math.cos(arcFrom) * (node.radius + additionalDistance)
-		const y1 = Math.sin(arcFrom) * (node.radius + additionalDistance)
+		const x1 = Math.cos(arcFrom) * (node.shape.radius + additionalDistance)
+		const y1 = Math.sin(arcFrom) * (node.shape.radius + additionalDistance)
 
-		const x2 = Math.cos(arcTo) * (node.radius + additionalDistance)
-		const y2 = Math.sin(arcTo) * (node.radius + additionalDistance)
+		const x2 = Math.cos(arcTo) * (node.shape.radius + additionalDistance)
+		const y2 = Math.sin(arcTo) * (node.shape.radius + additionalDistance)
 
 		const fixPoint1 = { x: node.x + x1, y: node.y + y1 }
 		const fixPoint2 = { x: node.x + x2, y: node.y + y2 }
@@ -986,84 +1219,107 @@ export class WebGLRenderer {
 	 * Main render function that updates the canvas
 	 */
 	render() {
+		//Process nodes
 		this.nodes.forEach(node => {
+			//Update position
 			const { x, y } = node
-			node.renderer._private.container.position = new PIXI.Point(x, y)
+			node.rendererInternals.container.position = new PIXI.Point(x, y)
+			//Update renderable sections based on scale
 			if (this.stage.scale._x < 0.3) {
-				if (node.renderer._private?.text) node.renderer._private.text.renderable = false
-				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = false
+				if (node.rendererInternals?.text) node.rendererInternals.text.renderable = false
+				if (node.rendererInternals?.icon) node.rendererInternals.icon.renderable = false
 			} else {
-				if (node.renderer._private?.text) node.renderer._private.text.renderable = true
-				if (node.renderer._private?.icon) node.renderer._private.icon.renderable = true
+				if (node.rendererInternals?.text) node.rendererInternals.text.renderable = true
+				if (node.rendererInternals?.icon) node.rendererInternals.icon.renderable = true
 			}
-			if (node.renderer._private.isDisabled) {
-				node.renderer._private.node.alpha = 0.2
-				node.renderer._private.node.interactive = false
+			//Update disabled state
+			if (node.rendererInternals.isDisabled) {
+				node.rendererInternals.node.alpha = 0.2
+				node.rendererInternals.node.interactive = false
 			} else {
-				node.renderer._private.node.alpha = 1
-				node.renderer._private.node.interactive = true
+				node.rendererInternals.node.alpha = 1
+				node.rendererInternals.node.interactive = true
 			}
 		})
+		//Process edges
 		this.edges.forEach(edge => {
+			//Update renderable based on scale
 			if (this.stage.scale._x < 0.1) {
-				edge.renderer._private.line.renderable = false
-				edge.renderer._private.markerSource.renderable = false
-				edge.renderer._private.markerTarget.renderable = false
-				if (edge.renderer._private.text) edge.renderer._private.text.renderable = false
+				edge.rendererInternals.line.renderable = false
+				edge.rendererInternals.markerSource.renderable = false
+				edge.rendererInternals.markerTarget.renderable = false
+				if (edge.rendererInternals.text) edge.rendererInternals.text.renderable = false
 				return
 			} else {
-				edge.renderer._private.line.renderable = true
-				edge.renderer._private.markerSource.renderable = true
-				edge.renderer._private.markerTarget.renderable = true
-				if (edge.renderer._private.text) edge.renderer._private.text.renderable = true
+				edge.rendererInternals.line.renderable = true
+				edge.rendererInternals.markerSource.renderable = true
+				edge.rendererInternals.markerTarget.renderable = true
+				if (edge.rendererInternals.text) edge.rendererInternals.text.renderable = true
 			}
-			const source = edge.renderer._private.source
-			const target = edge.renderer._private.target
-			const line = edge.renderer._private.line
+			//Compute and redraw lines
+			const source = edge.rendererInternals.source
+			const target = edge.rendererInternals.target
+			const line = edge.rendererInternals.line
 			line.clear()
 			line.alpha = 1
-			line.lineStyle(1, edge.renderer.color || 0x000000)
 			let pathStart
 			let pathEnd
 			let curvePoint
 			let labelPoint
 			if (source === target) {
-				const selfPath = this.computeSelfEdgePath(source, edge.renderer._private.edgeCounter, this.LINE_MARGIN_PX)
+				const selfPath = this.computeSelfEdgePath(source, edge.rendererInternals.edgeCounter, this.LINE_MARGIN_PX)
 				curvePoint = selfPath.curvePoint
 				pathStart = selfPath.start
 				pathEnd = selfPath.end
 				labelPoint = selfPath.label
 				line.moveTo(pathStart.x, pathStart.y)
 				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
-				line.endFill()
 			} else if (this.lineType === "taxi") {
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
-				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
-				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
-				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
-				const midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
-				line.moveTo(pathStart.x, pathStart.y)
-				line.lineTo(pathStart.x, midPointY)
-				line.lineTo(pathEnd.x, midPointY)
-				line.lineTo(pathEnd.x, pathEnd.y)
-				line.endFill()
+				let midPointY
+				if (edge.rendererInternals.edgeCounter.total > 1) {
+					pathStart = this.calculateIntersection(target, source, this.LINE_MARGIN_PX)
+					pathEnd = this.calculateIntersection(source, target, this.LINE_MARGIN_PX)
+					const dividedDistance = (pathEnd.y - pathStart.y) / edge.rendererInternals.edgeCounter.total
+					midPointY = pathStart.y + dividedDistance * edge.rendererInternals.edgeCounter.index + dividedDistance / 2
+					curvePoint = {
+						x: pathStart.x + (pathEnd.x - pathStart.x) / 2,
+						y: midPointY
+					}
+				} else {
+					curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
+					pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
+					pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
+					midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
+				}
+				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: midPointY }
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(pathStart.x, pathStart.y)
+					dlb.lineTo(pathStart.x, midPointY)
+					dlb.lineTo(pathEnd.x, midPointY)
+					dlb.lineTo(pathEnd.x, pathEnd.y)
+				} else {
+					line.moveTo(pathStart.x, pathStart.y)
+					line.lineTo(pathStart.x, midPointY)
+					line.lineTo(pathEnd.x, midPointY)
+					line.lineTo(pathEnd.x, pathEnd.y)
+				}
 			} else if (this.lineType === "cubicbezier") {
 				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
+				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				line.moveTo(pathStart.x, pathStart.y)
 				line.bezierCurveTo((pathStart.x + pathEnd.x) / 2, pathStart.y, (pathStart.x + pathEnd.x) / 2, pathEnd.y, pathEnd.x, pathEnd.y)
-				line.endFill()
 			} else if (this.lineType === "orthogonal") {
 				//TODO:: Make this go faster
-				const sourceWidth = edge.source.width ? edge.source.width : edge.source.radius * 2
-				const sourceHeight = edge.source.height ? edge.source.height : edge.source.radius * 2
-				const targetWidth = edge.target.width ? edge.target.width : edge.target.radius * 2
-				const targetHeight = edge.target.height ? edge.target.height : edge.target.radius * 2
-				const sourceSide = edge.renderer.sourceEdgePosition
-				const targetSide = edge.renderer.targetEdgePosition
+				const sourceWidth = edge.source.shape.width ? edge.source.shape.width : edge.source.shape.radius * 2
+				const sourceHeight = edge.source.shape.height ? edge.source.shape.height : edge.source.shape.radius * 2
+				const targetWidth = edge.target.shape.width ? edge.target.shape.width : edge.target.shape.radius * 2
+				const targetHeight = edge.target.shape.height ? edge.target.shape.height : edge.target.shape.radius * 2
+				const sourceSide = edge.rendererOptions?.sourceEdgePosition
+				const targetSide = edge.rendererOptions?.targetEdgePosition
 				const routeOptions = {
 					pointA: {
 						shape: {
@@ -1100,65 +1356,105 @@ export class WebGLRenderer {
 				const finalStep = path[path.length - 1]
 				pathStart = { x, y }
 				pathEnd = { x: finalStep.x, y: finalStep.y }
+				//The positioning labels needs to work for orthogonal layouts...
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				//We hijack the curvepoint parameter to use later for positioning the markers
-				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side }
-				line.moveTo(x, y)
-				path.forEach(path => line.lineTo(path.x, path.y))
-				line.endFill()
+				curvePoint = { ...labelPoint, source: routeOptions.pointA.side, target: routeOptions.pointB.side }
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(x, y)
+					path.forEach(path => dlb.lineTo(path.x, path.y))
+				} else {
+					line.moveTo(x, y)
+					path.forEach(path => line.lineTo(path.x, path.y))
+				}
 			} else {
-				curvePoint = this.computeCurvePoint(source, target, edge.renderer._private.edgeCounter)
+				//Straight lines
+				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
-				line.moveTo(pathStart.x, pathStart.y)
-				line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
-				line.endFill()
+				if (edge.rendererOptions?.dotted && edge.rendererInternals.edgeCounter.total <= 1) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(pathStart.x, pathStart.y)
+					dlb.lineTo(pathEnd.x, pathEnd.y)
+				} else {
+					line.moveTo(pathStart.x, pathStart.y)
+					if (edge.rendererInternals.edgeCounter.total > 1) {
+						line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
+					} else {
+						line.lineTo(pathEnd.x, pathEnd.y)
+					}
+				}
 			}
+			//Compute marker positions (arrow heads)
 			if (this.lineType === "taxi" && source !== target) {
-				const markerTarget = edge.renderer._private.markerTarget
+				const markerTarget = edge.rendererInternals.markerTarget
 				markerTarget.angle = target.y > source.y ? 90 : 270
 				markerTarget.position = new PIXI.Point(pathEnd.x, pathEnd.y)
-				const markerSource = edge.renderer._private.markerSource
+				const markerSource = edge.rendererInternals.markerSource
 				markerSource.angle = source.y > target.y ? 90 : 270
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			} else if (this.lineType === "orthogonal" && source !== target) {
-				const markerTarget = edge.renderer._private.markerTarget
+				const markerTarget = edge.rendererInternals.markerTarget
 				markerTarget.angle = curvePoint.target === "left" ? 0 : curvePoint.target === "top" ? 90 : curvePoint.target === "right" ? 180 : 270
 				markerTarget.position = new PIXI.Point(pathEnd.x, pathEnd.y)
-				const markerSource = edge.renderer._private.markerSource
+				const markerSource = edge.rendererInternals.markerSource
 				markerSource.angle = curvePoint.source === "left" ? 0 : curvePoint.source === "top" ? 90 : curvePoint.source === "right" ? 180 : 270
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			} else {
-				const markerTarget = edge.renderer._private.markerTarget
+				const markerTarget = edge.rendererInternals.markerTarget
 				markerTarget.rotation = Math.atan2(target.y - curvePoint.y, target.x - curvePoint.x)
 				markerTarget.position = new PIXI.Point(pathEnd.x, pathEnd.y)
-				const markerSource = edge.renderer._private.markerSource
+				const markerSource = edge.rendererInternals.markerSource
 				markerSource.rotation = Math.atan2(source.y - curvePoint.y, source.x - curvePoint.x)
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			}
-			const text = edge.renderer._private.text
-			if (text) {
-				text.position = new PIXI.Point(labelPoint.x, labelPoint.y)
-				if (this.lineType === "line") {
-					text.angle = this.computeLabelAngle(source, target)
-				}
-				text.alpha = this.stage.scale._x < 0.3 ? 0 : 1
-			}
-			if (edge.renderer._private.isDisabled) {
-				edge.renderer._private.line.alpha = 0.2
-				edge.renderer._private.markerSource.alpha = 0.2
-				edge.renderer._private.markerTarget.alpha = 0.2
-				edge.renderer._private.text && (edge.renderer._private.text.alpha = 0.2)
-				edge.renderer._private.text && (edge.renderer._private.text.interactive = false)
+			//Complete drawing the line
+			if (edge.rendererOptions?.dotted && (edge.rendererInternals.edgeCounter.total > 1 || this.lineType === "cubicbezier")) {
+				//If we have drawn bent lines (quadratic curve or bezier) then we add the dash using a texture instead
+				const dlb = new DashedLineBuilder(line)
+				line.stroke({
+					width: Env.RENDERER_EDGE_WIDTH,
+					color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR),
+					...dlb.getDirectionalTexture(pathStart.x, pathStart.y, pathEnd.x, pathEnd.y)
+				})
 			} else {
-				edge.renderer._private.line.alpha = 1
-				edge.renderer._private.markerSource.alpha = 1
-				edge.renderer._private.markerTarget.alpha = 1
-				edge.renderer._private.text && (edge.renderer._private.text.alpha = 1)
-				edge.renderer._private.text && (edge.renderer._private.text.interactive = true)
+				line.stroke({ width: Env.RENDERER_EDGE_WIDTH, color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR) })
+			}
+
+			//Compute label position (if applicable)
+			const text = edge.rendererInternals.text
+			if (text) {
+				if (edge.sourceNode === edge.targetNode) {
+					text.position = new PIXI.Point(labelPoint.x, labelPoint.y)
+				} else {
+					text.position = new PIXI.Point((labelPoint.x + curvePoint.x) / 2, (curvePoint.y + labelPoint.y) / 2)
+				}
+				if (this.lineType === "line" && this.rotateEdgeLabels) {
+					text.angle = this.computeLabelAngle(source, target)
+				} else {
+					text.angle = 0
+				}
+				text.renderable = this.stage.scale._x < 0.3 ? false : true
+			}
+			//Update disabled state
+			if (edge.rendererInternals.isDisabled) {
+				edge.rendererInternals.line.alpha = 0.2
+				edge.rendererInternals.markerSource.alpha = 0.2
+				edge.rendererInternals.markerTarget.alpha = 0.2
+				edge.rendererInternals.text && (edge.rendererInternals.text.alpha = 0.2)
+				edge.rendererInternals.text && (edge.rendererInternals.text.interactive = false)
+			} else {
+				edge.rendererInternals.line.alpha = 1
+				edge.rendererInternals.markerSource.alpha = 1
+				edge.rendererInternals.markerTarget.alpha = 1
+				edge.rendererInternals.text && (edge.rendererInternals.text.alpha = 1)
+				edge.rendererInternals.text && (edge.rendererInternals.text.interactive = true)
 			}
 		})
+		//https://pixijs.com/8.x/guides/migrations/v8 -> New Container Culling Approach
+		PIXI.Culler.shared.cull(this.stage, this.renderer.screen)
 		requestAnimationFrame(() => this.renderer.render(this.stage))
 	}
 }

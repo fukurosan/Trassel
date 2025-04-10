@@ -1,0 +1,180 @@
+{
+    "nodes": [
+        {
+            "id": "n0",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000
+        },
+        {
+            "id": "n1",
+            "shape": {
+                "id": "circle",
+                "radius": 50
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Helloooooooooooooooooooooooooooooooo World",
+                "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
+            }
+        },
+        {
+            "id": "n2",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Hello World",
+                "backgroundColor": "#00AE8D",
+                "textColor": "#FFFFFF"
+            }
+        },
+        {
+            "id": "n3",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Hello World",
+                "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
+            }
+        },
+        {
+            "id": "n4",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Hello World"
+            }
+        },
+        {
+            "id": "n5",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Hello World"
+            }
+        },
+        {
+            "id": "n6",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Hello World"
+            }
+        },
+        {
+            "id": "n7",
+            "shape": {
+                "id": "circle",
+                "radius": 30
+            },
+            "mass": 1000
+        },
+        {
+            "id": "n8",
+            "shape": {
+                "id": "rectangle",
+                "width": 200,
+                "height": 70
+            },
+            "mass": 1000,
+            "rendererOptions": {
+                "label": "Helloooooooooooooooooooooooooooooooooooooooooooo",
+                "shape": "rectangle",
+                "icon": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 16 16'><path fill='%237c7c7c' fill-rule='evenodd' d='M6.5 0a6.5 6.5 0 0 1 5.25 10.334l3.957 3.959a1 1 0 0 1-1.414 1.414l-3.96-3.957A6.5 6.5 0 1 1 6.5 0zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9z'/></svg>"
+            }
+        }
+    ],
+    "edges": [
+        {
+            "sourceNode": "n0",
+            "targetNode": "n1",
+            "visibleDistance": 100,
+            "rendererOptions": {
+                "color": "#00594E",
+                "label": "Hello World!!!!"
+            }
+        },
+        {
+            "sourceNode": "n0",
+            "targetNode": "n2",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n1",
+            "targetNode": "n3",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n1",
+            "targetNode": "n4",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n2",
+            "targetNode": "n5",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n2",
+            "targetNode": "n6",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n6",
+            "targetNode": "n7",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n6",
+            "targetNode": "n7",
+            "visibleDistance": 100
+        },
+        {
+            "sourceNode": "n7",
+            "targetNode": "n7",
+            "visibleDistance": 100,
+            "rendererOptions": {
+                "labelBackgroundColor": "#00ffff",
+                "isInteractive": true,
+                "color": "#00594E",
+                "label": "Hello World!!!!"
+            }
+        },
+        {
+            "sourceNode": "n7",
+            "targetNode": "n7",
+            "visibleDistance": 100,
+            "rendererOptions": {
+                "color": "#00594E",
+                "label": "Hello World!!!!"
+            }
+        },
+        {
+            "sourceNode": "n0",
+            "targetNode": "n8",
+            "visibleDistance": 100,
+            "rendererOptions": {
+                "isInteractive": true,
+                "color": "#00594E",
+                "label": "Hello World!!!!"
+            }
+        }
+    ]
+}

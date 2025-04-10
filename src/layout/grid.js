@@ -4,14 +4,17 @@ import LayoutComponent from "./layoutcomponent"
  * Grid layout creates a grid on either the Y-axis, X-axis or both.
  * The grid draws nodes towards these sets of axises, creating a matrix of small gravitational spaces resulting in a more square looking graph.
  * This layout can help make some graphs look much more tidy.
- * @param {boolean=} useY - If true the Y axis force will be activated
- * @param {boolean=} useX - If true the X axis force will be activated
- * @param {number=} strength - How strong should the force that pulls node into the axis be?
- * @param {number=} size - How large should each axis space be?
- * @param {number=} offsetMultiplier - If no size is provided the size of nodes will be used. This multiplier can be used to multiply the measurements by a given number.
  */
 export default class Grid extends LayoutComponent {
-	constructor(useX = true, useY = true, strength = 0.6, size = undefined, offsetMultiplier = 3) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {boolean=} options.useY - If true the Y axis force will be activated
+	 * @param {boolean=} options.useX - If true the X axis force will be activated
+	 * @param {number=} options.strength - How strong should the force that pulls node into the axis be?
+	 * @param {number=} options.size - How large should each axis space be?
+	 * @param {number=} options.offsetMultiplier - If no size is provided the size of nodes will be used. This multiplier can be used to multiply the measurements by a given number.
+	 */
+	constructor({ useX = true, useY = true, strength = 0.6, size = undefined, offsetMultiplier = 3 } = {}) {
 		super()
 		this.useX = useX
 		this.useY = useY
@@ -22,12 +25,18 @@ export default class Grid extends LayoutComponent {
 		this.maxSizeY = 0
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {

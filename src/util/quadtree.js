@@ -6,7 +6,7 @@
  */
 export default class Quadtree {
 	/**
-	 * @param {import("../model/igraphnode").IGraphNode[]=} entities - Graph nodes to base the quadtree on
+	 * @param {import("../model/nodesandedges").LayoutNode[]=} entities - Graph nodes to base the quadtree on
 	 */
 	constructor(entities = []) {
 		this.isMassComputed = false
@@ -19,7 +19,7 @@ export default class Quadtree {
 
 	/**
 	 * (Re)Computes the quadtree with new graph nodes
-	 * @param {import("../model/igraphnode").IGraphNode[]} entities
+	 * @param {import("../model/nodesandedges").LayoutNode[]} entities
 	 */
 	initialize(entities = []) {
 		this.isMassComputed = false
@@ -77,7 +77,7 @@ export default class Quadtree {
 
 	/**
 	 * The quadtree is recomputed by calling this function sequentially for each graph entity
-	 * @param {import("../model/igraphnode").IGraphNode} entity
+	 * @param {import("../model/nodesandedges").LayoutNode} entity
 	 * @returns
 	 */
 	addEntity(entity) {
@@ -293,7 +293,7 @@ export default class Quadtree {
 		this.traverseBottomTop(quadNode => {
 			//If it is an entity
 			if (quadNode.entity) {
-				quadNode.radius = quadNode.entity.radius + padding
+				quadNode.radius = quadNode.entity.shape.radius + padding
 				return
 			}
 			//If it is a quadrant

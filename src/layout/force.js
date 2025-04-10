@@ -2,12 +2,15 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * A force directed layout component using Fruchterman's & Reingold's algorithm.
- * @param {number=} size - Parameter used to control the size of the graph. Generally a fairly high number.
- * @param {number=} gravity - Strength of the gravity in the layout
- * @param {number=} speed - The speed at which things move in the graph.
  */
-export default class NBody extends LayoutComponent {
-	constructor(size = null, speed = 0.1, gravity = 0.75) {
+export default class Force extends LayoutComponent {
+	/**
+	 * @param {Object} options
+	 * @param {number=} options.size - Parameter used to control the size of the graph. Generally a fairly high number.
+	 * @param {number=} options.gravity - Strength of the gravity in the layout
+	 * @param {number=} options.speed - The speed at which things move in the graph.
+	 */
+	constructor({ size = null, speed = 0.2, gravity = 0.75 } = {}) {
 		super()
 		this.size = size
 		this.gravity = gravity

@@ -1,9 +1,9 @@
 /**
  * Takes a graph as input and returns an acyclic array of edges.
  * Based on Eades, Lin, Smyth, '93
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {import("../../model/ibasicedge").IBasicEdge[]} - Acyclic array of edges
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {import("../../model/nodesandedges").IBasicEdge[]} - Acyclic array of edges
  */
 export const makeAcyclic = (nodes, edges) => {
 	const originalNodes = [...nodes]

@@ -1,14 +1,32 @@
 import { WebGLRenderer } from "./renderer"
 
+/**
+ * Renderer API Class
+ * This class i used to create and interact with visual graphs.
+ */
 export class Renderer {
+	/**
+	 * @param {HTMLElement} element
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {import("../model/rendereroptions").IRendererOptions} options
+	 */
 	constructor(element, nodes = [], edges = [], options = {}) {
 		this.WebGLRenderer = new WebGLRenderer(element, nodes, edges, options)
 	}
 
 	/**
+	 * Initializes the renderer. Must be called before rendering anything!
+	 */
+	async initialize() {
+		await this.WebGLRenderer.initialize()
+	}
+
+	/**
 	 * Registers an event listener
-	 * @param {string} name - Event name to listen for
-	 * @param {() => any} fn - Callback on event
+	 * @template {& keyof import("../model/rendereroptions").RendererEvents} T
+	 * @param {T} name
+	 * @param {import("../model/rendereroptions").RendererEventCallaback<T>} fn
 	 */
 	on(name, fn) {
 		this.WebGLRenderer.on(name, fn)
@@ -24,25 +42,34 @@ export class Renderer {
 
 	/**
 	 * Selects or deselects a node.
-	 * @param {{id: string, renderer: { _private: { selected: boolean } }}} node
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
 	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
 	 */
-	toggleSelectNode(node, value = null) {
-		this.WebGLRenderer.toggleSelectNode(node, value)
+	toggleSelectNodes(nodes, value = null) {
+		this.WebGLRenderer.toggleSelectNodes(nodes, value)
+	}
+
+	/**
+	 * Selects or deselects an edge.
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
+	 * @param {boolean} value - Optional value to set. If ommitted current value will be toggled.
+	 */
+	toggleSelectEdges(edges, value = null) {
+		this.WebGLRenderer.toggleSelectEdges(edges, value)
 	}
 
 	/**
 	 * Updates the nodes and edges in the renderer.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions[]} nodes
-	 * @param {import("../model/rendereroptions").IEdgeWithRendererOptions[]} edges
+	 * @param {import("../model/nodesandedges").RendererNode[]} nodes
+	 * @param {import("../model/nodesandedges").RendererEdge[]} edges
 	 */
-	updateNodesAndEdges(nodes, edges) {
-		this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
+	async updateNodesAndEdges(nodes, edges) {
+		await this.WebGLRenderer.updateNodesAndEdges(nodes, edges)
 	}
 
 	/**
 	 * Returns if the node is selected or not
-	 * @param {import("../model/ibasicnode").IBasicNode} - Node to check
+	 * @param {import("../model/nodesandedges").IBasicNode} node - Node to check
 	 * @returns {boolean} - selected status
 	 */
 	isNodeSelected(node) {
@@ -50,10 +77,33 @@ export class Renderer {
 	}
 
 	/**
+	 * Returns if the node is selected or not
+	 * @param {import("../model/nodesandedges").RendererEdge} - Node to check
+	 * @returns {boolean} - selected status
+	 */
+	isEdgeSelected(edge) {
+		return this.WebGLRenderer.isEdgeSelected(edge)
+	}
+
+	/**
 	 * Clears all node selections
 	 */
 	clearAllNodeSelections() {
 		this.WebGLRenderer.clearAllNodeSelections()
+	}
+
+	/**
+	 * Clears all edge selections
+	 */
+	clearAllEdgeSelections() {
+		this.WebGLRenderer.clearAllEdgeSelections()
+	}
+
+	/**
+	 * Clears all selections
+	 */
+	clearAllSelections() {
+		this.WebGLRenderer.clearAllSelections()
 	}
 
 	/**
@@ -66,10 +116,18 @@ export class Renderer {
 
 	/**
 	 * scales and moves the view so that all nodes are included in the view
-	 * @param {number} duration - Time in milliseconds for the transition
+	 * @param {number=} duration - Time in milliseconds for the transition
 	 */
-	zoomToFit(duration = 200) {
+	zoomToFit(duration) {
 		this.WebGLRenderer.zoomToFit(duration)
+	}
+
+	/**
+	 * Zooms in on a node in the graph
+	 * @param {import("../model/nodesandedges").NodeID} nodeID - ID of node to zoom to
+	 */
+	zoomToNode(nodeID) {
+		this.WebGLRenderer.zoomToNode(nodeID)
 	}
 
 	/**
@@ -103,7 +161,7 @@ export class Renderer {
 	/**
 	 * disables and grays out nodes that match a given filter function.
 	 * Connected edges will also be disabled.
-	 * @param {import("../model/rendereroptions").INodeWithRendererOptions => boolean} fn - filter function for nodes
+	 * @param {import("../model/nodesandedges").RendererNode => boolean} fn - filter function for nodes
 	 */
 	disableNodes(fn) {
 		this.WebGLRenderer.disableNodes(fn)
@@ -114,6 +172,13 @@ export class Renderer {
 	 */
 	clearAllDisabledStatuses() {
 		this.WebGLRenderer.clearAllDisabledStatuses()
+	}
+
+	/**
+	 * Downloads the current graph as a png file
+	 */
+	async exportToPng() {
+		return await this.WebGLRenderer.exportToPng()
 	}
 
 	/**

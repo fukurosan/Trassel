@@ -1,6 +1,8 @@
+import { beforeEach, describe, expect, it } from "vitest"
 import { Attraction, Collision, Link, NBody } from "./layout/layoutcomponents"
 import Layout from "./layout"
 import Graph from "./graph"
+import { initializeNodesAndEdges } from "./util/initializer"
 
 describe("End-to-End Tests", () => {
 	const baseNodes = JSON.stringify([
@@ -35,11 +37,12 @@ describe("End-to-End Tests", () => {
 	})
 
 	it("Typical layout loop works", async () => {
+		initializeNodesAndEdges(nodes, edges)
 		const layout = new Layout(nodes, edges, { updateCap: Infinity })
 		layout.addLayoutComponent("collide", new Collision())
 		layout.addLayoutComponent("manybody", new NBody())
-		layout.addLayoutComponent("x", new Attraction(true))
-		layout.addLayoutComponent("y", new Attraction(false))
+		layout.addLayoutComponent("x", new Attraction({ isHorizontal: true }))
+		layout.addLayoutComponent("y", new Attraction({ isHorizontal: false }))
 		layout.addLayoutComponent("link", new Link())
 		let updateCount = 0
 		layout.on("layoutupdate", () => {
@@ -60,8 +63,8 @@ describe("End-to-End Tests", () => {
 		const graph = new Graph(nodes, edges, { layout: { updateCap: Infinity } })
 		graph.addLayoutComponent("collide", new Collision())
 		graph.addLayoutComponent("manybody", new NBody())
-		graph.addLayoutComponent("x", new Attraction(true))
-		graph.addLayoutComponent("y", new Attraction(false))
+		graph.addLayoutComponent("x", new Attraction({ isHorizontal: true }))
+		graph.addLayoutComponent("y", new Attraction({ isHorizontal: false }))
 		graph.addLayoutComponent("link", new Link())
 		let updateCount = 0
 		graph.on("layoutupdate", () => {

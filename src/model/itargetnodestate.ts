@@ -1,4 +1,4 @@
-import { NodeID } from "./nodeid"
+import { NodeID } from "./nodesandedges"
 
 /** Node state representing a node ID and target coordinates */
 export interface ITargetNodeState {

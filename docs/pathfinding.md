@@ -20,7 +20,7 @@ const edges = [
     {sourceNode: "n3", targetNode: "n5", weight: 1000},
 ]
 const graph = new Trassel(nodes, edges)
-const path = graph.findShortestPathWeighted("n1", "n5", true, true, false)
+const path = graph.findShortestPathWeighted("n1", "n5", { useOnlyOnline: true, isDirected: true, aggregateEdgeWeights: false })
 path // -> ["n1", "n2", "n3", "n4" "n5"]
 ```
 
@@ -44,6 +44,6 @@ const edges = [
     {sourceNode: "n3", targetNode: "n5"},
 ]
 const graph = new Trassel(nodes, edges)
-const path = graph.findShortestPathUnweighted("n1", "n5", true, true)
+const path = graph.findShortestPathUnweighted("n1", "n5", { useOnlyOnline: true, isDirected: true })
 path // -> ["n1", "n2", "n3", "n5"]
 ```

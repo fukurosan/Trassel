@@ -2,14 +2,17 @@ import LayoutComponent from "./layoutcomponent.js"
 
 /**
  * Creates a radial component that pulls nodes into a circular pattern
- * @param {number=} strength - How strong should it be? (0-1)
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
- * @param {number=} diameter - Diameter of the circle
- * @param {number=} sizeMultiplier - If diameter is automatically computed based on nodes, how much extra space should be added? (Multiplier)
  */
 export default class Radial extends LayoutComponent {
-	constructor(strength = 0.9, centerX = null, centerY = null, sizeMultiplier = 1.2, diameter = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.strength - How strong should it be? (0-1)
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 * @param {number=} options.diameter - Diameter of the circle
+	 * @param {number=} options.sizeMultiplier - If diameter is automatically computed based on nodes, how much extra space should be added? (Multiplier)
+	 */
+	constructor({ strength = 0.9, centerX = null, centerY = null, sizeMultiplier = 1.2, diameter = null } = {}) {
 		super()
 		this.strength = strength
 		this.centerX = centerX
@@ -23,7 +26,7 @@ export default class Radial extends LayoutComponent {
 		super.initialize(...args)
 		this.diameter = this.userProvidedDiameter
 			? this.userProvidedDiameter
-			: (this.nodes.reduce((acc, node) => acc + node.radius * 2, 0) / 3.14) * this.sizeMultiplier
+			: (this.nodes.reduce((acc, node) => acc + node.shape.radius * 2, 0) / 3.14) * this.sizeMultiplier
 		//Center will only be determined on the first initialization
 		const averageCoordinates = this.getAverageCoordinates()
 		this.centerX === null && (this.centerX = averageCoordinates[0])

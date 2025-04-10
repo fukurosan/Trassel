@@ -1,24 +1,24 @@
-import { initializeNodesAndEdges } from "./util/initializer"
 import Loop from "./loop"
 import Quadtree from "./util/quadtree"
+import { Env } from "./config/env"
 
 /**
  * Main layout class
  */
 export default class Layout {
 	/**
-	 * @param {import("./model/ibasicnode").IBasicNode[]=} nodes - Initial nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").LayoutNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").LayoutEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").ILayoutOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
 		this.nodes = nodes
 		this.edges = edges
-		this.alpha = options.alpha || 1
-		this.alphaMin = options.alphaMin || 0.001
-		this.alphaDecay = options.alphaDecay || 1 - Math.pow(this.alphaMin, 1 / 300)
-		this.alphaTarget = options.alphaTarget || 0
-		this.velocityDecay = options.velocityDecay || 0.6
+		this.alpha = options.alpha || Env.DEFAULT_START_ALPHA
+		this.alphaMin = options.alphaMin || Env.DEFAULT_ALPHA_MIN
+		this.alphaDecay = options.alphaDecay || Env.DEFAULT_ALPHA_DECAY
+		this.alphaTarget = options.alphaTarget || Env.DEFAULT_ALPHA_TARGET
+		this.velocityDecay = options.velocityDecay || Env.DEFAULT_VELOCITY_DECAY
 		/** @type {Map<string, import("./model/ilayoutcomponentobject").ILayoutComponentObject>} */
 		this.components = new Map()
 		this.listeners = new Map([
@@ -27,7 +27,7 @@ export default class Layout {
 			["layoutloopend", new Set()]
 		])
 		this.loop = new Loop(this.runLoop.bind(this), options.updateCap ? options.updateCap : 60)
-		this.initializeNodesAndEdges()
+		this.updateQuadTree()
 		this.quadtree = new Quadtree(this.nodes)
 		this.isAnimating = false
 	}
@@ -63,12 +63,11 @@ export default class Layout {
 	updateNodesAndEdges(nodes, edges) {
 		this.nodes = nodes
 		this.edges = edges
-		this.initializeNodesAndEdges()
+		this.updateQuadTree()
 		this.components.forEach(component => this.initializeComponent(component))
 	}
 
-	initializeNodesAndEdges() {
-		initializeNodesAndEdges(this.nodes, this.edges)
+	updateQuadTree() {
 		this.quadtree = new Quadtree(this.nodes)
 	}
 
@@ -141,6 +140,21 @@ export default class Layout {
 			this.components.get(id).instance.dismount()
 			this.components.delete(id)
 		}
+	}
+
+	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.components.clear()
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.components.has(id)
 	}
 
 	/**

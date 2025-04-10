@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest"
 import lcg from "./lcg"
 
 describe("LCG", () => {

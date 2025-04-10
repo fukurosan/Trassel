@@ -1,6 +1,7 @@
 import Quadtree from "./quadtree"
 import { Env } from "../config/env"
 import { initializeNodesAndEdges } from "./initializer"
+import { describe, expect, it } from "vitest"
 
 describe("Quadtree", () => {
 	//prettier-ignore
@@ -16,7 +17,10 @@ describe("Quadtree", () => {
 		{ id: "n9" },
 		{ id: "n10" }
 	]
-	nodes[0].radius = 1000
+	nodes[0].shape = {
+		id: "circle",
+		radius: 1000
+	}
 	initializeNodesAndEdges(nodes, [])
 
 	it("Quadtree bounds fill all nodes", () => {
@@ -69,6 +73,6 @@ describe("Quadtree", () => {
 		const quadtree = new Quadtree(nodes)
 		let counter = 0
 		quadtree.traverseTopBottom(() => counter++)
-		expect(counter).toBe(4)
+		expect(counter).toBe(5)
 	})
 })

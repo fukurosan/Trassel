@@ -73,10 +73,10 @@ The most basic type of node and edge looks as such:
 
 ```javascript
 declare type NodeID = string | number
-export interface IBasicNode {
+export interface BasicNode {
 	id: NodeID
 }
-export interface IBasicEdge {
+export interface BasicEdge {
 	sourceNode: NodeID
 	targetNode: NodeID
 }
@@ -88,17 +88,16 @@ Check out these interfaces:
 ```javascript
 /** Internal node structure */
 declare type NodeID = string | number
-export interface IGraphNode {
-    /** Unique identifier for the node */
+/** Trassel node */
+interface TrasselNode {
+	/** Unique ID of node */
 	id: NodeID
+	/** Template for object, used for shared properties */
+	template?: string
 	/** Index for the node in the list of nodes */
 	index: number
-	/** Radius for node */
-	radius: number
-	/** Optional width (if node is square!) */
-	width?: number
-	/** Optional height (if node is square!) */
-	height?: number
+	/** Shape of the node */
+	shape: NodeShape
 	/** Mass of the node */
 	mass: number
 	/** X coordinate */
@@ -106,34 +105,70 @@ export interface IGraphNode {
 	/** Y coordinate */
 	y: number
 	/** Fixed X coordinate (always trumps X) */
-	fx: number|null
+	fx?: number | null
 	/** Fixed Y coordinate (always trumps Y) */
-	fy: number|null
+	fy?: number | null
 	/** Node velocity (current movement) on the X-axis  */
 	vx: number
 	/** Node velocity (current movement) on the Y-axis */
 	vy: number
+	/** Renderer options */
+	rendererOptions?: {
+		/** Name of the node */
+		label?: string
+		/** Optional icon URL */
+		icon?: string
+		/** Background color of the node */
+		backgroundColor?: string
+		/** Text color of the node */
+		textColor?: string
+	}
 }
 /** Internal edge structure */
-export interface IGraphEdge {
-	/** Index for the edge in the list of edges */
-	index: number
+export interface ITrasselEdge {
 	/** Where the edge is directed from */
 	targetNode: NodeID
 	/** Where the edge is directed to */
 	sourceNode: NodeID
+	/** Template for object, used for shared properties */
+	template?: string
+	/** Index for the edge in the list of edges */
+	index: number
 	/** Actual source node object */
-	source: IGraphNode
+	source: TrasselNode
 	/** Actual target node object */
-	target: IGraphNode
+	target: TrasselNode
 	/** Strength of the edge */
 	strength: number
 	/** How long is the edge */
 	distance: number
 	/** How long is the visible section of the edge? */
 	visibleDistance: number
-	/** How heavy is the edge */
+	/** Weight of the edge, typically used in path finding and community computations to determine the significance of the edge */
 	weight: number
+	/** Renderer options */
+	rendererOptions?: {
+		/** Label text for the edge */
+		label?: string
+		/** Color of the edge */
+		color?: string
+		/** Background color of the edge label */
+		labelBackgroundColor?: string
+		/** Text color of the edge label */
+		labelTextColor?: string
+		/** Is the label interactive? */
+		isInteractive?: boolean
+		/** Should the lines be dotted? */
+		dotted?: boolean
+		/** In an orthogonal line type this can be used to control where the lines start and end */
+		sourceEdgePosition?: "top" | "right" | "bottom" | "left"
+		/** In an orthogonal line type this can be used to control where the lines start and end */
+		targetEdgePosition?: "top" | "right" | "bottom" | "left"
+		/** Marker to be drawn on the source side of the edge */
+		markerSource?: "arrow" | "hollowArrow" | "none"
+		/** Marker to be drawn on the target side of the edge */
+		markerTarget?: "arrow" | "hollowArrow" | "none"
+	}
 }
 ```
 

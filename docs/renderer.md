@@ -11,9 +11,8 @@ Check out this simple example:
 ```html
 <div class="graph" style="width:800px;height:600px;"></div>
 <script>
-	import { Renderer } from "trassel"
+	import { Trassel, Renderer } from "trassel"
 
-	const node1 =
 	const nodes = [
 	        {id: "n1", x: -100, y: 0},
 	        {id: "n2", x: 0, y: 0},
@@ -23,8 +22,10 @@ Check out this simple example:
 	    {sourceNode: "n1", targetNode: "n2"},
 	    {sourceNode: "n2", targetNode: "n1"},
 	]
-	const element = document.querySelector(".graph")
-	const renderer = new Renderer(element, nodes, edges)
+	const graph = new Trassel(nodes, edges)
+	const element = document.querySelector(".element-to-place-graph-in")
+	const renderer = new Renderer(element, graph.getNodes(), graph.getEdges())
+	await renderer.initialize()
 	renderer.render()
 </script>
 ```
@@ -40,7 +41,7 @@ to update data after creating the graph simply use the updateNodesAndEdges() fun
 ```javascript
 const nodes = []
 const edges = []
-renderer.updateNodesAndEdges(nodes, edges)
+await renderer.updateNodesAndEdges(nodes, edges)
 ```
 
 To render the current state onto the screen use the render() function like so:
@@ -71,7 +72,7 @@ The Trassel renderer's canvas is by default panable and zoomable using the point
 renderer.zoomToFit()
 //Sets the transform of the graph to a specific set of coordinates and scale.
 //The provided coordinates are measured from the center of the canvas element.
-setTransform(0, 0, 1)
+renderer.setTransform(0, 0, 1)
 ```
 
 You can extract coordinates from the renderer, and convert between viewport coordinates and local coordinates (i.e. the coordinate system within the graph).
@@ -82,6 +83,8 @@ const { x, y } = renderer.viewportToLocalCoordinates(0, 0)
 //Convert local coordinates to viewport coordinates
 const { x, y } = renderer.localToViewportCoordinates(0, 0)
 ```
+
+You can also add zoom buttons to the canvas by providing the "zoomControls" options parameter in the Renderer's constructor. 
 
 ### Selection
 
@@ -94,10 +97,13 @@ Selecting a node is super simple:
 const node = { id: "n1" }
 //The second argument sets the selection status.
 //If no second argument is passed the current status will be toggled to its opposite.
-renderer.toggleSelectNode(node, true)
+//Use toggleSelectEdges for edges
+renderer.toggleSelectNodes([someNode], true)
 //To clear all selections:
+//Use clearAllEdgeSelections for edges (or clearAllSelections for all)
 renderer.clearAllNodeSelections()
 //You can also combine it with events like so:
+//Use edgelabelclick for edge labels
 renderer.on("entityclick", event => {
 	renderer.clearAllNodeSelections()
 	renderer.toggleSelectNode(event.node)
@@ -124,7 +130,8 @@ window.addEventListener("keydown", keyListener)
 window.addEventListener("keyup", keyListener)
 renderer.on("lassoupdate", event => {
 	//The lasso update event comes with a list of added and removed nodes from inside the lasso.
-	;[...event.added, ...event.removed].forEach(node => renderer.toggleSelectNode(node))
+	renderer.toggleSelectNodes([...event.addedNodes, ...event.removedNodes])
+	renderer.toggleSelectEdges([...event.addedEdges, ...event.removedEdges])
 })
 ```
 
@@ -133,7 +140,7 @@ renderer.on("lassoupdate", event => {
 Edges are by default not interactive, but can be toggled as interactive by setting a flag in the renderer property of the edge object like so:
 
 ```javascript
-const edge = { sourceNode: "n0", targetNode: "n0", renderer: { isInteractive: true } },
+const edge = { sourceNode: "n0", targetNode: "n0", (...) rendererOptions: { isInteractive: true } },
 ```
 
 When made interactive edges will trigger click and hover events, and will receive a hover effect just like nodes. Only interactive edges will fully respect provided color options.
@@ -145,9 +152,9 @@ It is possible to instruct Trassel to disable nodes in the graph, causing them t
 To use the functionality you provide a function that takes a node as an argument and returns a boolean. All connected edges will also be automatically disabled.
 
 ```javascript
-const disabledNodes = ["n0", "n1"]
+const disabledNodes = new Set(["n0", "n1"])
 const disableFn = node => {
-	return disabledNodes.includes(node.id)
+	return disabledNodes.has(node.id)
 }
 //Disable nodes
 renderer.disableNodes(disableFn)
@@ -166,14 +173,49 @@ const renderer = new Renderer(element, nodes, edges, { lineType: "taxi" })
 renderer.setLineType("line")
 ```
 
-## markers
+## Markers
 
 By default the Trassel renderer will draw an arrow head marker on the target side of each edge, and nothing on the source side. This can be configured in the edge data by providing a sourceMarker and targetMarker property inside the renderer property object.
 
 ```javascript
 //Possible options are "arrow", "hollowArrow", or "none"
-const edgeWithNoMarkers = { sourceNode: "n0", targetNode: "n0", renderer: { markerSource: "none", markerTarget: "none" } }
+const edgeWithNoMarkers = { sourceNode: "n0", targetNode: "n0", rendererOptions: { markerSource: "none", markerTarget: "none" } }
 ```
+
+## Context Menus
+
+You can easily add context menus by providing a contextMenuBuilder parameter to the renderer's options in the constructor.
+
+The provided should be a function that return a valid context menu strucutre, given an object as input.
+
+When executed your function will receive either a node, edge, or null (in the case of the canvas) and from this information you build the menu you want to see. The menu structure is an array of items, where each item has a label property, optional icon property, and an action. The action can either be a function (in which case it will be executed when the button is clicked) or a new menu (in which case it will become a sub-menu when the parent one is hovered). It is also possible to provide a string value of "divider" as an item in the array, which will create a line separating previous and following items.
+
+For example:
+```javascript
+const contextMenuBuilder = (entity) => {
+	return [
+		{
+			label: "Button 1"
+			icon: "icon-url",
+			action: () => console.log("hello world")
+		},
+		"divider",
+		{
+			label: "Button 2"
+			icon: "icon-url",
+			action: [
+				{
+					label: "Button 2.1"
+					icon: "icon-url",
+					action: () => console.log("hello world")
+				}
+			]
+		},
+	]
+}
+new Trassel(element, nodes, edges, { contextMenuBuilder })
+```
+
 
 ## Events
 
@@ -214,38 +256,52 @@ interface IRendererOptions {
 	primaryColor?: number
 	/** Color of the graph backdrop */
 	backdropColor?: number
+	/** Should interactive edge labels be rotated? */
+	rotateEdgeLabels?: boolean
+	/** Should the zoom controls be activated? */
+	zoomControls?: boolean
+	/** Context Menu Builder */
+	contextMenuBuilder?: ContextMenu
 }
 
-interface INodeRendererOptions {
-	/** Background of the node */
-	backgroundColor?: number
-	/** Text color of the node */
-	textColor?: number
-	/** Shape of the node */
-	shape?: "circle" | "rectangle"
-	/** Icon URL/URI */
+type ContextMenu = (data: INodeWithRendererOptions | IEdgeWithRendererOptions | null) => ("divider" | {
+	label: string
 	icon?: string
-	/** Text label (name) for the node */
+	action: ((...args: any) => any) | ContextMenu[]
+})[]
+
+/** Can be set on node objects using "rendererOptions" */
+interface INodeRendererOptions {
+	/** Name of the node */
 	label?: string
+	/** Optional icon URL */
+	icon?: string
+	/** Background color of the node */
+	backgroundColor?: string
+	/** Text color of the node */
+	textColor?: string
 }
 
+/** Can be set on edge objects using "rendererOptions" */
 interface IEdgeRendererOptions {
-	/** Marker to be drawn on the source side of the edge */
-	markerSource?: "arrow" | "hollowArrow" | "none"
-	/** Marker to be drawn on the target side of the edge */
-	markerTarget?: "arrow" | "hollowArrow" | "none"
-	/** Text label (name) for the edge */
+	/** Label text for the edge */
 	label?: string
-	/** Text color */
-	labelColor?: number
-	/** Text label background color */
-	labelBackgroundColor?: number
+	/** Color of the edge */
+	color?: string
+	/** Background color of the edge label */
+	labelBackgroundColor?: string
+	/** Text color of the edge label */
+	labelTextColor?: string
 	/** Is the label interactive? */
 	isInteractive?: boolean
 	/** In an orthogonal line type this can be used to control where the lines start and end */
-	sourceEdgePosition?: "top" | "right" | "bottom" | "left"
+	sourceEdgePosition?: OrthogonalEdgePositions
 	/** In an orthogonal line type this can be used to control where the lines start and end */
-	targetEdgePosition?: "top" | "right" | "bottom" | "left"
+	targetEdgePosition?: OrthogonalEdgePositions
+	/** Marker to be drawn on the source side of the edge */
+	markerSource?: EdgeMarkerTypes
+	/** Marker to be drawn on the target side of the edge */
+	markerTarget?: EdgeMarkerTypes
 }
 
 /**
@@ -254,14 +310,19 @@ interface IEdgeRendererOptions {
 interface INodeWithRendererOptions {
 	/** Unique identifier for the node */
     id: string | number
+	/** X coordinate */
+	x: number
+	/** Y coordinate */
+	y: number
     /** Options for the renderer */
-	renderer?: INodeRendererOptions
-	/** Radius (if circle) */
-	radius?: number
-	/** Width (if rectangle) */
-	width?: number
-	/** Height (if rectangle) */
-	height?: number
+	rendererOptions?: INodeRendererOptions
+	/** Shape of the node */
+	shape: { 
+		id: "circle" | "rectangle"
+		radius: number
+		width?: number
+		height?: number
+	}
 }
 
 /**
@@ -272,9 +333,11 @@ interface IEdgeWithRendererOptions {
     sourceNode: string | number
     /** Unique identifier of the target node */
 	targetNode: string | number
+	/** Source node */
+	source: INodeWithRendererOptions
+	/** Target node */
+	target: INodeWithRendererOptions
     /** Options for the renderer */
-	renderer?: INodeRendererOptions
-	/** Length (in px) of the edge */
-	distance?: number
+	rendererOptions?: IEdgeRendererOptions
 }
 ```

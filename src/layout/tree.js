@@ -5,13 +5,16 @@ import LayoutComponent from "./layoutcomponent"
 /**
  * Creates an tree component that sorts nodes on an axis (either y or x) based on the Reingold-Tilford algorithm
  * The algorithm has been modified slightly to allow for things like multiple root nodes, centering in a coordinate system, and varying node sizes.
- * @param {boolean=} isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
- * @param {number=} padding - Minimum padding between nodes described in pixels
- * @param {number=} centerX - Center X coordinate of the component
- * @param {number=} centerY - Center Y coordinate of the component
  */
 export default class Tree extends LayoutComponent {
-	constructor(isVerticalLayout = true, padding = 100, centerX = null, centerY = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {boolean=} options.isVerticalLayout - If true the tree will be top to bottom, otherwise it will be left to right
+	 * @param {number=} options.padding - Minimum padding between nodes described in pixels
+	 * @param {number=} options.centerX - Center X coordinate of the component
+	 * @param {number=} options.centerY - Center Y coordinate of the component
+	 */
+	constructor({ isVerticalLayout = true, padding = 100, centerX = null, centerY = null } = {}) {
 		super()
 		this.isVerticalLayout = isVerticalLayout
 		this.PADDING_PX = padding
@@ -20,12 +23,18 @@ export default class Tree extends LayoutComponent {
 		this.nodePositions = new Map()
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {
@@ -135,18 +144,11 @@ export default class Tree extends LayoutComponent {
 				nextLevel = []
 				levels[levels.length - 1].forEach(node => (nextLevel = nextLevel.concat(node.children)))
 			} while (nextLevel.length)
-			levels.shift()
 			return levels.map(level => {
 				const result = { left: Infinity, right: -Infinity }
 				level.forEach(node => {
-					result.left = Math.min(
-						result.left,
-						node.orderOffset - (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
-					)
-					result.right = Math.max(
-						result.right,
-						node.orderOffset + (this.isVerticalLayout ? this.getWidth(node.node) / 2 : this.getHeight(node.node) / 2)
-					)
+					result.left = Math.min(result.left, node.orderOffset - (this.isVerticalLayout ? this.getWidth(node.node) : this.getHeight(node.node)))
+					result.right = Math.max(result.right, node.orderOffset + (this.isVerticalLayout ? this.getWidth(node.node) : this.getHeight(node.node)))
 				})
 				return result
 			})
@@ -165,9 +167,7 @@ export default class Tree extends LayoutComponent {
 			for (let i = 0; i < treeNode.children.length; i++) {
 				fixNodeConflicts(treeNode.children[i])
 			}
-			//If there is less than two children then we don't need to do anything
-			if (treeNode.children.length < 2) return
-			//For each child, compare it to everything to the right of it.
+			//For each child, compare it to everything that should be to the right of it.
 			for (let i = 0; i < treeNode.children.length - 1; i++) {
 				const leftNode = treeNode.children[i]
 				const leftContour = getContour(leftNode)
@@ -175,31 +175,24 @@ export default class Tree extends LayoutComponent {
 					const rightNode = treeNode.children[j]
 					const rightContour = getContour(rightNode)
 					//There may be a different amount of levels. We will compare all possible levels
+					let adjustedAmount = 0
 					for (let n = 0; n < Math.min(leftContour.length, rightContour.length); n++) {
-						const left = Math.max(leftContour[n].right)
-						const right = Math.min(rightContour[n].left)
-						//If the right side branch overlaps the left side branch we need to make an adjustment
-						if (left > right) {
+						//left = the right most side of node i's branch (must be to the left of j)
+						const left = leftContour[n].right
+						//right = the left most side of node j's branch (must be to the right of i)
+						const right = rightContour[n].left + adjustedAmount
+						//If j's branch's left side overlaps i's branch's right side we need to make an adjustment
+						if (left >= right) {
 							const adjustment = left - right + this.PADDING_PX
 							//Adjust the entire right branch
 							applyBranchAdjustment(rightNode, adjustment)
-							//All nodes (and branches) between (i) and (j) need to also be adjusted now to fill the newly created space
-							const middleSiblings = []
-							for (let m = i + 1; m < j; m++) {
-								middleSiblings.push(treeNode.children[m])
-							}
-							if (middleSiblings.length) {
-								const middleAdjustment = adjustment / middleSiblings.length / 2
-								for (let m = 0; m < middleSiblings.length; m++) {
-									applyBranchAdjustment(middleSiblings[m], middleAdjustment)
-								}
-							}
+							adjustedAmount += adjustment
 						}
 					}
 				}
 			}
-			//Finally, we center the root nodes around their children
-			if (!treeNode.parent && treeNode.children.length) {
+			//Finally, we center the parent nodes around their children
+			if (treeNode.children.length) {
 				let offset = 0
 				treeNode.children.forEach(child => {
 					offset += child.orderOffset
@@ -207,6 +200,7 @@ export default class Tree extends LayoutComponent {
 				treeNode.orderOffset = offset / treeNode.children.length
 			}
 		}
+
 		//There can be multiple root nodes, so we create a "fake" root node to handle this.
 		fixNodeConflicts({ children: tree, levelOffset: 0 })
 		//Write positions to member state

@@ -2,11 +2,14 @@ import LayoutComponent from "./layoutcomponent"
 
 /**
  * Creates a rectangular bounding box that stops nodes from leaving it
- * @param {number=} width - Width of the box. If not set will be determined by the sizes and amounts of the nodes
- * @param {number=} height - Height of the box. If not set will be determined by the sizes and amounts of the nodes
  */
 export default class BoundingBox extends LayoutComponent {
-	constructor(width = null, height = null) {
+	/**
+	 * @param {Object} options - Options of the object
+	 * @param {number=} options.width - Width of the box. If not set will be determined by the sizes and amounts of the nodes
+	 * @param {number=} options.height - Height of the box. If not set will be determined by the sizes and amounts of the nodes
+	 */
+	constructor({ width = null, height = null } = {}) {
 		super()
 		this.width = width
 		this.height = height
@@ -15,12 +18,18 @@ export default class BoundingBox extends LayoutComponent {
 		this.multiplier = 5
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getWidth(node) {
-		return node.width ? node.width : node.radius * 2
+		return node.shape.width ? node.shape.width : node.shape.radius * 2
 	}
 
+	/**
+	 * @param {import("../model/nodesandedges").LayoutNode} node
+	 */
 	getHeight(node) {
-		return node.height ? node.height : node.radius * 2
+		return node.shape.height ? node.shape.height : node.shape.radius * 2
 	}
 
 	initialize(...args) {

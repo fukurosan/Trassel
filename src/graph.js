@@ -1,27 +1,45 @@
 import Layout from "./layout"
 import DataManager from "./datamanager"
 import louvain from "./community/louvain"
+import { initializeNodesAndEdges } from "./util/initializer"
 
 /**
  * Main API for using the graph engine.
  */
 export default class Graph {
 	/**
-	 * @param {import("./model/ibasicnode").IBasicNode[]=} nodes - Initial nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]=} edges - Initial edges
+	 * @param {import("./model/nodesandedges").DraftNode[]=} nodes - Initial nodes
+	 * @param {import("./model/nodesandedges").DraftEdge[]=} edges - Initial edges
 	 * @param {import("./model/ioptions").IOptions} options - options
 	 */
 	constructor(nodes = [], edges = [], options = {}) {
-		/** @private */
-		this.nodes = nodes
-		/** @private */
-		this.edges = edges
-		/** @private */
+		const initialized = initializeNodesAndEdges(nodes, edges, options?.templates)
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
+		this.nodes = initialized.nodes
+		/** @private @type { import("./model/nodesandedges").TrasselNode[] } */
+		this.edges = initialized.edges
+		/** @private @type { import("./model/ioptions").IOptions } */
 		this.options = options
-		/** @private */
+		/** @private @type { Layout } */
 		this.layout = new Layout(nodes, edges, options?.layout)
-		/** @private */
+		/** @private @type { DataManager } */
 		this.dataManager = new DataManager(nodes, edges)
+	}
+
+	/**
+	 * Returns all nodes currently set
+	 * @returns {import("./model/nodesandedges").TrasselNode[]} Nodes
+	 */
+	getNodes() {
+		return this.nodes
+	}
+
+	/**
+	 * Returns all edges currently set
+	 * @returns {import("./model/nodesandedges").TrasselEdge[]} Edges
+	 */
+	getEdges() {
+		return this.edges
 	}
 
 	/**
@@ -85,7 +103,7 @@ export default class Graph {
 	/**
 	 * Computes communities (groups) based on nodes and edges in the graph
 	 * Returns an array of communities, containing nodes grouped by belonging
-	 * @returns {{communities: import("../model/nodeid").NodeID[][], communityTable: {[key: string]: any}}}
+	 * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
 	 */
 	computeCommunities() {
 		return this.louvain()
@@ -94,7 +112,7 @@ export default class Graph {
 	/**
 	 * Computes communities (groups) based on nodes and edges in the graph
 	 * Returns an array of communities, containing nodes grouped by belonging
-	 * @returns {{communities: import("../model/nodeid").NodeID[][], communityTable: {[key: string]: any}}}
+	 * @returns {{communities: import("../model/nodesandedges").NodeID[][], communityTable: {[key: string]: any}}}
 	 */
 	louvain() {
 		return louvain(this.nodes, this.edges)
@@ -102,15 +120,17 @@ export default class Graph {
 
 	/**
 	 * Updates the nodes and edges in the graph
-	 * @param {import("./model/ibasicnode").IBasicNode[]} nodes
-	 * @param {import("./model/ibasicedge").IBasicEdge[]} edges
+	 * @param {import("./model/nodesandedges").DraftNode[]} nodes
+	 * @param {import("./model/nodesandedges").DraftEdge[]} edges
+	 * @param {import("./model/nodesandedges").GraphObjectTemplates=} templates
 	 * @returns {Graph}
 	 */
-	updateNodesAndEdges(nodes, edges) {
-		this.nodes = nodes
-		this.edges = edges
-		this.layout.updateNodesAndEdges(nodes, edges)
-		this.dataManager.updateNodesAndEdges(nodes, edges)
+	updateNodesAndEdges(nodes, edges, templates) {
+		const initialized = initializeNodesAndEdges(nodes, edges, templates)
+		this.nodes = initialized.nodes
+		this.edges = initialized.edges
+		this.layout.updateNodesAndEdges(this.nodes, this.edges)
+		this.dataManager.updateNodesAndEdges(this.nodes, this.edges)
 		return this
 	}
 
@@ -170,13 +190,28 @@ export default class Graph {
 	 * Adds a component to the layout engine
 	 * @param {string} id - Unique identifier for the component
 	 * @param {import("./model/ilayoutcomponent").ILayoutComponent} component - A layout component compatible class instance
-	 * @param {(node: import("./model/igraphnode").IGraphNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
-	 * @param {(edge: import("./model/igraphedge").IGraphEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
+	 * @param {(node: import("./model/nodesandedges").LayoutNode) => boolean=} nodeBindings - Function that computes if a node should be affected by the component. Blank means true for all.
+	 * @param {(edge: import("./model/nodesandedges").LayoutEdge) => boolean=} edgeBindings - Function that computes if an edge should be affected by the component. Blank means true for all.
 	 * @returns {Graph} - this
 	 */
 	addLayoutComponent(id, component, nodeBindings = null, edgeBindings = null) {
 		this.layout.addLayoutComponent(id, component, nodeBindings, edgeBindings)
 		return this
+	}
+
+	/**
+	 * Removes all layout components
+	 */
+	clearAllLayoutComponents() {
+		this.layout.clearAllLayoutComponents()
+	}
+
+	/**
+	 * Checks if a component exists in the layout
+	 * @param {string} id - id of component to check for
+	 */
+	hasLayoutComponent(id) {
+		return this.layout.hasLayoutComponent(id)
 	}
 
 	/**
@@ -193,7 +228,7 @@ export default class Graph {
 	 * Finds the node closest to the provided coordinates in the graph
 	 * @param {number} x
 	 * @param {number} y
-	 * @returns {import("./model/igraphnode").IGraphNode} - The node
+	 * @returns {import("/model/nodesandedges").TrasselNode} - The node
 	 */
 	findClosestNodeByCoordinates(x, y) {
 		return this.layout.findClosestNodeByCoordinates(x, y)
@@ -201,7 +236,7 @@ export default class Graph {
 
 	/**
 	 * Computes online nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOnlineNodes() {
 		return this.dataManager.getOnlineNodes()
@@ -209,7 +244,7 @@ export default class Graph {
 
 	/**
 	 * Computes offline nodes
-	 * @returns {import("./model/ibasicnode").IBasicNode[]} node
+	 * @returns {import("./model/nodesandedges").IBasicNode[]} node
 	 */
 	getOfflineNodes() {
 		return this.dataManager.getOfflineNodes()
@@ -217,7 +252,7 @@ export default class Graph {
 
 	/**
 	 * Computes online edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOnlineEdges() {
 		this.dataManager.getOnlineEdges()
@@ -225,7 +260,7 @@ export default class Graph {
 
 	/**
 	 * Computes offline edges
-	 * @returns {import("./model/ibasicedge").IBasicEdge[]} edge
+	 * @returns {import("./model/nodesandedges").IBasicEdge[]} edge
 	 */
 	getOfflineEdges() {
 		this.dataManager.getOfflineEdges()
@@ -233,7 +268,7 @@ export default class Graph {
 
 	/**
 	 * Checks if an edge is online
-	 * @param {import("./model/ibasicnode").IBasicEdge} edge
+	 * @param {import("./model/nodesandedges").IBasicEdge} edge
 	 * @returns {boolean}
 	 */
 	isEdgeOnline(edge) {
@@ -251,7 +286,7 @@ export default class Graph {
 
 	/**
 	 * Brings the list of node IDs offline
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOffline(nodeIDs) {
 		this.dataManager.bringNodesOffline(nodeIDs)
@@ -262,7 +297,7 @@ export default class Graph {
 
 	/**
 	 * Brings the list of node IDs online
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs
 	 */
 	bringNodesOnline(nodeIDs) {
 		this.dataManager.bringNodesOnline(nodeIDs)
@@ -287,14 +322,15 @@ export default class Graph {
 
 	/**
 	 * Retrieves all neighbors for a given nodeID
-	 * @param {import("./model/nodeid").NodeID} nodeID - ID od the node neighbors should be retrieved for
-	 * @param {boolean} isDirected - Only traverse edges where the input node is the sourceNode
-	 * @param {boolean} useOnlyOnline - Only traverse neighbors that are online
-	 * @param {boolean} ignoreInternalEdges - Ignore self-edges
-	 * @returns {import("./model/nodeid").NodeID[]}
+	 * @param {import("./model/nodesandedges").NodeID} nodeID - ID od the node neighbors should be retrieved for
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.isDirected - Only traverse edges where the input node is the sourceNode
+	 * @param {boolean=} options.useOnlyOnline - Only traverse neighbors that are online
+	 * @param {boolean=} options.ignoreInternalEdges - Ignore self-edges
+	 * @returns {import("./model/nodesandedges").NodeID[]}
 	 */
-	getNeighbors(nodeID, isDirected = false, useOnlyOnline = true, ignoreInternalEdges = true) {
-		return this.dataManager.getNeighbors(nodeID, isDirected, useOnlyOnline, ignoreInternalEdges)
+	getNeighbors(nodeID, options) {
+		return this.dataManager.getNeighbors(nodeID, options)
 	}
 
 	/**
@@ -302,14 +338,15 @@ export default class Graph {
 	 * This function will not apply any changes, but return an array with affected nodes
 	 * The function exists specifically to help applications that implement implode/explode functionality in graphs
 	 * and need to compute what nodes should be brough online/offline.
-	 * @param {import("./model/nodeid").NodeID} nodeID
-	 * @param {boolean} isBringOnline - If true neighbors will be brought online otherwise offline
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {"single"|"recursive"|"leafs"} mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
-	 * @returns {import("./model/nodeid").NodeID[]} - Affected nodes
+	 * @param {import("./model/nodesandedges").NodeID} nodeID
+	 * @param {Object} options - Options for function
+	 * @param {boolean=} options.isBringOnline - If true neighbors will be brought online otherwise offline
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {("single"|"recursive"|"leafs")=} options.mode - Single means all neighbors are affected, leafs means only neighbors with no other neighbors are affected, recursive means neighbors recursively are affected.
+	 * @returns {import("./model/nodesandedges").NodeID[]} - Affected nodes
 	 */
-	computeImplodeOrExplodeNode(nodeID, isBringOnline = false, isDirected = true, mode = "single") {
-		return this.dataManager.computeImplodeOrExplodeNode(nodeID, isBringOnline, isDirected, mode)
+	computeImplodeOrExplodeNode(nodeID, options) {
+		return this.dataManager.computeImplodeOrExplodeNode(nodeID, options)
 	}
 
 	/**
@@ -317,11 +354,11 @@ export default class Graph {
 	 * Accepts an array of node IDs and origin coordinates where the nodes should be animated from.
 	 * Returns an array of vertices with optimal positions based on other neighbors present in the graph, or in the case of leafs a circle around the origin.
 	 * Note(!) that this function expects all nodes and edges to have been initialized into GraphNodes and GraphEdges in order to compute this information.
-	 * @param {import("./model/nodeid").NodeID[]} nodeIDs - Array of node IDs
+	 * @param {import("./model/nodesandedges").NodeID[]} nodeIDs - Array of node IDs
 	 * @param {number} distance - Default distance from origin position to put nodes (for non-average values only!)
 	 * @param {number} originX - Start position for the transition
 	 * @param {number} originY - Start position for the transition
-	 * @returns {{id: import("./model/nodeid").NodeID, x: number, y: numer}[]} - Target coordinates
+	 * @returns {{id: import("./model/nodesandedges").NodeID, x: number, y: numer}[]} - Target coordinates
 	 */
 	stageNodePositions(nodeIDs = [], distance = 300, originX = 0, originY = 0) {
 		return this.dataManager.stageNodePositions(nodeIDs, distance, originX, originY)
@@ -329,65 +366,70 @@ export default class Graph {
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @return {import("./model/nodeid").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @return {import("./model/nodesandedges").NodeID[]} - Array of node IDs from startnode to endnode containing the (a) shortest path
 	 */
-	findShortestPathUnweighted(startNode, endNode, useOnlyOnline = true, isDirected = true) {
-		return this.dataManager.findShortestPathUnweighted(startNode, endNode, useOnlyOnline, isDirected)
+	findShortestPathUnweighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathUnweighted(startNode, endNode, options)
 	}
 
 	/**
 	 * Computes the shortest path from one node to another. Returns an array with the nodeIDs, or null if there is no path.
 	 * This is basically Dijkstra's algorithm:
 	 * https://en.wikipedia.org/wiki/Dijkstra's_algorithm
-	 * @param {import("./model/nodeid").NodeID} startNode - Node ID where the road starts
-	 * @param {import("./model/nodeid").NodeID} endNode - Node ID where the road ends
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @param {boolean} isDirected - If true then operation will be directed
-	 * @param {boolean} aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
-	 * @return {{id: import("./model/nodeid").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
+	 * @param {import("./model/nodesandedges").NodeID} startNode - Node ID where the road starts
+	 * @param {import("./model/nodesandedges").NodeID} endNode - Node ID where the road ends
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @param {boolean=} options.isDirected - If true then operation will be directed
+	 * @param {boolean=} options.aggregateEdgeWeights - If true then weights for all edges between a set of nodes are aggregated and treated as a single edge
+	 * @return {{id: import("./model/nodesandedges").NodeID, cost: number}[]} - Array of nodes and costs from startnode to endnode containing the (a) cheapest path
 	 */
-	findShortestPathWeighted(startNode, endNode, useOnlyOnline = true, isDirected = true, aggregateEdgeWeights = false) {
-		return this.dataManager.findShortestPathWeighted(startNode, endNode, useOnlyOnline, isDirected, aggregateEdgeWeights)
+	findShortestPathWeighted(startNode, endNode, options) {
+		return this.dataManager.findShortestPathWeighted(startNode, endNode, options)
 	}
 
 	/**
 	 * Computes strongly connected components in the graph.
 	 * Basically an implementation of Kosoraju's algorithm.
 	 * https://en.wikipedia.org/wiki/Kosaraju%27s_algorithm
-	 * @param {boolean} useOnlyOnline - If true the shortest path will only be computed for live nodes
-	 * @return {("./model/nodeid").NodeID[][]} - Strongly connected components.
+	 * @param {Object} options - options for the function
+	 * @param {boolean=} options.useOnlyOnline - If true the shortest path will only be computed for live nodes
+	 * @return {("./model/nodesandedges").NodeID[][]} - Strongly connected components.
 	 */
-	computeStronglyConnectedComponents(useOnlyOnline = true) {
-		return this.dataManager.computeStronglyConnectedComponents(useOnlyOnline)
+	computeStronglyConnectedComponents(options) {
+		return this.dataManager.computeStronglyConnectedComponents(options)
 	}
 
 	/**
 	 * Executes a breadth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - If true only online nodes will be processed
+	 * @param {boolean=} options.useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} options.isDirected - If true then traversal will be directed
 	 */
-	BFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.BFS(startNode, callback, useOnlyOnline, isDirected)
+	BFS(startNode, callback, options) {
+		this.dataManager.BFS(startNode, callback, options)
 	}
 
 	/**
 	 * Executes a depth-first search in the graph given a start node.
 	 * Each node encountered will be handed off to a callback function provided,
 	 * If the callback function returns true then that branch will be terminated.
-	 * @param {import("./model/nodeid").NodeID} startNode
-	 * @param {(import("./model/nodeid").NodeID) => void|true} callback
-	 * @param {boolean} useOnlyOnline - If true only online nodes will be processed
-	 * @param {boolean} isDirected - If true then traversal will be directed
+	 * @param {import("./model/nodesandedges").NodeID} startNode
+	 * @param {(import("./model/nodesandedges").NodeID) => void|true} callback
+	 * @param {Object} options - Options for the function
+	 * @param {boolean=} useOnlyOnline - If true only online nodes will be processed
+	 * @param {boolean=} isDirected - If true then traversal will be directed
 	 */
-	DFS(startNode, callback, useOnlyOnline = true, isDirected = true) {
-		this.dataManager.DFS(startNode, callback, useOnlyOnline, isDirected)
+	DFS(startNode, callback, options) {
+		this.dataManager.DFS(startNode, callback, options)
 	}
 }

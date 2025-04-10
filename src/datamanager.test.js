@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from "vitest"
 import DataManager from "./datamanager"
 
 describe("Data Manager", () => {
@@ -44,9 +45,9 @@ describe("Data Manager", () => {
 		expect(dataManager.getOfflineEdges().length).toEqual(5)
 		expect(dataManager.isEdgeOnline(edges[0])).toEqual(false)
 		//Computing neighbors based on parameters works
-		expect(dataManager.getNeighbors("n2", false, false, true).length).toEqual(3)
-		expect(dataManager.getNeighbors("n2", false, true, true).length).toEqual(2)
-		expect(dataManager.getNeighbors("n2", true, true, true).length).toEqual(1)
+		expect(dataManager.getNeighbors("n2", { isDirected: false, useOnlyOnline: false, ignoreInternalEdges: true }).length).toEqual(3)
+		expect(dataManager.getNeighbors("n2", { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true }).length).toEqual(2)
+		expect(dataManager.getNeighbors("n2", { isDirected: true, useOnlyOnline: true, ignoreInternalEdges: true }).length).toEqual(1)
 		dataManager.bringAllNodesOnline()
 		expect(dataManager.onlineNodes.size).toEqual(4)
 	})
@@ -55,12 +56,12 @@ describe("Data Manager", () => {
 		//In order to test the leaf functionality we remove all edges that connect to n3 except n2
 		edges = edges.filter(edge => edge.targetNode !== "n3" || edge.sourceNode === "n2")
 		const dataManager = new DataManager(nodes, edges)
-		const singleUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", false, false, "single")
-		const recursiveUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", false, false, "recursive")
-		const leafsUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n2", false, false, "leafs")
-		const singleDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", false, true, "single")
-		const recursiveDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", false, true, "recursive")
-		const leafsDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n2", false, true, "leafs")
+		const singleUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: false, mode: "single" })
+		const recursiveUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: false, mode: "recursive" })
+		const leafsUndirectedImplosion = dataManager.computeImplodeOrExplodeNode("n2", { isBringOnline: false, isDirected: false, mode: "leafs" })
+		const singleDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: true, mode: "single" })
+		const recursiveDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: true, mode: "recursive" })
+		const leafsDirectedImplosion = dataManager.computeImplodeOrExplodeNode("n2", { isBringOnline: false, isDirected: true, mode: "leafs" })
 		//Single Undirected Implosion
 		expect(singleUndirectedImplosion.length).toEqual(2)
 		expect(singleUndirectedImplosion).toContainEqual("n0")
@@ -143,9 +144,9 @@ describe("Data Manager", () => {
 			{ sourceNode: "n6", targetNode: "n0" },
 		]
 		const dataManager = new DataManager(shortestPathNodes, shortestPathEdges)
-		const shortestPathDirected = dataManager.findShortestPathUnweighted("n0", "n6", true, true)
-		const shortestPathUndirected = dataManager.findShortestPathUnweighted("n0", "n6", true, false)
-		const impossiblePath = dataManager.findShortestPathUnweighted("n0", "n7", true, false)
+		const shortestPathDirected = dataManager.findShortestPathUnweighted("n0", "n6", { useOnlyOnline: true, isDirected: true })
+		const shortestPathUndirected = dataManager.findShortestPathUnweighted("n0", "n6", { useOnlyOnline: true, isDirected: false })
+		const impossiblePath = dataManager.findShortestPathUnweighted("n0", "n7", { useOnlyOnline: true, isDirected: false })
 		expect(shortestPathDirected.length).toEqual(6)
 		expect(shortestPathDirected.join("")).toEqual("n0n1n2n3n4n6")
 		expect(shortestPathUndirected.length).toEqual(2)
@@ -168,12 +169,20 @@ describe("Data Manager", () => {
 			{ sourceNode: "n6", targetNode: "n0", weight: 1000 }, { sourceNode: "n0", targetNode: "n1", weight: 1000 },
 		]
 		const dataManager = new DataManager(shortestPathNodes, shortestPathEdges)
-		const shortestPathDirected = dataManager.findShortestPathWeighted("n0", "n6", true, true, false)
-		const shortestPathUndirected = dataManager.findShortestPathWeighted("n0", "n6", true, false, false)
-		const shortestPathDirectedAggregated = dataManager.findShortestPathWeighted("n0", "n6", true, true, true)
-		const shortestPathUndirectedAggregated = dataManager.findShortestPathWeighted("n0", "n6", true, false, true)
-		const impossiblePath = dataManager.findShortestPathWeighted("n0", "n7", true, false)
-		//Directed
+		const shortestPathDirected = dataManager.findShortestPathWeighted("n0", "n6", { useOnlyOnline: true, isDirected: true, aggregateEdgeWeights: false })
+		const shortestPathUndirected = dataManager.findShortestPathWeighted("n0", "n6", { useOnlyOnline: true, isDirected: false, aggregateEdgeWeights: false })
+		const shortestPathDirectedAggregated = dataManager.findShortestPathWeighted("n0", "n6", {
+			useOnlyOnline: true,
+			isDirected: true,
+			aggregateEdgeWeights: true
+		})
+		const shortestPathUndirectedAggregated = dataManager.findShortestPathWeighted("n0", "n6", {
+			useOnlyOnline: true,
+			isDirected: false,
+			aggregateEdgeWeights: true
+		})
+		const impossiblePath = dataManager.findShortestPathWeighted("n0", "n7", { useOnlyOnline: true, isDirected: false })
+		//}Directed
 		expect(shortestPathDirected.length).toEqual(6)
 		expect(shortestPathDirected.map(path => path.id).join("")).toEqual("n0n1n2n3n4n6")
 		expect(shortestPathDirected[shortestPathDirected.length - 1].weight).toEqual(5)
@@ -203,7 +212,7 @@ describe("Data Manager", () => {
 			{ sourceNode: "n2", targetNode: "n3" }
 		]
 		const dataManager = new DataManager(nodes, edges)
-		const components = dataManager.computeStronglyConnectedComponents(true)
+		const components = dataManager.computeStronglyConnectedComponents({ useOnlyOnline: true })
 		expect(components.length).toEqual(3)
 		expect(components.some(component => component.length === 3)).toBeTruthy()
 		expect(components.some(component => component.length === 1)).toBeTruthy()

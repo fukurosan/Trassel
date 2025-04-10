@@ -1,6 +1,11 @@
+import { GraphObjectTemplates } from "./nodesandedges"
+
 /** Options for the graph layout engine */
 export interface IOptions {
+	/** Options for the layout engine */
 	layout?: ILayoutOptions
+	/** Templates to apply to nodes and edges */
+	templates?: GraphObjectTemplates
 }
 
 /** Options for the layout engine */

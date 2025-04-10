@@ -2,9 +2,9 @@
  * Takes an acyclic(!) graph as input and returns nodes sorted by level from first source to last target.
  * Also returns a second array containing "fake" nodes that connect the different layers.
  * E.g. if node A in level 1 connects directly to node B in level 4 then the fake hierarchy will contain intermediary nodes.
- * @param {import("../../model/ibasicnode").IBasicNode[]} nodes
- * @param {import("../../model/ibasicedge").IBasicEdge[]} edges
- * @returns {{hierarchy: import("../../model/ibasicnode").IBasicNode[][], fakeNodesHierarchy: import("../../model/ibasicnode").IBasicNode[][] fakeEdges: import("../../model/ibasicedge").IBasicEdge[]}} - Level array of nodes
+ * @param {import("../../model/nodesandedges").IBasicNode[]} nodes
+ * @param {import("../../model/nodesandedges").IBasicEdge[]} edges
+ * @returns {{hierarchy: import("../../model/nodesandedges").IBasicNode[][], fakeNodesHierarchy: import("../../model/nodesandedges").IBasicNode[][] fakeEdges: import("../../model/nodesandedges").IBasicEdge[]}} - Level array of nodes
  */
 export const determineLevels = (nodes, edges) => {
 	const incomingEdges = new Map(nodes.map(node => [node.id, edges.filter(edge => edge.targetNode === node.id)]))

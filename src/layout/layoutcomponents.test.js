@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from "vitest"
 import { initializeNodesAndEdges } from "../util/initializer"
 import Quadtree from "../util/quadtree"
 import {
@@ -76,7 +77,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Animation component", () => {
-		const component = new Animation(1000, 1000, 0.1, true)
+		const component = new Animation({ xDestination: 1000, yDestination: 1000, strength: 0.1, removeForceOnDestination: true })
 		let stop = false
 		const removeFn = () => (stop = true)
 		nodes[1].targetX = 1100
@@ -92,8 +93,8 @@ describe("Layout Components", () => {
 	})
 
 	it("Attraction component", () => {
-		const component1 = new Attraction(true, 0, 1)
-		const component2 = new Attraction(false, 0, 1)
+		const component1 = new Attraction({ isHorizontal: true, coordinate: 0, strength: 1 })
+		const component2 = new Attraction({ isHorizontal: false, coordinate: 0, strength: 1 })
 		component1.initialize(nodes, edges, {})
 		component2.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
@@ -105,7 +106,7 @@ describe("Layout Components", () => {
 	})
 
 	it("BoundingBox component", () => {
-		const component = new BoundingBox(30, 30)
+		const component = new BoundingBox({ width: 30, height: 30 })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -115,7 +116,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Center component", () => {
-		const component = new Center(0, 0)
+		const component = new Center({ x: 0, y: 0 })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -135,7 +136,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Collision component", () => {
-		const component = new Collision(1, 5)
+		const component = new Collision({ strength: 1, radiusPadding: 5 })
 		const quadtree = new Quadtree(nodes)
 		component.initialize(nodes, edges, { quadtree })
 		for (let i = 0; i < 300; i++) {
@@ -154,7 +155,7 @@ describe("Layout Components", () => {
 			index > 2 && (index = 0)
 			return group
 		}
-		const component = new Fan(determineGroup, undefined, undefined, 0, 0)
+		const component = new Fan({ computeGroup: determineGroup, centerX: 0, centerY: 0 })
 		component.initialize(nodes, edges)
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -164,7 +165,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Grid component", () => {
-		const component = new Grid(true, true)
+		const component = new Grid({ useX: true, useY: true })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -174,7 +175,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Hierarchy component", () => {
-		const component = new Hierarchy(undefined, undefined, undefined, undefined, 0, 0)
+		const component = new Hierarchy({ centerX: 0, centerY: 0 })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -185,14 +186,14 @@ describe("Layout Components", () => {
 
 	it("Tree component", () => {
 		const treeNodes = [
-			{ id: "n0", radius: 30, mass: 1000 },
-			{ id: "n1", radius: 30, mass: 1000 },
-			{ id: "n2", radius: 30, mass: 1000 },
-			{ id: "n3", radius: 30, mass: 1000 },
-			{ id: "n4", radius: 30, mass: 1000 },
-			{ id: "n5", radius: 30, mass: 1000 },
-			{ id: "n6", radius: 30, mass: 1000 },
-			{ id: "n7", radius: 30, mass: 1000 }
+			{ id: "n0", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n1", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n2", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n3", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n4", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n5", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n6", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n7", shape: { id: "circle", radius: 30 }, mass: 1000 }
 		]
 		const treeEdges = [
 			{ sourceNode: "n0", targetNode: "n1", distance: 50 },
@@ -211,14 +212,14 @@ describe("Layout Components", () => {
 
 	it("Connection component", () => {
 		const treeNodes = [
-			{ id: "n0", radius: 30, mass: 1000 },
-			{ id: "n1", radius: 30, mass: 1000 },
-			{ id: "n2", radius: 30, mass: 1000 },
-			{ id: "n3", radius: 30, mass: 1000 },
-			{ id: "n4", radius: 30, mass: 1000 },
-			{ id: "n5", radius: 30, mass: 1000 },
-			{ id: "n6", radius: 30, mass: 1000 },
-			{ id: "n7", radius: 30, mass: 1000 }
+			{ id: "n0", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n1", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n2", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n3", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n4", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n5", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n6", shape: { id: "circle", radius: 30 }, mass: 1000 },
+			{ id: "n7", shape: { id: "circle", radius: 30 }, mass: 1000 }
 		]
 		const treeEdges = [
 			{ sourceNode: "n0", targetNode: "n1", distance: 50 },
@@ -246,7 +247,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Matrix component", () => {
-		const component = new Matrix(undefined, 0, 0)
+		const component = new Matrix({ centerX: 0, centerY: 0 })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -278,7 +279,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Radial component", () => {
-		const component = new Radial(undefined, 0, 0)
+		const component = new Radial({ centerX: 0, centerY: 0 })
 		component.initialize(nodes, edges, {})
 		for (let i = 0; i < 300; i++) {
 			component.execute(ALPHA)
@@ -288,7 +289,7 @@ describe("Layout Components", () => {
 	})
 
 	it("Typical component setup", () => {
-		const components = [new Collision(), new NBody(), new Attraction(true), new Attraction(false), new Link()]
+		const components = [new Collision(), new NBody(), new Attraction({ isHorizontal: true }), new Attraction({ isHorizontal: false }), new Link()]
 		const utils = {
 			quadtree: new Quadtree(nodes)
 		}

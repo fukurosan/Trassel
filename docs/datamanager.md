@@ -37,9 +37,9 @@ graph.bringAllNodesOnline()
 graph.bringNodesOffline(["n1"]) // -> void
 //When n1 is brought offline so are all edges that connect with it
 //If we try to retrieve neighbors for n2 we will get an empty array
-graph.getNeighbors("n2", false, true, true) // -> []
+graph.getNeighbors("n2", { isDirected: false, useOnlyOnline: true, ignoreInternalEdges: true }) // -> []
 //We can instruct Trassel to ignore the online/offline state like so:
-graph.getNeighbors("n2", false, false, true) // -> [{ sourceNode: "n1", targetNode: "n2" }]
+graph.getNeighbors("n2", { isDirected: false, useOnlyOnline: false, ignoreInternalEdges: true }) // -> [{ sourceNode: "n1", targetNode: "n2" }]
 //Finally, we can bring n1 back online
 graph.bringNodesOnline(["n1"]) // -> void
 ```
@@ -73,7 +73,7 @@ const nodes = [{ id: "n1" }, { id: "n2" }, { id: "n3" }]
 const edges = [{ sourceNode: "n1", targetNode: "n2" },{ sourceNode: "n2", targetNode: "n3" }]
 const graph = new Trassel(nodes, edges)
 
-graph.computeImplodeOrExplodeNode("n1", false, false, mode = "single") // -> ["n2"]
+graph.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: false, mode: "single" }) // -> ["n2"]
 ```
 
 #### Leafs
@@ -87,7 +87,7 @@ const nodes = [{ id: "n1" }, { id: "n2" }, { id: "n3" }, { id: "n4" }]
 const edges = [{ sourceNode: "n1", targetNode: "n2" },{ sourceNode: "n2", targetNode: "n3" }, { sourceNode: "n1", targetNode: "n4" }]
 const graph = new Trassel(nodes, edges)
 
-graph.computeImplodeOrExplodeNode("n1", false, false, mode = "single") // -> ["n4"]
+graph.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: false, mode: "leafs" }) // -> ["n4"]
 ```
 
 #### Recursive
@@ -101,7 +101,7 @@ const nodes = [{ id: "n1" }, { id: "n2" }, { id: "n3" }]
 const edges = [{ sourceNode: "n1", targetNode: "n2" },{ sourceNode: "n2", targetNode: "n3" }]
 const graph = new Trassel(nodes, edges)
 
-graph.computeImplodeOrExplodeNode("n1", false, false, mode = "single") // -> ["n2", "n3"]
+graph.computeImplodeOrExplodeNode("n1", { isBringOnline: false, isDirected: false, mode: "recursive" }) // -> ["n2", "n3"]
 ```
 
 ---

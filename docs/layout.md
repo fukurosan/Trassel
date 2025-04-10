@@ -137,7 +137,11 @@ The following additional arguments can be passed to the constructor:
 
 The link component is used to attract nodes in the graph that have edges connecting them. The component's strength changes depending on the distance between the two nodes relative to the `.distance` property configured on the edge, `.distance` being the optimal distance between the two nodes.
 
-This component has no constructor arguments.
+The following additional arguments can be passed to the constructor:
+ - **useRelativeStrength** 
+   - **Description**: *Should edge strength be computed based on total edge counts for connected nodes rather than a fixed value?*
+   - **Type**: `boolean`
+   - **Default**: `false`
 
 ---
 
@@ -429,6 +433,18 @@ If no width or height is provided to the bounding box function these values will
    - **Description**: *Height of the box. If not set will be determined by the sizes and amounts of the nodes*
    - **Type**: `number`
    - **Default**: `null`
+
+---
+
+### D3 Adapter
+***Type: N/A***
+
+The D3 adapter can be used to implement d3 forces in Trassel layouts. Note that several parameters in Trassels computations are differently scaled from d3, and as a result you may need to fiddle with the default values of your forces.
+
+ - **d3force** 
+   - **Description**: *The instantiated d3 force*
+   - **Type**: `N/A`
+   - **Default**: `undefined`
 
 ---
 

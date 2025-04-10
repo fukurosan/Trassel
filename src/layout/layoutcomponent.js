@@ -6,9 +6,9 @@ import Quadtree from "../util/quadtree"
  */
 export default class LayoutComponent {
 	constructor() {
-		/** @type {import("../model/igraphnode").IGraphNode[]} */
+		/** @type {import("../model/nodesandedges").LayoutNode[]} */
 		this.nodes = []
-		/** @type {import("../model/igraphedge").IGraphEdge[]} */
+		/** @type {import("../model/nodesandedges").LayoutEdge[]} */
 		this.edges = []
 		this.random = lcg()
 		this.utils = { quadtree: new Quadtree(), remove: () => {} }
