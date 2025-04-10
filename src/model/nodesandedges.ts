@@ -119,6 +119,8 @@ export interface TrasselEdge extends IBasicEdge {
 		labelTextColor?: string
 		/** Is the label interactive? */
 		isInteractive?: boolean
+		/** Should the lines be dotted? */
+		dotted?: boolean
 		/** In an orthogonal line type this can be used to control where the lines start and end */
 		sourceEdgePosition?: OrthogonalEdgePositions
 		/** In an orthogonal line type this can be used to control where the lines start and end */

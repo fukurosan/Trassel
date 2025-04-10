@@ -4,6 +4,7 @@ import { Env } from "../config/env"
 import { Tooltip } from "./tooltip"
 import { ZoomControls } from "./zoombuttons"
 import { ContextMenu } from "./contextmenu"
+import { DashedLineBuilder } from "./dashedlinebuilder"
 
 /**
  * The WebGL renderer class is a bit messy right now, and some functionality should be broken out into separate files.
@@ -1291,10 +1292,18 @@ export class WebGLRenderer {
 					midPointY = pathStart.y + (pathEnd.y - pathStart.y) / 2
 				}
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: midPointY }
-				line.moveTo(pathStart.x, pathStart.y)
-				line.lineTo(pathStart.x, midPointY)
-				line.lineTo(pathEnd.x, midPointY)
-				line.lineTo(pathEnd.x, pathEnd.y)
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(pathStart.x, pathStart.y)
+					dlb.lineTo(pathStart.x, midPointY)
+					dlb.lineTo(pathEnd.x, midPointY)
+					dlb.lineTo(pathEnd.x, pathEnd.y)
+				} else {
+					line.moveTo(pathStart.x, pathStart.y)
+					line.lineTo(pathStart.x, midPointY)
+					line.lineTo(pathEnd.x, midPointY)
+					line.lineTo(pathEnd.x, pathEnd.y)
+				}
 			} else if (this.lineType === "cubicbezier") {
 				//TODO:: Marker angles need to be computed based on the curve rather than the angle between start and end.
 				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
@@ -1350,19 +1359,31 @@ export class WebGLRenderer {
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
 				//We hijack the curvepoint parameter to use later for positioning the markers
 				curvePoint = { source: routeOptions.pointA.side, target: routeOptions.pointB.side }
-				line.moveTo(x, y)
-				path.forEach(path => line.lineTo(path.x, path.y))
+				if (edge.rendererOptions?.dotted) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(x, y)
+					path.forEach(path => dlb.lineTo(path.x, path.y))
+				} else {
+					line.moveTo(x, y)
+					path.forEach(path => line.lineTo(path.x, path.y))
+				}
 			} else {
 				//Straight lines
 				curvePoint = this.computeCurvePoint(source, target, edge.rendererInternals.edgeCounter)
 				pathStart = this.calculateIntersection(curvePoint, source, this.LINE_MARGIN_PX)
 				pathEnd = this.calculateIntersection(curvePoint, target, this.LINE_MARGIN_PX)
 				labelPoint = { x: (pathStart.x + pathEnd.x) / 2, y: (pathStart.y + pathEnd.y) / 2 }
-				line.moveTo(pathStart.x, pathStart.y)
-				if (edge.rendererInternals.edgeCounter.total > 1) {
-					line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
+				if (edge.rendererOptions?.dotted && edge.rendererInternals.edgeCounter.total <= 1) {
+					const dlb = new DashedLineBuilder(line)
+					dlb.moveTo(pathStart.x, pathStart.y)
+					dlb.lineTo(pathEnd.x, pathEnd.y)
 				} else {
-					line.lineTo(pathEnd.x, pathEnd.y)
+					line.moveTo(pathStart.x, pathStart.y)
+					if (edge.rendererInternals.edgeCounter.total > 1) {
+						line.quadraticCurveTo(curvePoint.x, curvePoint.y, pathEnd.x, pathEnd.y)
+					} else {
+						line.lineTo(pathEnd.x, pathEnd.y)
+					}
 				}
 			}
 			//Compute marker positions (arrow heads)
@@ -1389,7 +1410,18 @@ export class WebGLRenderer {
 				markerSource.position = new PIXI.Point(pathStart.x, pathStart.y)
 			}
 			//Complete drawing the line
-			line.stroke({ width: Env.RENDERER_EDGE_WIDTH, color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR) })
+			if (edge.rendererOptions?.dotted && (edge.rendererInternals.edgeCounter.total > 1 || this.lineType === "cubicbezier")) {
+				//If we have drawn bent lines (quadratic curve or bezier) then we add the dash using a texture instead
+				const dlb = new DashedLineBuilder(line)
+				line.stroke({
+					width: Env.RENDERER_EDGE_WIDTH,
+					color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR),
+					...dlb.getDirectionalTexture(pathStart.x, pathStart.y, pathEnd.x, pathEnd.y)
+				})
+			} else {
+				line.stroke({ width: Env.RENDERER_EDGE_WIDTH, color: this.getHexColor(edge.rendererOptions?.color || Env.DEFAULT_RENDERER_EDGE_COLOR) })
+			}
+
 			//Compute label position (if applicable)
 			const text = edge.rendererInternals.text
 			if (text) {
