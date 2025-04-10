@@ -198,12 +198,12 @@ export class WebGLRenderer {
 		}
 		const onClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdropclick", { position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+				this.triggerEvent("backdropclick", { position: { x: event.clientX, y: event.clientY } })
 			}
 		}
 		const onRightClick = event => {
 			if (!blockCanvasClick && !this.lassoEnabled) {
-				this.triggerEvent("backdroprightclick", { position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+				this.triggerEvent("backdroprightclick", { position: { x: event.clientX, y: event.clientY } })
 				if (this.contextMenuBuilder) {
 					this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(null))
 				}
@@ -452,13 +452,13 @@ export class WebGLRenderer {
 					node.rendererInternals.container.addChildAt(focusGfx2, 0)
 					node.rendererInternals.isFocused = true
 					this.render()
-					this.triggerEvent("entityhoverstart", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
-					this.tooltip.showTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY, label)
+					this.triggerEvent("entityhoverstart", { node, position: { x: event.clientX, y: event.clientY } })
+					this.tooltip.showTooltip(event.clientX, event.clientY, label)
 				}
 			}
 			const pointerMove = event => {
-				this.triggerEvent("entityhovermove", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
-				this.tooltip.moveTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY)
+				this.triggerEvent("entityhovermove", { node, position: { x: event.clientX, y: event.clientY } })
+				this.tooltip.moveTooltip(event.clientX, event.clientY)
 			}
 			const pointerOut = () => {
 				if (node.rendererInternals.isFocused) {
@@ -476,12 +476,12 @@ export class WebGLRenderer {
 			//Make node clickable
 			const onClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityclick", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+					this.triggerEvent("entityclick", { node, position: { x: event.clientX, y: event.clientY } })
 				}
 			}
 			const onRightClick = event => {
 				if (!blockClick) {
-					this.triggerEvent("entityrightclick", { node, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+					this.triggerEvent("entityrightclick", { node, position: { x: event.clientX, y: event.clientY } })
 					if (this.contextMenuBuilder) {
 						this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(node))
 					}
@@ -620,16 +620,16 @@ export class WebGLRenderer {
 						this.render()
 						this.triggerEvent("edgelabelhoverstart", {
 							edge,
-							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
+							position: { x: event.clientX, y: event.clientY }
 						})
-						this.tooltip.showTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY, label)
+						this.tooltip.showTooltip(event.clientX, event.clientY, label)
 					}
 					const pointerMove = event => {
 						this.triggerEvent("edgelabelhovermove", {
 							edge,
-							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
+							position: { x: event.clientX, y: event.clientY }
 						})
-						this.tooltip.moveTooltip(event.data.originalEvent.clientX, event.data.originalEvent.clientY)
+						this.tooltip.moveTooltip(event.clientX, event.clientY)
 					}
 					const pointerOut = () => {
 						if (edge.rendererInternals.isFocused) {
@@ -646,12 +646,12 @@ export class WebGLRenderer {
 					textContainer.on("pointerout", pointerOut)
 					//Make it clickable
 					const onClick = event => {
-						this.triggerEvent("edgelabelclick", { edge, position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY } })
+						this.triggerEvent("edgelabelclick", { edge, position: { x: event.clientX, y: event.clientY } })
 					}
 					const onRightClick = event => {
 						this.triggerEvent("edgelabelrightclick", {
 							edge,
-							position: { x: event.data.originalEvent.clientX, y: event.data.originalEvent.clientY }
+							position: { x: event.clientX, y: event.clientY }
 						})
 						if (this.contextMenuBuilder) {
 							this.contextMenu.showMenu(event.clientX, event.clientY, this.contextMenuBuilder(edge))
