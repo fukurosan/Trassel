@@ -25,14 +25,37 @@ export class ContextMenu {
 	showMenu(x, y, contextMenu) {
 		this.menu.innerHTML = ""
 		this.menu.style.left = `${x}px`
-		this.menu.style.top = `${y + 10}px`
+		this.menu.style.top = `${y}px`
 		this.menu.style.display = "block"
+
 		this.createMenuFromSections(contextMenu, this.menu)
 		const closeMenu = () => {
 			this.hideMenu()
 			document.removeEventListener("click", closeMenu)
 		}
 		document.addEventListener("click", closeMenu)
+
+		//Adjust coordinates so that we are inside the viewport
+		const adjustments = this.computeAdjustIntoViewport(this.menu)
+		this.menu.style.left = `${x + adjustments.leftAdjustment}px`
+		this.menu.style.top = `${y + adjustments.topAdjustment}px`
+	}
+
+	/**
+	 * Computes how many pixels the element must be adjusted to the left and top (x and y) axis to not overflow the right and bottom part of the viewport
+	 * @param {HTMLElement} element
+	 */
+	computeAdjustIntoViewport(element) {
+		const bcr = element.getBoundingClientRect()
+		let leftAdjustment = 0
+		let topAdjustment = 0
+		if (bcr.x + bcr.width > window.innerWidth) {
+			leftAdjustment = -bcr.width
+		}
+		if (bcr.y + bcr.height > window.innerHeight) {
+			topAdjustment = -bcr.height
+		}
+		return { leftAdjustment, topAdjustment }
 	}
 
 	/**
@@ -115,11 +138,23 @@ export class ContextMenu {
 				//Create sub-menu
 				const subMenuContainer = document.createElement("div")
 				subMenuContainer.style.position = "absolute"
+				subMenuContainer.style.zIndex = 1
 				subMenuContainer.style.left = "100%"
 				subMenuContainer.style.top = `-${BASE_SPACING}rem` //Same as parent padding
 				subMenuContainer.style.display = "none"
 				this.createMenuFromSections(section.action, subMenuContainer)
-				buttonContainer.addEventListener("pointerenter", () => (subMenuContainer.style.display = "block"))
+				buttonContainer.addEventListener("pointerenter", () => {
+					subMenuContainer.style.display = "block"
+					const { leftAdjustment, topAdjustment } = this.computeAdjustIntoViewport(subMenuContainer)
+					if (leftAdjustment < 0) {
+						subMenuContainer.style.right = subMenuContainer.style.left
+						subMenuContainer.style.left = null
+					}
+					if (topAdjustment < 0) {
+						subMenuContainer.style.bottom = subMenuContainer.style.top
+						subMenuContainer.style.top = null
+					}
+				})
 				buttonContainer.addEventListener("pointerleave", () => (subMenuContainer.style.display = "none"))
 				buttonContainer.appendChild(subMenuContainer)
 			}
