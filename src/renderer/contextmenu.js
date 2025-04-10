@@ -9,6 +9,9 @@ export class ContextMenu {
 		this.menu.addEventListener("click", () => this.hideMenu())
 	}
 
+	/**
+	 * Hides the menu
+	 */
 	hideMenu() {
 		this.menu.style.display = "none"
 	}
@@ -34,6 +37,7 @@ export class ContextMenu {
 
 	/**
 	 * Creates a menu from a given number of sections and appends everything to the provided parent element
+	 * @private
 	 * @param {import("../model/contextmenu").contextMenu[]} sections - Menu sections
 	 * @param {HTMLElement} parent
 	 */

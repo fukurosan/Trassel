@@ -59,6 +59,11 @@ export class ZoomControls {
 		return button
 	}
 
+	/**
+	 * Scales the current scale with a given multiplier from the center of the viewed section of the stage
+	 * @private
+	 * @param {number} multiplier
+	 */
 	zoomToMultiplier(multiplier) {
 		const centerX = this.element.clientWidth / 2
 		const centerY = this.element.clientHeight / 2
